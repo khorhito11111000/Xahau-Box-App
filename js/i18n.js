@@ -2,7 +2,7 @@
 window.BOX_I18N = {
 en: {
   recipientPh: 'r... (recipient)',
-  change: 'Change', homeTitle1: 'Give a gift box', homeTitle2: 'right on the ledger',
+  change: 'Change', homeTitle1: 'Build and give a box', homeTitle2: 'XAH and a token, or just one, inside',
   homeSub: 'Put XAH and/or a URIToken inside, lock it, and hand it over with a QR code.',
   createBox: 'Create a box', openBox: 'Open a box', myBoxes: 'My boxes',
   homeNote: 'No server. You sign every step in your own wallet.',
@@ -52,7 +52,7 @@ en: {
 },
 es: {
   recipientPh: 'r... (destinatario)',
-  change: 'Cambiar', homeTitle1: 'Regala una caja', homeTitle2: 'directamente en el ledger',
+  change: 'Cambiar', homeTitle1: 'Arma y regala una caja', homeTitle2: 'XAH y un token, o solo uno, dentro',
   homeSub: 'Mete XAH y/o un URIToken, ciérrala y entrégala con un código QR.',
   createBox: 'Crear una caja', openBox: 'Abrir una caja', myBoxes: 'Mis cajas',
   homeNote: 'Sin servidor. Firmas cada paso en tu propia billetera.',
@@ -101,7 +101,7 @@ es: {
 },
 fr: {
   recipientPh: 'r... (destinataire)',
-  change: 'Changer', homeTitle1: 'Offrez une boîte cadeau', homeTitle2: 'directement sur le ledger',
+  change: 'Changer', homeTitle1: 'Préparez et offrez une boîte', homeTitle2: 'XAH et un token, ou l’un des deux, dedans',
   homeSub: 'Mettez des XAH et/ou un URIToken dedans, verrouillez-la et remettez-la avec un QR code.',
   createBox: 'Créer une boîte', openBox: 'Ouvrir une boîte', myBoxes: 'Mes boîtes',
   homeNote: 'Aucun serveur. Vous signez chaque étape dans votre propre wallet.',
@@ -150,7 +150,7 @@ fr: {
 },
 ru: {
   recipientPh: 'r... (получатель)',
-  change: 'Сменить', homeTitle1: 'Подари бокс', homeTitle2: 'прямо в блокчейне',
+  change: 'Сменить', homeTitle1: 'Собери и подари бокс', homeTitle2: 'XAH и токен или что-то одно внутри',
   homeSub: 'Положи внутрь XAH и/или URIToken, закрой и отдай по QR-коду.',
   createBox: 'Создать бокс', openBox: 'Открыть бокс', myBoxes: 'Мои боксы',
   homeNote: 'Без сервера. Каждый шаг подписываешь в своём кошельке.',
