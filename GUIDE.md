@@ -90,7 +90,7 @@ flowchart TD
 - `EVERGRAM_URL` — currently `https://evergram.app`. Change it if there is a link to the xApp inside Xaman.
 
 ## Honest limitations
-- **Sibling hooks.** If other hooks are installed on the same account, they can affect box transactions. The box hook does not forbid them.
+- **Sibling hooks.** All hooks on one account are equal. Hooks that send payments on their own can spend the box's XAH (the payout then fails and the box stays closed until the balance is topped up). A buggy or unknown hook can change or delete box data. The box hook does not forbid them: install only hooks you trust and understand. In v15 (in progress) the box's XAH will be reserved.
 - **Trust in the owner.** The box lives on the owner's account. The owner can take a box back ("Take back") and controls the account and its hooks.
 - **Everything is public.** Amounts, tokens, time limits, addresses and hook state are visible to everyone on the ledger. The page code is also open to anyone who opens it.
 - **"For anyone" = cash.** Whoever uses the link first takes it.

@@ -136,7 +136,7 @@ const appUrl = () => C.APP_URL || (location.origin + location.pathname);
 const qrLink = q => appUrl() + '#' + q;
 
 /* ---------- screens ---------- */
-const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'boxes'];
+const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'boxes', 'security'];
 let current = 'home', afterAccount = null;
 function show(name) {
   current = name;
@@ -646,11 +646,14 @@ function route(name) {
   if (name === 'boxes') return enterBoxes();
   if (name === 'sign' && S.pending) return enterSign();
   if (name === 'account') return show('account');
+  if (name === 'security') return show('security');
   show('home');
 }
 $('goCreate').onclick = () => enterCreate();
 $('goOpen').onclick = () => enterOpen();
 $('goBoxes').onclick = () => enterBoxes();
+$('goSecurity').onclick = () => show('security');
+$('secBack').onclick = () => show('home');
 function langMenu(open) {
   const m = $('langMenu'); m.hidden = !open; $('langBtn').setAttribute('aria-expanded', String(open));
   if (open) { const sel = m.querySelector('[aria-selected="true"]') || m.firstElementChild; sel.focus(); }

@@ -125,3 +125,8 @@ select.inp option{background:#0b1a3d}
 .evi{width:16px;height:16px;border-radius:4px;vertical-align:middle;margin-right:6px}
 .chip.ev{display:inline-flex;align-items:center}
 .btn .evi{width:22px;height:22px;border-radius:5px}
+.seclist{gap:14px}
+.secitem b{display:block;color:var(--y);font-size:15px;margin-bottom:3px}
+.secitem p{margin:0;font-size:14px;line-height:1.45;color:#dfe6f5}
+.secitem+.secitem{border-top:1px solid var(--line);padding-top:12px}
+.secbye{margin:18px 0 6px;font-size:16px;font-weight:700;color:var(--y)}
