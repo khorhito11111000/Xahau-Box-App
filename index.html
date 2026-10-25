@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; connect-src https: wss:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#020a1c">
+<title>Xahau Gift Box</title>
+<link rel="icon" href="img/icon-192.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <a class="brand" href="#home"><span class="logo"></span><b>Xahau Gift Box</b></a>
+  <span class="sp"></span>
+  <a class="chip ev" id="evergramTop" target="_blank" rel="noopener noreferrer"><img class="evi" src="img/evergram.png" alt="">Evergram</a>
+  <div class="lang" id="langWrap">
+    <button class="chip" id="langBtn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="langMenu" aria-label="Language">EN</button>
+    <ul class="langmenu" id="langMenu" role="listbox" hidden>
+      <li role="option" data-lang="en" tabindex="-1"><b>EN</b> English</li>
+      <li role="option" data-lang="es" tabindex="-1"><b>ES</b> Español</li>
+      <li role="option" data-lang="fr" tabindex="-1"><b>FR</b> Français</li>
+      <li role="option" data-lang="ru" tabindex="-1"><b>RU</b> Русский</li>
+    </ul>
+  </div>
+  <button class="chip net" id="netBtn" type="button">Testnet</button>
+</header>
+<div class="acctbar hide" id="acctBar"><span id="acctText"></span><button class="lnk" id="acctChange" type="button" data-t="change"></button></div>
+
+<!-- HOME -->
+<section class="screen" id="s-home">
+  <div class="hero"><img src="img/hero.jpg" alt=""></div>
+  <h1 class="center"><span data-t="homeTitle1"></span><br><span class="yel" data-t="homeTitle2"></span></h1>
+  <p class="sub center" data-t="homeSub"></p>
+  <div class="foot">
+    <button class="btn y" id="goCreate" type="button" data-t="createBox"></button>
+    <button class="btn o" id="goOpen" type="button" data-t="openBox"></button>
+    <button class="lnk center" id="goBoxes" type="button" data-t="myBoxes"></button>
+    <p class="sm center" data-t="homeNote"></p>
+  </div>
+</section>
+
+<!-- ACCOUNT -->
+<section class="screen" id="s-account">
+  <h2 data-t="connectTitle"></h2>
+  <p class="sub" data-t="connectSub"></p>
+  <button class="wal" id="xamanBtn" type="button"><span class="ic">X</span><span><b data-t="xamanSign"></b><span class="sm" id="xamanNote" data-t="xamanNote"></span></span><span class="ar">›</span></button>
+  <div class="card">
+    <div class="lbl" data-t="addrOnly"></div>
+    <input class="inp" id="addrInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="r...">
+    <p class="sm" data-t="addrOnlyNote"></p>
+    <button class="btn w" id="addrGo" type="button" data-t="continue"></button>
+  </div>
+  <p class="err-line" id="acctErr"></p>
+</section>
+
+<!-- CREATE -->
+<section class="screen" id="s-create">
+  <h2 data-t="createBox"></h2>
+  <div class="card" id="hookCard"></div>
+  <div class="card">
+    <div class="lbl" data-t="xahAmount"></div>
+    <div class="inpw"><input class="inp" id="amtInput" inputmode="decimal" placeholder="0"><span class="u">XAH</span></div>
+    <p class="sm" id="amtNote"></p>
+  </div>
+  <div class="card">
+    <div class="lbl"><span data-t="tokenInside"></span> <span class="sm" data-t="optional"></span></div>
+    <div class="tokens" id="giftTokens"></div>
+  </div>
+  <div class="card">
+    <div class="lbl" data-t="howGive"></div>
+    <label class="opt"><input type="radio" name="kind" value="link" checked><span><b data-t="kLink"></b><span data-t="kLinkSub"></span></span></label>
+    <div class="sub-in" id="linkWrap">
+      <label class="opt opt2"><input type="radio" name="linkFor" value="bearer" checked><span><b data-t="kBearer"></b><span data-t="kBearerSub"></span></span></label>
+      <label class="opt opt2"><input type="radio" name="linkFor" value="named"><span><b data-t="kNamed"></b><span data-t="kNamedSub"></span></span></label>
+      <div class="hide" id="namedWrap"><input class="inp" id="namedAddr" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="r... (recipient)" data-tp="recipientPh"></div>
+    </div>
+    <label class="opt"><input type="radio" name="kind" value="token"><span><b data-t="kToken"></b><span data-t="kTokenSub"></span></span></label>
+    <div class="sub-in hide" id="keyWrap">
+      <button class="btn w" id="mintKeyBtn" type="button" data-t="mintKey"></button>
+      <p class="sm" data-t="mintKeySub"></p>
+      <div class="lbl lbl2" data-t="orPickKey"></div>
+      <div class="tokens" id="keyTokens"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="lbl" data-t="timeLimit"></div>
+    <select class="inp" id="expSel">
+      <option value="0" data-t="noLimit"></option>
+      <option value="1" data-t="d1"></option>
+      <option value="7" data-t="d7"></option>
+      <option value="30" data-t="d30"></option>
+      <option value="90" data-t="d90"></option>
+    </select>
+    <div class="ledgerbox" id="expNote"></div>
+  </div>
+  <div class="card sumcard"><div class="row"><span data-t="total"></span><b id="sumText">—</b></div></div>
+  <p class="err-line" id="createErr"></p>
+  <div class="foot"><button class="btn y" id="packBtn" type="button" data-t="buildBox"></button></div>
+</section>
+
+<!-- SIGN (shared) -->
+<section class="screen" id="s-sign">
+  <h2 id="signTitle"></h2>
+  <p class="sub" id="signSub"></p>
+  <div id="signBody"></div>
+  <p class="err-line" id="signErr"></p>
+  <div class="foot">
+    <button class="btn y" id="checkBtn" type="button" data-t="checkLedger"></button>
+    <button class="btn o" id="signBack" type="button" data-t="back"></button>
+  </div>
+</section>
+
+<!-- DONE (box sent) -->
+<section class="screen" id="s-done">
+  <div class="donehead"><h2 data-t="boxReady"></h2><span class="tag lock" data-t="locked"></span></div>
+  <div class="boximg"><canvas id="boxCanvas" width="1152" height="1712"></canvas></div>
+  <div class="card warn hide" id="bearerWarn" data-t="bearerWarn"></div>
+  <div class="card" id="doneInfo"></div>
+  <div class="foot">
+    <button class="btn y" id="dlBtn" type="button" data-t="download"></button>
+    <button class="btn w" id="shareBtn" type="button" data-t="share"></button>
+    <div class="btn2"><button class="btn o" id="copyLinkBtn" type="button" data-t="copyLink"></button><button class="btn o" id="shareLinkBtn" type="button" data-t="shareLink"></button></div>
+  </div>
+  <div class="card hide" id="handKey">
+    <div class="lbl" data-t="handKey"></div>
+    <input class="inp" id="handAddr" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="r... (recipient)" data-tp="recipientPh">
+    <button class="btn w" id="handBtn" type="button" data-t="buildRemit"></button>
+    <div id="handOut"></div>
+  </div>
+  <div class="card evcard">
+    <p class="sm" data-t="evergramHint"></p>
+    <a class="btn o" id="evergramDone" target="_blank" rel="noopener noreferrer"><img class="evi" src="img/evergram.png" alt="">Evergram</a>
+  </div>
+  <div class="foot"><button class="btn o" id="doneFinish" type="button" data-t="finish"></button></div>
+</section>
+
+<!-- OPEN -->
+<section class="screen" id="s-open">
+  <h2 data-t="boxForYou"></h2>
+  <div class="card" id="openInputCard">
+    <div class="lbl" data-t="pasteQr"></div>
+    <textarea class="inp ta" id="qrInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="tgs1:... / https://...#tgs1:..."></textarea>
+    <div class="row2">
+      <button class="btn w" id="qrGo" type="button" data-t="show"></button>
+      <button class="btn o" id="scanBtn" type="button" data-t="scan"></button>
+      <label class="btn o filebtn"><span data-t="photo"></span><input type="file" id="qrFile" accept="image/*" hidden></label>
+    </div>
+    <div class="scanbox hide" id="scanBox"><video id="scanVideo" playsinline muted></video><button class="btn o" id="scanStop" type="button" data-t="stop"></button></div>
+  </div>
+  <div id="boxView"></div>
+  <p class="err-line" id="openErr"></p>
+</section>
+
+<!-- OPENED -->
+<section class="screen" id="s-opened">
+  <div class="hero"><img src="img/box_open.jpg" alt=""></div>
+  <h1 class="center" data-t="opened"></h1>
+  <div class="card" id="openedInfo"></div>
+  <div class="foot"><button class="btn y" id="openedHome" type="button" data-t="home"></button></div>
+</section>
+
+<!-- MY BOXES -->
+<section class="screen" id="s-boxes">
+  <h2 data-t="myBoxes"></h2>
+  <p class="sub" data-t="myBoxesSub"></p>
+  <div id="boxesList"></div>
+  <div class="card">
+    <div class="lbl" data-t="takeBackByVc"></div>
+    <input class="inp" id="vcInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="VC (64 hex)">
+    <button class="btn w" id="vcOpenBtn" type="button" data-t="buildOpen"></button>
+  </div>
+  <p class="err-line" id="boxesErr"></p>
+</section>
+
+<div class="toast hide" id="toast"></div>
+<footer class="foot-note"><div class="ledgerline" aria-live="off"><span class="ldot" id="ledgerDot"></span><span data-t="ledgerShort"></span> <b class="lcur mono">…</b> <span class="lavg" id="ledgerAvg"></span></div><span data-t="footer"></span></footer>
+</div>
+<script src="js/config.js"></script>
+<script src="vendor/boxlib.js"></script>
+<script src="vendor/xumm-oauth2-pkce-2.8.7.min.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
