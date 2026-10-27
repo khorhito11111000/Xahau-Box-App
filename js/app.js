@@ -346,21 +346,22 @@ function applyLang() {
   document.documentElement.lang = S.lang;
   document.querySelectorAll('[data-t]').forEach(e => { e.textContent = t(e.dataset.t); });
   document.querySelectorAll('[data-tp]').forEach(e => { e.placeholder = t(e.dataset.tp); });
-  $('langBtn').textContent = '🌐 ' + S.lang.toUpperCase();
+  $('setBtn').title = $('setBtn').ariaLabel = t('setTitle').replace(/^⚙️\s*/, '') || 'Settings'; $('netBtn').title = t('netSwitch');
   document.querySelectorAll('#langList [data-lang]').forEach(b => { const on = b.dataset.lang === S.lang; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   if (!C.XAMAN_API_KEY) $('xamanNote').textContent = t('xamanOff');
   if ($('ledgerDot')) renderLive(false);
   renderAcct();
 }
-function applyNet() { $('netBtn').textContent = NET().label; $('netBtn').classList.toggle('main', S.net === 'mainnet'); }
+function applyNet() { $('netBtn').textContent = NET().label + ' ⇄'; $('netBtn').classList.toggle('main', S.net === 'mainnet'); }
 /* Header: signed out -> "Sign in with Xaman"; signed in -> short address + "Sign out". */
 function renderAcct() {
   const tx = $('acctText'), b = $('acctBtn'); tx.textContent = '';
   if (!S.account) {
-    tx.append(t('notSignedIn') + ' · ' + NET().label);
-    b.textContent = xp ? t('signIn') : t('signInShort'); b.className = 'chip acctbtn in';
+    tx.textContent = t('notSignedIn'); $('acctVia').textContent = '';
+    b.textContent = t('signInShort'); b.className = 'chip acctbtn in';
   } else {
-    tx.append(h('b', { class: 'mono' }, short(S.account.address)), ' · ' + (S.account.via === 'xaman' ? 'Xaman' : t('addrOnlyTag')) + ' · ' + NET().label);
+    tx.append(h('b', { class: 'mono' }, short(S.account.address)));
+    $('acctVia').textContent = (S.account.via === 'xaman' ? 'Xaman' : t('addrOnlyTag')) + ' · ';
     b.textContent = t('signOut'); b.className = 'chip acctbtn out';
   }
   if (current === 'home') setTimeout(inboxBadge, 0);
@@ -1383,10 +1384,9 @@ $('langList').onclick = e => {
 };
 $('pageVer').textContent = (([...document.scripts].map(x => x.src).find(x => /app\.js/.test(x)) || '').split('v=')[1] || '—');
 $('backBtn').onclick = () => goBack();
-document.querySelector('.top .brand').onclick = e => { e.preventDefault(); show('home'); };
-$('langBtn').onclick = () => enterSettings('lang');
+$('setBtn').onclick = () => enterSettings();
 $('netBtn').onclick = () => { S.net = S.net === 'testnet' ? 'mainnet' : 'testnet'; save(); applyNet(); pollLedger(); renderAcct(); acct = null; route(current === 'sign' || current === 'done' || current === 'opened' ? 'home' : current); };
-for (const id of ['evergramTop', 'evergramDone']) $(id).href = C.EVERGRAM_URL;
+for (const id of ['evergramDone']) $(id).href = C.EVERGRAM_URL;
 function handleHash() {
   startLive();
   const hs = decodeURIComponent(location.hash.slice(1));

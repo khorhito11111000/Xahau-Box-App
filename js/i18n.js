@@ -529,3 +529,8 @@ Object.assign(window.BOX_I18N.ru, {
 "hw8h": "📦 Мои боксы",
 "hw8t": "Три вкладки. «Собранные» — твои закрытые боксы, новые сверху, с содержимым: можно снова показать ссылку/QR, передать токен-ключ и забрать бокс, когда срок истёк. «Полученные» — боксы для тебя и те, что ты уже открыл. «Отправленные» — боксы, которые ты отдал, и открыты ли они."
 });
+/* header network toggle */
+Object.assign(window.BOX_I18N.en, { netSwitch: "Switch network: Testnet ⇄ Mainnet" });
+Object.assign(window.BOX_I18N.es, { netSwitch: "Cambiar red: Testnet ⇄ Mainnet" });
+Object.assign(window.BOX_I18N.fr, { netSwitch: "Changer de réseau : Testnet ⇄ Mainnet" });
+Object.assign(window.BOX_I18N.ru, { netSwitch: "Переключить сеть: Testnet ⇄ Mainnet" });
