@@ -142,3 +142,14 @@ select.inp option{background:#0b1a3d}
 .secitem p{margin:0;font-size:14px;line-height:1.45;color:#dfe6f5}
 .secitem+.secitem{border-top:1px solid var(--line);padding-top:12px}
 .secbye{margin:18px 0 6px;font-size:16px;font-weight:700;color:var(--y)}
+
+/* encrypted gift code */
+.gcform{display:flex;flex-direction:column;gap:10px}
+.gcform .card.warn{box-shadow:none;padding:12px}
+#gcCode{min-height:70px}
+.tok.gc .timg{font-size:26px;background:linear-gradient(135deg,#3a2f0b,#1b2460)}
+.tok.big.gc .timg{min-height:96px;font-size:44px}
+.gcrev{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.gcin,.gcout{display:flex;flex-direction:column;gap:8px}
+.gccode{background:rgba(0,0,0,.45);border:1.5px solid var(--y);border-radius:12px;padding:12px;font-size:18px;font-weight:700;color:#fff;white-space:pre-wrap;word-break:break-all;user-select:all}
+.gcmine{gap:10px}

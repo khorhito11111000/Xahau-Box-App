@@ -70,8 +70,27 @@
     <div class="lbl"><span data-t="tokenInside"></span> <span class="sm" data-t="optional"></span></div>
     <div class="tokens" id="giftTokens"></div>
   </div>
+  <div class="card" id="gcCard">
+    <div class="lbl"><span data-t="gcTitle"></span> <span class="sm" data-t="optional"></span></div>
+    <p class="sm" data-t="gcSub"></p>
+    <button class="btn o" id="gcToggle" type="button" data-t="gcAdd"></button>
+    <div class="gcform hide" id="gcForm">
+      <div class="lbl" data-t="gcCodeLbl"></div>
+      <textarea class="inp ta" id="gcCode" autocomplete="off" autocapitalize="off" spellcheck="false" data-tp="gcCodePh"></textarea>
+      <p class="sm" id="gcLeft"></p>
+      <div class="lbl lbl2" data-t="gcPwLbl"></div>
+      <input class="inp mono" id="gcPw" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" data-tp="gcPwPh">
+      <div class="btn2"><button class="btn w" id="gcGen" type="button" data-t="gcGen"></button><button class="btn o" id="gcCopyPw" type="button" data-t="gcCopyPw"></button></div>
+      <p class="sm" id="gcPwNote"></p>
+      <div class="card warn" data-t="gcWarn"></div>
+      <label class="opt opt2"><input type="checkbox" id="gcSaved"><span><b data-t="gcSaved"></b></span></label>
+      <button class="btn y" id="gcMint" type="button" data-t="gcMint"></button>
+      <p class="sm" data-t="gcMintSub"></p>
+    </div>
+  </div>
   <div class="card">
     <div class="lbl" data-t="howGive"></div>
+    <p class="sm yel hide" id="gcModeHint" data-t="gcModeHint"></p>
     <label class="opt"><input type="radio" name="kind" value="link" checked><span><b data-t="kLink"></b><span data-t="kLinkSub"></span></span></label>
     <div class="sub-in" id="linkWrap">
       <label class="opt opt2"><input type="radio" name="linkFor" value="bearer" checked><span><b data-t="kBearer"></b><span data-t="kBearerSub"></span></span></label>
@@ -190,6 +209,7 @@
     <div class="secitem"><b data-t="s7h"></b><p data-t="s7t"></p></div>
     <div class="secitem"><b data-t="s8h"></b><p data-t="s8t"></p></div>
     <div class="secitem"><b data-t="s9h"></b><p data-t="s9t"></p></div>
+    <div class="secitem"><b data-t="s10h"></b><p data-t="s10t"></p></div>
   </div>
   <p class="secbye center" data-t="secBye"></p>
   <div class="foot"><button class="btn o" id="secBack" type="button" data-t="back"></button></div>

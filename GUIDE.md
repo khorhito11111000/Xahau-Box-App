@@ -71,6 +71,17 @@ flowchart TD
   I --> J[Opened: XAH and token go to the recipient]
 ```
 
+## Gift code (password)
+Put a code from another site (for example a Roblox gift card) into a box. The page only; the hook is not changed.
+1. "Create box" → "Gift code" → "Add a gift code". Type the code (up to 143 bytes; the page shows how much is left) and a password. "Make a password" gives a strong random one (20 characters). Copy it and save it, tick "I saved the password".
+2. "Create gift-code token" → the page locks the code in your browser and builds a `URITokenMint` (Flags 0, only the holder can burn it) → sign it. The new token is put into the box automatically; "Key token" mode is recommended.
+3. Build the box as usual. Give the key token (or the link), and send the password **personally**, never in the QR, the link or a public post.
+4. After opening, the token shows as "🔒 Encrypted gift code". "Show code" → enter the password → the code appears with a "Copy" button. The holder can also unlock it later in "My boxes" → "Gift codes on this account". A wrong password gives a clear error.
+
+How it is locked: the token URI is `tgsc1:` + base64url(salt 16 | IV 12 | ciphertext + tag). Key = PBKDF2-SHA256 (600 000 rounds, random salt) → AES-256-GCM, random IV. Everything runs in the browser (WebCrypto); the password is never stored, never put into a link or QR and never sent anywhere.
+
+**Honest limit:** the code is protected only by the password. Token data is public, so anyone who has it and the password can read the code. Use the generated password and do not reuse it. A lost password cannot be recovered.
+
 ## Ledger counter and time limit
 - At the bottom of the page there is a live counter: the current ledger number, updated about every 4 seconds (paused on a hidden tab). Next to it is the average speed, ≈ seconds per ledger (measured over the last 100 ledgers).
 - The box time limit is stored in the hook as a **ledger number**, not a date. The page computes the number from the average speed (3.5 s until measured), and the date shown is approximate.

@@ -77,6 +77,81 @@ const parseBox = d => d && d.length === 170 ? { tid: d.slice(0, 64), amt: d.slic
 const fill = (b, n) => b.repeat(n);
 const K_META = fill('11', 32), K_AUD = fill('33', 32), K_OCK = fill('44', 32), K_NCK = fill('66', 32);
 
+/* ---------- encrypted gift code (password variant; page only, the hook is not involved) ----------
+   A code from another site (e.g. a gift card) is locked with a password in this browser and stored as the URI of a
+   new URIToken: "tgsc1:" + base64url(salt[16] | iv[12] | AES-GCM ciphertext + tag[16]).
+   Key = PBKDF2-SHA256(password, salt, 600 000 rounds) -> AES-256-GCM, additional data "tgsc1".
+   The password is never stored, never put in a link/QR and never sent anywhere. Anyone with the token data AND the
+   password can read the code: the password is the only protection. */
+const GC = { PFX: 'tgsc1:', ITER: 600000, SALT: 16, IV: 12, TAG: 16, URI_MAX: 256, MIN_PW: 12 };
+GC.MAX = Math.floor((GC.URI_MAX - GC.PFX.length) * 3 / 4) - GC.SALT - GC.IV - GC.TAG; // 143 bytes of UTF-8
+const GC_AAD = new TextEncoder().encode('tgsc1');
+const u8b64u = u => { let s = ''; for (const x of u) s += String.fromCharCode(x); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+const b64uU8 = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0));
+const gcNorm = s => String(s == null ? '' : s).normalize('NFC');
+const gcPwNorm = s => gcNorm(s).trim();
+const gcBytes = s => new TextEncoder().encode(gcNorm(s)).length;
+const gcIs = text => typeof text === 'string' && text.startsWith(GC.PFX) && /^[A-Za-z0-9_-]+$/.test(text.slice(GC.PFX.length));
+const gcTok = tok => gcIs(hexToText((tok && tok.URI) || ''));
+async function gcKey(pw, salt) {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(gcPwNorm(pw)), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: GC.ITER }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function gcEncrypt(code, pw) {
+  const pt = new TextEncoder().encode(gcNorm(code));
+  if (!pt.length || pt.length > GC.MAX) throw new Error('size');
+  if (gcPwNorm(pw).length < GC.MIN_PW) throw new Error('password');
+  const salt = crypto.getRandomValues(new Uint8Array(GC.SALT)), iv = crypto.getRandomValues(new Uint8Array(GC.IV));
+  const key = await gcKey(pw, salt);
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: GC_AAD }, key, pt));
+  const raw = new Uint8Array(GC.SALT + GC.IV + ct.length); raw.set(salt); raw.set(iv, GC.SALT); raw.set(ct, GC.SALT + GC.IV);
+  const uri = GC.PFX + u8b64u(raw);
+  // self-check before anything is minted: it must fit and it must unlock again
+  const back = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: GC_AAD }, key, ct));
+  if (back !== gcNorm(code) || new TextEncoder().encode(uri).length > GC.URI_MAX) throw new Error('selfcheck');
+  return uri;
+}
+async function gcDecrypt(uriText, pw) {
+  if (!gcIs(uriText)) throw new Error('format');
+  const raw = b64uU8(uriText.slice(GC.PFX.length));
+  if (raw.length < GC.SALT + GC.IV + GC.TAG + 1) throw new Error('format');
+  const key = await gcKey(pw, raw.slice(0, GC.SALT));
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(GC.SALT, GC.SALT + GC.IV), additionalData: GC_AAD }, key, raw.slice(GC.SALT + GC.IV));
+  return new TextDecoder('utf-8', { fatal: true }).decode(pt);
+}
+// 20 random characters (100 bits) in groups of 4, no look-alike characters (l/1, o/0)
+function gcGenPw() {
+  const A = 'abcdefghijkmnpqrstuvwxyz23456789', r = crypto.getRandomValues(new Uint8Array(20));
+  return Array.from(r, x => A[x & 31]).join('').match(/.{4}/g).join('-');
+}
+/* "Show code": asks for the password, unlocks here, shows the code with Copy. Password field is cleared right after. */
+function gcReveal(uriText) {
+  const wrap = h('div', { class: 'gcrev', onclick: e => e.stopPropagation() });
+  const btn = h('button', { class: 'btn y gcshow', type: 'button' }, '🔑 ' + t('gcShow'));
+  const pw = h('input', { class: 'inp', type: 'password', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: t('gcPwEnter') });
+  const go = h('button', { class: 'btn w', type: 'button' }, t('gcDecrypt'));
+  const err = h('p', { class: 'err-line' });
+  const form = h('div', { class: 'gcin hide' }, pw, go, err, h('p', { class: 'sm' }, t('gcLocal')));
+  const out = h('div', { class: 'gcout hide' });
+  btn.onclick = () => { form.classList.toggle('hide'); if (!form.classList.contains('hide')) pw.focus(); };
+  const run = async () => {
+    err.textContent = ''; if (!pw.value) { err.textContent = t('gcPwNeed'); return; }
+    go.disabled = true; go.textContent = t('gcWorking');
+    try {
+      const code = await gcDecrypt(uriText, pw.value);
+      pw.value = ''; form.classList.add('hide'); btn.classList.add('hide'); out.textContent = '';
+      out.append(h('div', { class: 'lbl' }, t('giftCode')), h('div', { class: 'gccode mono' }, code),
+        h('div', { class: 'btn2' }, h('button', { class: 'btn w', type: 'button', onclick: () => copy(code) }, t('copy')),
+          h('button', { class: 'btn o', type: 'button', onclick: () => { out.textContent = ''; out.classList.add('hide'); btn.classList.remove('hide'); } }, t('gcHide'))));
+      out.classList.remove('hide');
+    } catch { err.textContent = t('gcWrong'); }
+    finally { go.disabled = false; go.textContent = t('gcDecrypt'); }
+  };
+  go.onclick = run; pw.onkeydown = e => { if (e.key === 'Enter') run(); };
+  wrap.append(btn, form, out);
+  return wrap;
+}
+
 /* ---------- tokens: shown the way Xahau Cards, Xahau Vault and the explorer show them ----------
    Name + attributes: the token's own on-ledger metadata (Remarks "schema" + "meta.N", std xahau-nft-remark/v1).
    Picture: only from the project that issued the token, nothing else is ever requested:
@@ -131,7 +206,7 @@ async function moebaFetch(id) {
   } catch { return null; } finally { clearTimeout(tm); }
 }
 function keyTokenId(tok) { const u = hexToText(tok.URI || ''); const km = u && /\/img\/key\.jpg\?k=([0-9a-f]{16})$/.exec(u); return km ? km[1] : null; }
-function uriLabel(tok) { const u = hexToText(tok.URI || ''); return u && printable(u) ? u : (tok.URI || '').slice(0, 16) + '…'; }
+function uriLabel(tok) { const u = hexToText(tok.URI || ''); if (gcIs(u)) return '🔒 ' + t('gcCard'); return u && printable(u) ? u : (tok.URI || '').slice(0, 16) + '…'; }
 function tokenView(tok) {
   const ck = S.net + ':' + tok.index;
   if (viewCache.has(ck)) return viewCache.get(ck);
@@ -156,15 +231,22 @@ function tokenView(tok) {
 }
 function tokenCard(tok, opts) {
   const o = opts || {};
-  const img = h('div', { class: 'timg' }, h('span', null, '◆'));
+  const gc = gcTok(tok);
+  const img = h('div', { class: 'timg' }, h('span', null, gc ? '🎁' : '◆'));
   const title = h('b', null, uriLabel(tok)); const extra = h('div', { class: 'rem' });
-  const card = h('div', { class: 'tok' + (o.big ? ' big' : '') + (o.disabled ? ' dis' : '') + (o.selected ? ' sel' : ''), role: o.onclick ? 'button' : null, tabindex: o.onclick && !o.disabled ? '0' : null, onclick: o.disabled ? null : o.onclick },
+  const card = h('div', { class: 'tok' + (gc ? ' gc' : '') + (o.big ? ' big' : '') + (o.disabled ? ' dis' : '') + (o.selected ? ' sel' : ''), role: o.onclick ? 'button' : null, tabindex: o.onclick && !o.disabled ? '0' : null, onclick: o.disabled ? null : o.onclick },
     img,
     h('div', { class: 'tinfo' },
-      title, tok.index === newKey ? h('span', { class: 'new' }, t('newTag')) : null,
+      title, newIds.has(tok.index) ? h('span', { class: 'new' }, t('newTag')) : null,
       h('span', { class: 'sm mono' }, short(tok.index)),
       extra,
       o.disabled ? h('span', { class: 'why' }, o.disabled) : null));
+  if (gc) {
+    extra.append(h('span', null, t('gcCardSub')));
+    if (o.big && !o.reveal) extra.append(h('span', { class: 'desc' }, t('gcAfterOpen')));
+    if (o.reveal) card.append(gcReveal(hexToText(tok.URI)));
+    return card;
+  }
   const io = window.IntersectionObserver ? new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); fillCard(); } }, { rootMargin: '400px' }) : null;
   if (io) io.observe(card); else fillCard();
   function fillCard() { tokenView(tok).then(v => {
@@ -420,16 +502,18 @@ async function enterCreate(preset) {
   hc.append(h('div', { class: acct.hook ? 'ok' : 'bad' }, (acct.hook ? '✓ ' : '⚠ ') + t(acct.hook ? 'hookYes' : 'hookNo')),
     row(t('balance'), dropsToXah(acct.balance) + ' XAH'), row(t('available'), '≈ ' + dropsToXah(freeToLock(acct, false, false)) + ' XAH', 'yel'));
   $('packBtn').disabled = !acct.hook;
-  sel.gift = null; sel.key = null;
+  sel.gift = null; sel.key = null; gcReset();
   if (preset) {
     $('amtInput').value = preset.amt || ''; $('expSel').value = String(preset.expDays || 0);
     document.querySelector('input[name=kind][value=token]').checked = true;
     if (preset.gift && acct.tokens.some(x => x.index === preset.gift)) sel.gift = preset.gift;
-    if (preset.key && acct.tokens.some(x => x.index === preset.key)) { sel.key = preset.key; newKey = preset.key; }
+    if (preset.key && acct.tokens.some(x => x.index === preset.key)) { sel.key = preset.key; newIds.add(preset.key); }
+    if (preset.giftNew && sel.gift) newIds.add(sel.gift);
     syncKindUi();
   }
   renderTokens(); updateSummary();
-  if (preset && sel.key) { toast(t('minted')); const el = document.querySelector('#keyTokens .tok.sel'); if (el) el.scrollIntoView({ block: 'center' }); }
+  if (preset && preset.giftNew && sel.gift) { toast(t('gcMinted')); const el = document.querySelector('#giftTokens .tok.sel'); if (el) el.scrollIntoView({ block: 'center' }); }
+  else if (preset && sel.key) { toast(t('minted')); const el = document.querySelector('#keyTokens .tok.sel'); if (el) el.scrollIntoView({ block: 'center' }); }
 }
 function tokenReason(tok) {
   if ((tok.Flags || 0) & 1) return t('burnable');
@@ -458,6 +542,8 @@ function updateSummary() {
   const d = xahToDrops($('amtInput').value);
   $('amtNote').textContent = d === null ? t('amtBad') : '≈ ' + t('available').toLowerCase() + ': ' + dropsToXah(freeToLock(acct, !!sel.gift, kind() === 'token')) + ' XAH';
   const parts = []; if (d) parts.push(dropsToXah(d) + ' XAH'); if (sel.gift) parts.push('1 URIToken');
+  const gt = sel.gift && acct.tokens.find(x => x.index === sel.gift);
+  $('gcModeHint').classList.toggle('hide', !(gt && gcTok(gt) && kind() !== 'token'));
   $('sumText').textContent = parts.join(' + ') || '—';
   const e = expLedger(), box = $('expNote'); box.textContent = '';
   box.append(liveRow(), row(t('ledgerExp'), e ? String(e) : t('limitNone')));
@@ -465,7 +551,7 @@ function updateSummary() {
   renderLive(false);
 }
 /* key token mint: Flags 0 (not burnable: v14 rejects burnable keys), unique URI pointing at the page's own key image */
-let newKey = null;
+const newIds = new Set();
 function canMint(v) {
   const rv = v.res.base + BigInt(v.info.OwnerCount || 0) * v.res.inc;
   const need = rv + v.res.inc + 100000n + (v.held ? v.held + v.ock + 1000000n : 0n);
@@ -484,6 +570,39 @@ $('mintKeyBtn').onclick = () => {
   const tx = mintTx(acct.address, keyUri());
   const tid = L.uriTokenId(acct.address, tx.URI);
   S.pending = { op: 'mint', tx, tid, form: { amt: $('amtInput').value, gift: sel.gift, expDays: Number($('expSel').value) } }; save();
+  enterSign();
+};
+/* gift-code token: the code is locked here, then minted on this account (Flags 0: only the holder can burn it) */
+function gcReset() { $('gcForm').classList.add('hide'); $('gcToggle').textContent = t('gcAdd'); $('gcCode').value = ''; $('gcPw').value = ''; $('gcSaved').checked = false; gcInfo(); }
+function gcInfo() {
+  const n = gcBytes($('gcCode').value), left = GC.MAX - n, e = $('gcLeft');
+  e.textContent = left < 0 ? t('gcTooLong') + ' (' + n + ' / ' + GC.MAX + ')' : t('gcLeft').replace('{n}', left).replace('{m}', GC.MAX);
+  e.classList.toggle('bad', left < 0);
+  const pw = gcPwNorm($('gcPw').value); $('gcPwNote').textContent = pw && pw.length < GC.MIN_PW ? t('gcPwShort') : '';
+  $('gcPwNote').classList.toggle('bad', !!pw && pw.length < GC.MIN_PW);
+}
+$('gcToggle').onclick = () => { const open = $('gcForm').classList.contains('hide'); if (!open) return gcReset(); $('gcForm').classList.remove('hide'); $('gcToggle').textContent = t('gcCancel'); gcInfo(); };
+$('gcCode').oninput = gcInfo; $('gcPw').oninput = () => { $('gcSaved').checked = false; gcInfo(); };
+$('gcGen').onclick = () => { $('gcPw').value = gcGenPw(); $('gcSaved').checked = false; gcInfo(); };
+$('gcCopyPw').onclick = () => { if ($('gcPw').value) copy($('gcPw').value); };
+$('gcMint').onclick = async () => {
+  errSet('createErr');
+  if (!acct) return;
+  const code = $('gcCode').value, pw = $('gcPw').value, n = gcBytes(code);
+  if (!code.trim()) return errSet('createErr', t('gcNeedCode'));
+  if (n > GC.MAX) return errSet('createErr', t('gcTooLong'));
+  if (gcPwNorm(pw).length < GC.MIN_PW) return errSet('createErr', t('gcPwShort'));
+  if (!$('gcSaved').checked) return errSet('createErr', t('gcNeedSaved'));
+  if (!acct.hook) return errSet('createErr', t('hookNo'));
+  if (!canMint(acct)) return errSet('createErr', t('mintNoFunds'));
+  const b = $('gcMint'); b.disabled = true; b.textContent = t('gcWorking');
+  let uri;
+  try { uri = await gcEncrypt(code, pw); } catch { return errSet('createErr', t('gcEncErr')); } finally { b.disabled = false; b.textContent = t('gcMint'); }
+  const tx = mintTx(acct.address, uri);
+  const tid = L.uriTokenId(acct.address, tx.URI);
+  // only the locked payload is kept for the sign screen; the code and the password are wiped from the page
+  gcReset();
+  S.pending = { op: 'gmint', tx, tid, form: { amt: $('amtInput').value, key: sel.key, expDays: Number($('expSel').value) } }; save();
   enterSign();
 };
 $('packBtn').onclick = () => {
@@ -516,7 +635,7 @@ function jsonBlock(item) {
 function enterSign() {
   const p = S.pending; if (!p) return show('home');
   show('sign'); errSet('signErr');
-  const titles = { pack: 'packTitle', claim: 'claimTitle', open: 'openTitle', remit: 'remitTitle', mint: 'mintTitle' };
+  const titles = { pack: 'packTitle', claim: 'claimTitle', open: 'openTitle', remit: 'remitTitle', mint: 'mintTitle', gmint: 'gcMintTitle' };
   $('signTitle').textContent = t(titles[p.op]);
   const signer = p.op === 'pack' ? p.box.h : p.tx.Account;
   $('signSub').textContent = t('signHere') + ' ' + short(signer) + ' · ' + NET().label + ' (NetworkID ' + NET().networkId + ').' + (p.op === 'pack' && p.audit ? ' ' + t('auditFirst') : '');
@@ -553,7 +672,7 @@ function txResult(id, r) {
   return d;
 }
 $('checkBtn').onclick = () => checkPending().catch(e => errSet('signErr', e.message));
-$('signBack').onclick = () => { const p = S.pending; if (p && (p.op === 'pack' || p.op === 'mint')) show('create'); else if (p && p.op === 'claim') show('open'); else show('home'); };
+$('signBack').onclick = () => { const p = S.pending; if (p && (p.op === 'pack' || p.op === 'mint' || p.op === 'gmint')) show('create'); else if (p && p.op === 'claim') show('open'); else show('home'); };
 async function checkPending() {
   const p = S.pending; if (!p) return; errSet('signErr');
   if (p.op === 'pack') {
@@ -576,6 +695,12 @@ async function checkPending() {
     if (!tok || tok.Owner !== p.tx.Account) return errSet('signErr', t('notYet'));
     const form = p.form; S.pending = null; save();
     return enterCreate(Object.assign({}, form, { key: p.tid }));
+  }
+  if (p.op === 'gmint') {
+    const tok = await uriToken(p.tid).catch(() => null);
+    if (!tok || tok.Owner !== p.tx.Account) return errSet('signErr', t('notYet'));
+    const form = p.form; S.pending = null; save();
+    return enterCreate(Object.assign({}, form, { gift: p.tid, giftNew: true }));
   }
   if (p.op === 'remit') {
     const tok = await uriToken(p.tx.URITokenIDs[0]); if (!tok || tok.Owner !== p.tx.Destination) return errSet('signErr', t('notYet'));
@@ -709,7 +834,7 @@ async function finishClaim() {
   const p = S.pending; show('opened');
   const info = $('openedInfo'); info.textContent = '';
   const amt = BigInt('0x' + p.amt); if (amt) info.append(row(t('received'), dropsToXah(amt) + ' XAH', 'yel'));
-  if (!isZero(p.tid)) { const tok = await uriToken(p.tid).catch(() => null); if (tok) info.append(tokenCard(tok, { big: true })); if (tok && p.k) { const code = await giftCode(tok.URI, p.k); if (code) info.append(row(t('giftCode'), code, 'yel')); } }
+  if (!isZero(p.tid)) { const tok = await uriToken(p.tid).catch(() => null); if (tok) info.append(tokenCard(tok, { big: true, reveal: true })); if (tok && p.k) { const code = await giftCode(tok.URI, p.k); if (code) info.append(row(t('giftCode'), code, 'yel')); } }
   S.pending = null; save();
 }
 // Optional gift code: token URI "tgsE1:" + base64url(1 | iv12 | tag16 | ciphertext), AES-256-GCM key "k" from the QR.
@@ -766,6 +891,8 @@ async function enterBoxes() {
     else if (x.nonce != null || Date.now() - (x.created || 0) > 86400000) stale.push(id); // opened / taken back, or never packed
   }
   vaultDrop(stale);
+  const gcs = acct.tokens.filter(gcTok);
+  if (gcs.length) list.append(h('div', { class: 'card gcmine' }, h('div', { class: 'lbl' }, t('gcMine')), h('p', { class: 'sm' }, t('gcMineSub')), gcs.map(tok => tokenCard(tok, { big: true, reveal: true }))));
   for (const b of acct.boxes.sort((a, c) => a.nonce - c.nonce)) {
     const amt = BigInt('0x' + b.amt), parts = []; if (amt) parts.push(dropsToXah(amt) + ' XAH'); if (!isZero(b.tid)) parts.push('1 URIToken');
     const expN = parseInt(b.exp, 16), kn = known.get(b.key);
@@ -826,5 +953,5 @@ function handleHash() {
 window.addEventListener('hashchange', () => { if (location.hash.slice(1) !== current) handleHash(); });
 initXaman(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack();
 // test hook for automated checks (read-only helpers, no secrets)
-window.__box = { packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr };
+window.__box = { packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr, mintTx, gc: { encrypt: gcEncrypt, decrypt: gcDecrypt, genPw: gcGenPw, max: GC.MAX, iter: GC.ITER } };
 })();
