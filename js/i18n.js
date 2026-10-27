@@ -1643,3 +1643,12 @@ window.BOX_I18N.ja = {
  "hwQ3": "開け方：ホームで「ボックスを開ける」をタップし、カメラで QR をスキャンするか、QR の写真を選びます。スマホのカメラを QR に向けるだけでも大丈夫です。QR にはこのページのアドレスが入っているので、そのボックスがそのまま開きます（必要ならネットワークも自動で切り替わります）。中身が表示されたら、Xaman でサインインして開封に署名してください。",
  "hwQ4": "大切なこと：「誰でも」の QR は現金と同じです。最初に開けた人が受け取るので、公開しないでください。「特定のアドレス」のボックスは、ほかの人に QR を見られても、そのアドレスでしか開けられません。キートークンのボックスに QR は不要です。キートークンを渡せば、受取人が「🎁 届いたボックス」から開けます。"
 };
+
+/* gift card + explorer links (v20261027r) */
+Object.assign(window.BOX_I18N.en, { giftTitle: 'A gift for you', giftFrom: 'From', giftInside: 'Inside', giftSee: 'Open the gift', exCheck: 'Check in explorer', exPack: 'Box created', exClaim: 'Box opened', exNone: 'No transaction found for this box yet.' });
+Object.assign(window.BOX_I18N.es, { giftTitle: 'Tienes un regalo', giftFrom: 'De', giftInside: 'Dentro', giftSee: 'Ver el regalo', exCheck: 'Comprobar en el explorador', exPack: 'Caja creada', exClaim: 'Caja abierta', exNone: 'Aún no hay transacciones de esta caja.' });
+Object.assign(window.BOX_I18N.fr, { giftTitle: 'Un cadeau pour toi', giftFrom: 'De', giftInside: 'Dedans', giftSee: 'Voir le cadeau', exCheck: 'Vérifier dans l’explorateur', exPack: 'Boîte créée', exClaim: 'Boîte ouverte', exNone: 'Pas encore de transaction pour cette boîte.' });
+Object.assign(window.BOX_I18N.ru, { giftTitle: 'Тебе подарок', giftFrom: 'От', giftInside: 'Внутри', giftSee: 'Открыть подарок', exCheck: 'Проверить в эксплорере', exPack: 'Бокс собран', exClaim: 'Бокс открыт', exNone: 'Транзакций этого бокса пока не найдено.' });
+Object.assign(window.BOX_I18N.de, { giftTitle: 'Ein Geschenk für dich', giftFrom: 'Von', giftInside: 'Drin', giftSee: 'Geschenk ansehen', exCheck: 'Im Explorer prüfen', exPack: 'Box erstellt', exClaim: 'Box geöffnet', exNone: 'Für diese Box wurde noch keine Transaktion gefunden.' });
+Object.assign(window.BOX_I18N.zh, { giftTitle: '你收到一份礼物', giftFrom: '来自', giftInside: '里面有', giftSee: '查看礼物', exCheck: '在浏览器中核实', exPack: '创建礼盒', exClaim: '打开礼盒', exNone: '暂未找到这个礼盒的交易。' });
+Object.assign(window.BOX_I18N.ja, { giftTitle: 'プレゼントが届きました', giftFrom: '送り主', giftInside: '中身', giftSee: 'プレゼントを見る', exCheck: 'エクスプローラーで確認', exPack: 'ボックス作成', exClaim: 'ボックス開封', exNone: 'このボックスの取引はまだ見つかりません。' });

@@ -241,3 +241,16 @@ select.inp option{background:#0b1a3d}
 :lang(de) p,:lang(de) .secitem,:lang(de) .sub{hyphens:auto;-webkit-hyphens:auto}
 :lang(de) *{overflow-wrap:break-word}
 :lang(zh) body,:lang(ja) body{word-break:normal;line-break:strict;overflow-wrap:anywhere}
+
+/* gift card before opening a box */
+.giftcard{margin-top:6px;border-radius:22px;padding:22px 18px 18px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;background:linear-gradient(160deg,var(--y2),var(--y) 60%,#e9b40f);color:var(--navy);box-shadow:0 14px 36px rgba(248,206,34,.3)}
+.giftcard .gicon{width:72px;height:72px;border-radius:50%;background:rgba(27,36,96,.12);display:flex;align-items:center;justify-content:center}
+.giftcard .gicon .ico{width:40px;height:40px;color:var(--navy)}
+.giftcard .gtitle{font-size:26px;font-weight:800;line-height:1.15;overflow-wrap:anywhere}
+.giftcard .gfrom{font-size:14px;opacity:.85;overflow-wrap:anywhere}
+.giftcard .ginside{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.btn.navy{background:var(--navy);color:var(--y2);margin-top:6px;width:100%}
+.btn.navy .ico{color:var(--y2)}
+.exbox{display:flex;flex-direction:column;gap:6px}
+.exrow{display:flex;flex-wrap:wrap;gap:6px}
+.chip.exl{text-decoration:none}

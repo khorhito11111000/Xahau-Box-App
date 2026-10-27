@@ -928,7 +928,18 @@ async function showBox() {
   openBox = b ? Object.assign(b, { ktid, holder, tok, cur }) : null;
   v.textContent = '';
   const card = h('div', { class: 'card' });
-  v.append(h('div', { class: 'hero sm' }, h('img', { src: 'img/hero.jpg', alt: '' })), card);
+  const rest = h('div', { class: 'giftrest' }, h('div', { class: 'hero sm' }, h('img', { src: 'img/hero.jpg', alt: '' })), card);
+  v.append(rest);
+  if (b && b.status === 0) {
+    const a0 = BigInt('0x' + b.amt), gp = []; if (a0) gp.push(dropsToXah(a0) + ' XAH'); if (tok) gp.push(gcTok(tok) ? t('gcTag') : '1 URIToken');
+    const gc = h('div', { class: 'giftcard' },
+      h('div', { class: 'gicon' }, window.BOX_ICON ? window.BOX_ICON('gift', 'gbig') : '🎁'),
+      h('div', { class: 'gtitle' }, t('giftTitle')),
+      L.isAddress(q.h) ? h('div', { class: 'gfrom' }, t('giftFrom') + ' ' + short(q.h)) : null,
+      gp.length ? h('div', { class: 'ginside' }, t('giftInside') + ': ' + gp.join(' + ')) : null,
+      h('button', { class: 'btn navy', type: 'button', onclick: () => { gc.remove(); rest.classList.remove('hide'); } }, t('giftSee')));
+    rest.classList.add('hide'); v.prepend(gc);
+  }
   if (!b) { card.append(row(t('status'), t('stGone'), 'bad'), row(t('boxNumber'), short(q.vc))); return; }
   const amt = BigInt('0x' + b.amt), parts = []; if (amt) parts.push(dropsToXah(amt) + ' XAH'); if (tok) parts.push('1 URIToken');
   card.append(row(t('contents'), parts.join(' + '), 'yel'));
@@ -946,7 +957,7 @@ async function showBox() {
   const opener = h('input', { class: 'inp', id: 'openerAddr', placeholder: 'r...', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
   opener.value = S.account ? S.account.address : (q.kind === 'named' ? q.a : '');
   const msg = h('p', { class: 'err-line' });
-  v.append(h('div', { class: 'card' }, h('div', { class: 'lbl' }, t('youOpen')), opener, msg,
+  rest.append(h('div', { class: 'card' }, h('div', { class: 'lbl' }, t('youOpen')), opener, msg,
     h('button', { class: 'btn y', type: 'button', disabled: b.status !== 0 || null, onclick: () => buildClaim(opener.value.trim(), msg) }, '🎁 ' + t('openNow'))));
 }
 function buildClaim(who, msg) {
@@ -1007,9 +1018,16 @@ $('qrFile').onchange = async e => {
   const r = L.decodeQR(ctx.getImageData(0, 0, cv.width, cv.height)); if (!r) return errSet('openErr', t('badQr')); $('qrInput').value = r; showBox();
 };
 
+/* "Check in explorer": this box's own transactions only (PACK / CLAIM / key hand-over), never the hook install */
+function exBlock(list) {
+  list = list.filter(x => x && /^[0-9A-F]{64}$/i.test(x[1] || ''));
+  if (!list.length) return null;
+  return h('div', { class: 'exbox' }, h('div', { class: 'lbl' }, t('exCheck')),
+    h('div', { class: 'exrow' }, list.map(([k, hs]) => h('a', { class: 'chip exl', href: NET().explorerTx + hs.toUpperCase(), target: '_blank', rel: 'noopener noreferrer' }, t(k) + ' ↗'))));
+}
 /* ---------- MY BOXES (creator) ---------- */
 const boxOpen = new Set();
-function boxCard(b, kn, lk) {
+function boxCard(b, kn, lk, pk) {
   const amt = BigInt('0x' + b.amt), expN = parseInt(b.exp, 16), hasTok = !isZero(b.tid);
   const gone = expN && acct.cur && acct.cur > expN && b.status === 0;
   const st = h('span', { class: 'bst' + (b.status === 0 ? (gone ? ' bad' : ' ok') : ' yel') }, b.status === 0 ? (gone ? t('stExpired') : t('stClosed')) : t('stClaiming'));
@@ -1040,6 +1058,7 @@ function boxCard(b, kn, lk) {
   if (lk) body.append(h('button', { class: 'btn y', type: 'button', onclick: () => { lk.nonce = b.nonce; finishPack(lk); } }, t('showLink')));
   if (b.ktid) body.append(keyHandCard(b.ktid));
   if (kn) body.append(h('button', { class: 'btn o', type: 'button', onclick: () => startOpen(kn.vc) }, t('takeBack')));
+  { const ex = exBlock([['exPack', pk && pk.hash]]); body.append(ex || h('p', { class: 'sm' }, t('exNone'))); }
   const c = h('div', { class: 'card bcard' }, head, body);
   const set = on => { body.classList.toggle('hide', !on); c.classList.toggle('open', on); head.setAttribute('aria-expanded', String(on)); };
   head.onclick = () => { const on = !boxOpen.has(b.nonce); if (on) boxOpen.add(b.nonce); else boxOpen.delete(b.nonce); set(on); };
@@ -1271,21 +1290,22 @@ async function mbLoad() {
     for (const b of built) {
       if (b.status !== 0) continue; // being opened: listed below with its CLAIM
       const ho = holders.get(b.key), lk = links.get(b.key) || known.get(b.key);
-      if (b.ktid && ho && ho !== me) sent.push({ b, nonce: b.nonce, live: true, key: true, st: t('mbNotOpened'), who: [t('mbKeyAt'), ho] });
-      else if (b.ktid && holders.has(b.key) && !ho) sent.push({ b, nonce: b.nonce, live: true, key: true, st: t('mbKeyGone'), bad: true });
-      else if (!b.ktid && lk && lk.kind === 'named') sent.push({ b, nonce: b.nonce, live: true, key: false, st: t('mbNotOpened'), who: lk.named ? [t('mbFor'), lk.named] : null, local: true });
+      const pkh = (packByKey.get(String(b.key).toUpperCase()) || {}).hash;
+      if (b.ktid && ho && ho !== me) sent.push({ b, pack: pkh, nonce: b.nonce, live: true, key: true, st: t('mbNotOpened'), who: [t('mbKeyAt'), ho] });
+      else if (b.ktid && holders.has(b.key) && !ho) sent.push({ b, pack: pkh, nonce: b.nonce, live: true, key: true, st: t('mbKeyGone'), bad: true });
+      else if (!b.ktid && lk && lk.kind === 'named') sent.push({ b, pack: pkh, nonce: b.nonce, live: true, key: false, st: t('mbNotOpened'), who: lk.named ? [t('mbFor'), lk.named] : null, local: true });
     }
     for (const [bk, r] of claimOn) {
       const lb = v.boxes.find(b => String(b.key).toUpperCase() === bk), pk = packByKey.get(bk);
       const b = lb || r.b; if (!b) continue;
-      sent.push({ b, nonce: b.nonce, key: pk ? !!pk.ktid : !r.link, st: lb && lb.status !== 0 ? t('stClaiming') : t('mbOpenedSt'), ok: true, who: [t('mbOpenedBy'), r.from], date: r.date, hash: r.hash });
+      sent.push({ b, pack: pk && pk.hash, nonce: b.nonce, key: pk ? !!pk.ktid : !r.link, st: lb && lb.status !== 0 ? t('stClaiming') : t('mbOpenedSt'), ok: true, who: [t('mbOpenedBy'), r.from], date: r.date, hash: r.hash });
     }
     sent.sort((a, c) => (c.nonce || 0) - (a.nonce || 0));
     const recvOpen = (inbox || []).filter(b => !b.gone), recvGone = (inbox || []).filter(b => b.gone);
     const mine = recs.filter(r => r.cmd === 'CLAIM' && r.from === me && r.hk !== me && r.b)
       .map(r => ({ b: r.b, nonce: r.b.nonce, key: !r.link, st: t('mbOpenedYou'), ok: true, who: [t('inboxFrom'), r.hk], date: r.date, hash: r.hash }))
       .sort((a, c) => (c.date || 0) - (a.date || 0));
-    mbData = { me, built, kn, links, sent, recvOpen, recvGone, mine, inboxErr: !inbox, histErr: !hist, more: hist && hist.more, n: hist ? hist.n : 0 };
+    mbData = { me, built, kn, pk: b => packByKey.get(String(b.key).toUpperCase()) || null, links, sent, recvOpen, recvGone, mine, inboxErr: !inbox, histErr: !hist, more: hist && hist.more, n: hist ? hist.n : 0 };
     mbBusy = false; mbRender();
   } catch (e) { if (seq !== mbSeq) return; mbBusy = false; list.textContent = ''; errSet('boxesErr', e.message); }
 }
@@ -1304,7 +1324,7 @@ function mbRender() {
   const note = k => list.append(h('p', { class: 'sm mbnote' }, k));
   if (mbTab === 'built') {
     if (!d.built.length) list.append(h('p', { class: 'sub' }, t('noBoxes')));
-    for (const b of d.built) list.append(boxCard(b, d.kn(b), d.links.get(b.key)));
+    for (const b of d.built) list.append(boxCard(b, d.kn(b), d.links.get(b.key), d.pk(b)));
     $('vcCard').classList.toggle('hide', false);
   } else if (mbTab === 'recv') {
     $('vcCard').classList.add('hide');
@@ -1349,7 +1369,7 @@ function histCard(x) {
     row(t('bxNo'), '#' + b.nonce),
     x.local ? h('p', { class: 'sm' }, t('mbLocal')) : null,
     x.live ? h('p', { class: 'sm' }, t('mbSeeBuilt')) : null,
-    x.hash ? h('a', { class: 'lnk', href: NET().explorerTx + x.hash, target: '_blank', rel: 'noopener noreferrer' }, t('explorer') + ' ↗') : null);
+    exBlock([['exPack', x.pack], ['exClaim', x.hash]]) || h('p', { class: 'sm' }, t('exNone')));
   const c = h('div', { class: 'card bcard' }, head, body);
   const set = on => { body.classList.toggle('hide', !on); c.classList.toggle('open', on); head.setAttribute('aria-expanded', String(on)); };
   head.onclick = () => { const on = !histOpen.has(id); if (on) histOpen.add(id); else histOpen.delete(id); set(on); };
@@ -1422,6 +1442,10 @@ function egify(root) {
 }
 new MutationObserver(ms => { for (const m of ms) { if (m.type === 'characterData') { if (m.target.parentNode) egify(m.target.parentNode); } else for (const n of m.addedNodes) if (n.nodeType === 1) egify(n); else if (n.nodeType === 3 && n.parentNode) egify(n.parentNode); } })
   .observe(document.body, { childList: true, subtree: true, characterData: true });
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  const sv = $('pageVer').textContent;
+  navigator.serviceWorker.register('sw.js?v=' + encodeURIComponent(sv), { scope: './' }).catch(() => {});
+}
 initXaman(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); egify(document.body);
 // test hook for automated checks (read-only helpers, no secrets)
 window.__box = { packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr, mintTx, gc: { encrypt: gcEncrypt, decrypt: gcDecrypt, genPw: gcGenPw, max: GC.MAX, iter: GC.ITER } };
