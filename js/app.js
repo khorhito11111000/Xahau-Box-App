@@ -12,6 +12,17 @@ const S = Object.assign({ net: C.DEFAULT_NETWORK, lang: browserLang(), account: 
 if (!C.NETWORKS[S.net]) S.net = C.DEFAULT_NETWORK;
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ net: S.net, lang: S.lang, account: S.account, history: S.history.slice(-200), pending: S.pending })); } catch {} };
 if (!LANGS.includes(S.lang)) S.lang = 'en';
+/* Box links saved on this device (localStorage, never sent anywhere). Written BEFORE the signature is requested,
+   so a reload, a new tab or a lost Xaman return can always show the link/QR again. Key: network:hook:VC. */
+const VKEY = 'xbox.links.v1';
+const vaultAll = () => { try { const v = JSON.parse(localStorage.getItem(VKEY)); return v && typeof v === 'object' ? v : {}; } catch { return {}; } };
+const vid = b => b.net + ':' + b.h + ':' + b.vc;
+function vaultPut(b) { const v = vaultAll(); v[vid(b)] = Object.assign({}, v[vid(b)] || {}, b); try { localStorage.setItem(VKEY, JSON.stringify(v)); return true; } catch { return false; } }
+function vaultGet(net, hk, vc) { return vaultAll()[net + ':' + hk + ':' + vc] || null; }
+function vaultDrop(ids) { if (!ids.length) return; const v = vaultAll(); ids.forEach(i => delete v[i]); try { localStorage.setItem(VKEY, JSON.stringify(v)); } catch {} }
+// links made by the older page version only lived in S.pending: keep them
+if (S.pending && S.pending.op === 'pack' && S.pending.box && S.pending.box.vc) vaultPut(S.pending.box);
+if (S.pending && S.pending.op === 'remit' && S.pending.back && S.pending.back.box) vaultPut(S.pending.back.box);
 const t = k => (I[S.lang] && I[S.lang][k]) || I.en[k] || k;
 const NET = () => C.NETWORKS[S.net];
 const short = a => a ? a.slice(0, 6) + '…' + a.slice(-4) : '';
@@ -349,7 +360,7 @@ async function pollLedger() {
 function startLive() {
   clearInterval(LIVE.timer); LIVE.timer = setInterval(pollLedger, C.LEDGER_POLL_MS || 4000); pollLedger();
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) pollLedger(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { pollLedger(); resumePack(); } });
 const liveRow = () => row(t('ledgerNow'), h('span', { class: 'lcur' }, curLedger() ? String(curLedger()) : '…'));
 const leftRow = (exp, cur) => row(t('timeLeft'), h('span', { 'data-exp': String(exp || 0), 'data-cur': String(cur || 0) }, '…'));
 
@@ -442,6 +453,7 @@ $('packBtn').onclick = () => {
   const exp = expLedger();
   const b = { kind: k, h: acct.address, net: S.net, tid: sel.gift || Z64, amt: L.hex.u64(amt), exp: exp ? L.hex.u32(exp) : '00000000', named, created: Date.now() };
   if (k === 'token') { b.vc = L.randomVC(); b.ktid = sel.key; } else { const key = L.newBoxKey(); b.vc = key.vc; b.pub = key.pub; b.priv = key.priv; }
+  if (!vaultPut(b)) return errSet('createErr', t('storageOff'));
   S.pending = { op: 'pack', box: b, audit: needsAudit(acct, !!sel.gift) }; save();
   enterSign();
 };
@@ -498,7 +510,7 @@ async function checkPending() {
   if (p.op === 'pack') {
     const d = await hookState(p.box.h, L.boxKey(p.box.vc)); const b = parseBox(d);
     if (!b) return errSet('signErr', t('notYet'));
-    p.box.nonce = b.nonce; save(); return finishPack();
+    p.box.nonce = b.nonce; p.shown = true; save(); return finishPack();
   }
   if (p.op === 'claim') {
     const d = await hookState(p.h, L.boxKey(p.vc)); const b = parseBox(d);
@@ -522,10 +534,20 @@ async function checkPending() {
   }
 }
 
+/* After Xaman: the tab may be reloaded, a new tab may open, or the live answer may never arrive.
+   If the box being packed is already on the ledger, show its link/QR right away. */
+let resuming = false;
+async function resumePack() {
+  const p = S.pending; if (resuming || !p || p.op !== 'pack' || p.shown || p.box.net !== S.net || ['done', 'open', 'opened'].includes(current)) return;
+  resuming = true;
+  try { const b = parseBox(await hookState(p.box.h, L.boxKey(p.box.vc))); if (b && S.pending === p && !['done', 'open', 'opened'].includes(current)) { p.box.nonce = b.nonce; p.shown = true; save(); toast(t('boxRestored')); await finishPack(); } }
+  catch {} finally { resuming = false; }
+}
+
 /* ---------- DONE: QR picture ---------- */
 let doneLink = '';
-async function finishPack() {
-  const p = S.pending; const b = p.box;
+async function finishPack(only) {
+  const b = only || S.pending.box;
   let q;
   if (b.kind === 'bearer') q = { v: 14, h: b.h, b: b.priv };
   else if (b.kind === 'named') {
@@ -534,6 +556,8 @@ async function finishPack() {
   } else q = { v: 14, h: b.h, c: b.vc };
   q.n = C.NETWORKS[b.net].networkId;
   if (!S.history.find(x => x.vc === b.vc)) S.history.push({ vc: b.vc, h: b.h, net: b.net, kind: b.kind, created: b.created, ktid: b.ktid || null });
+  vaultPut(b);
+  if (only) S.pending = { op: 'pack', box: b, audit: false, shown: true };
   save();
   doneLink = qrLink(makeQr(q));
   show('done');
@@ -545,7 +569,7 @@ async function finishPack() {
   info.append(row(t('contents'), parts.join(' + '), 'yel'), row(t('kind'), t(b.kind + 'Kind')));
   if (b.kind === 'named') info.append(row(t('signedFor'), short(b.named)));
   if (b.kind === 'token') info.append(row('Key', short(b.ktid)), h('p', { class: 'sm' }, t('keyQrHint')));
-  info.append(row(t('expires'), b.exp !== '00000000' ? t('expAt') + ' ' + parseInt(b.exp, 16) : t('limitNone')), row(t('boxNumber'), short(b.vc)), row('Network', NET().label));
+  info.append(row(t('expires'), b.exp !== '00000000' ? t('expAt') + ' ' + parseInt(b.exp, 16) : t('limitNone')), row(t('boxNumber'), short(b.vc)), row('Network', C.NETWORKS[b.net].label));
 }
 function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
 async function drawBox(link) {
@@ -685,6 +709,14 @@ async function enterBoxes() {
   list.append(h('div', { class: 'card' }, liveRow()));
   if (!acct.boxes.length) list.append(h('p', { class: 'sub' }, t('noBoxes')));
   const known = new Map(S.history.filter(x => x.h === acct.address && x.net === S.net).map(x => [L.boxKey(x.vc), x]));
+  const links = new Map(), live = new Set(acct.boxes.map(b => b.key)), stale = [];
+  for (const [id, x] of Object.entries(vaultAll())) {
+    if (!x || x.h !== acct.address || x.net !== S.net) continue;
+    const k = L.boxKey(x.vc);
+    if (live.has(k)) { links.set(k, x); if (!known.has(k)) known.set(k, x); }
+    else if (x.nonce != null || Date.now() - (x.created || 0) > 86400000) stale.push(id); // opened / taken back, or never packed
+  }
+  vaultDrop(stale);
   for (const b of acct.boxes.sort((a, c) => a.nonce - c.nonce)) {
     const amt = BigInt('0x' + b.amt), parts = []; if (amt) parts.push(dropsToXah(amt) + ' XAH'); if (!isZero(b.tid)) parts.push('1 URIToken');
     const expN = parseInt(b.exp, 16), kn = known.get(b.key);
@@ -692,6 +724,8 @@ async function enterBoxes() {
       row(t('ledgerExp'), expN ? String(expN) : t('limitNone')), expN ? leftRow(expN, acct.cur) : null,
       stRow(b, expN), row(t('boxNumber'), kn ? short(kn.vc) : t('vcUnknown')));
     if (!isZero(b.tid)) { const slot = h('div'); c.insertBefore(slot, c.children[1]); uriToken(b.tid).then(tok => { if (tok) slot.append(tokenCard(tok)); }).catch(() => {}); }
+    const lk = links.get(b.key);
+    if (lk) c.append(h('button', { class: 'btn y', type: 'button', onclick: () => { lk.nonce = b.nonce; finishPack(lk); } }, t('showLink')));
     if (kn) c.append(h('button', { class: 'btn o', type: 'button', onclick: () => startOpen(kn.vc) }, t('takeBack')));
     list.append(c);
   }
@@ -741,7 +775,7 @@ function handleHash() {
   route(hs || 'home');
 }
 window.addEventListener('hashchange', () => { if (location.hash.slice(1) !== current) handleHash(); });
-applyLang(); applyNet(); renderAcct(); initXaman(); handleHash();
+applyLang(); applyNet(); renderAcct(); initXaman(); handleHash(); resumePack();
 // test hook for automated checks (read-only helpers, no secrets)
 window.__box = { packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr };
 })();
