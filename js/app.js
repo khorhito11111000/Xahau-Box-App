@@ -6,7 +6,7 @@ const $ = id => document.getElementById(id);
 const Z64 = '0'.repeat(64);
 const KEY = 'xbox.v1';
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
-const LANGS = ['en', 'es', 'fr', 'ru'];
+const LANGS = ['en', 'es', 'fr', 'ru', 'de', 'zh', 'ja'];
 function browserLang() { for (const l of (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''])) { const c = String(l).slice(0, 2).toLowerCase(); if (LANGS.includes(c)) return c; } return 'en'; }
 const S = Object.assign({ net: C.DEFAULT_NETWORK, lang: browserLang(), account: null, history: [], pending: null, back: null }, load());
 if (!C.NETWORKS[S.net]) S.net = C.DEFAULT_NETWORK;

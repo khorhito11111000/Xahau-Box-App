@@ -237,3 +237,7 @@ select.inp option{background:#0b1a3d}
 .xnpill .ico{color:var(--y)}
 .xnpill:active{background:rgba(248,206,34,.28)}
 .secitem p+p{margin-top:8px}
+/* languages: long German compounds, CJK line breaking */
+:lang(de) p,:lang(de) .secitem,:lang(de) .sub{hyphens:auto;-webkit-hyphens:auto}
+:lang(de) *{overflow-wrap:break-word}
+:lang(zh) body,:lang(ja) body{word-break:normal;line-break:strict;overflow-wrap:anywhere}
