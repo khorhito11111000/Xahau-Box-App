@@ -20,11 +20,3 @@ These are bounded proofs under a model of the host, not a full audit.
 ## Credits
 
 The check was done with [xahc-prover](https://github.com/Hugegreencandle/xahc-prover) by [@Cryptocrazy589](https://x.com/Cryptocrazy589) (GitHub: [Hugegreencandle](https://github.com/Hugegreencandle), see also [xahc](https://github.com/Hugegreencandle/xahc)), extended for the box hook, with CBMC under the hood. Thank you! He did not review or endorse these specific results; any errors are ours.
-
-Проверка сделана с помощью xahc-prover от @Cryptocrazy589 (расширен для хука боксов, внутри CBMC). Спасибо! Он не проверял и не одобрял именно эти результаты.
-
----
-
-## Кратко по-русски
-
-Проверена команда PACK хука v14 (создание бокса) методом ограниченной проверки моделей (CBMC) на уменьшенных размерах, вместе с учётом баланса. Все 6 вариантов доказаны, все 4 специально испорченные версии хука пойманы, ошибок в v14 не найдено. Допущение: разные 256-битные хэши не совпадают. Заметка для v15: PACK не отклоняет ID токена, совпадающий со служебными ключами бокса; это не уязвимость.
