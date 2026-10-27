@@ -565,6 +565,16 @@ async function enterCreate(preset) {
   if (preset && preset.giftNew && sel.gift) { toast(t('gcMinted')); const el = document.querySelector('#giftTokens .tok.sel'); if (el) el.scrollIntoView({ block: 'center' }); }
   else if (preset && sel.key) { toast(t('minted')); const el = document.querySelector('#keyTokens .tok.sel'); if (el) el.scrollIntoView({ block: 'center' }); }
 }
+/* a key token made by this page: issued by this account, URI = <page>/img/key.jpg?k=<hex> */
+const isKeyTok = tok => !!tok && tok.Issuer === (acct && acct.address) && /\/img\/key\.jpg\?k=[0-9a-f]{8,64}$/.test(hexToText(tok.URI || ''));
+const freeKeys = () => acct.tokens.filter(x => isKeyTok(x) && !tokenReason(x));
+const giftIsGc = () => { const g = sel.gift && acct && acct.tokens.find(x => x.index === sel.gift); return !!(g && gcTok(g)); };
+/* a gift code goes only into a key-token box; in key-token mode a free key token is picked by default */
+function keyDefaults() {
+  if (!acct) return;
+  if (giftIsGc()) document.querySelector('input[name=kind][value=token]').checked = true;
+  if (kind() === 'token' && !sel.key) { const f = freeKeys().filter(x => x.index !== sel.gift); if (f.length) { sel.key = (f.find(x => newIds.has(x.index)) || f[f.length - 1]).index; } }
+}
 function tokenReason(tok) {
   if ((tok.Flags || 0) & 1) return t('burnable');
   if (tok.Amount !== undefined) return t('onSale');
@@ -573,18 +583,27 @@ function tokenReason(tok) {
   return null;
 }
 function renderTokens() {
+  keyDefaults(); syncKindUi(true);
   const g = $('giftTokens'), k = $('keyTokens'); g.textContent = ''; k.textContent = '';
-  if (!acct.tokens.length) { g.append(h('p', { class: 'sm' }, t('noTokens'))); k.append(h('p', { class: 'sm' }, t('noTokens'))); }
+  if (!acct.tokens.length) g.append(h('p', { class: 'sm' }, t('noTokens')));
+  const keys = acct.tokens.filter(isKeyTok);
+  if (!freeKeys().some(x => x.index !== sel.gift)) k.append(h('p', { class: 'sm yel' }, t('noKeyYet')));
   for (const tok of acct.tokens) {
-    const why = tokenReason(tok);
+    const why = tokenReason(tok) || (isKeyTok(tok) ? t('isKeyTok') : null) || (sel.key === tok.index ? t('keyIsGift') : null);
     g.append(tokenCard(tok, { disabled: why, selected: sel.gift === tok.index, onclick: () => { sel.gift = sel.gift === tok.index ? null : tok.index; if (sel.key === sel.gift) sel.key = null; renderTokens(); updateSummary(); } }));
+  }
+  for (const tok of keys) {
+    const why = tokenReason(tok);
     k.append(tokenCard(tok, { disabled: why || (sel.gift === tok.index ? t('keyIsGift') : null), selected: sel.key === tok.index, onclick: () => { sel.key = sel.key === tok.index ? null : tok.index; renderTokens(); } }));
   }
 }
 const kind = () => { const top = document.querySelector('input[name=kind]:checked').value; return top === 'token' ? 'token' : document.querySelector('input[name=linkFor]:checked').value; };
-function syncKindUi() { const k = kind(); $('linkWrap').classList.toggle('hide', k === 'token'); $('namedWrap').classList.toggle('hide', k !== 'named'); $('keyWrap').classList.toggle('hide', k !== 'token'); updateSummary(); }
+function syncKindUi(quiet) {
+  if (acct && giftIsGc() && kind() !== 'token') { document.querySelector('input[name=kind][value=token]').checked = true; if (!quiet) toast(t('gcNeedsKey')); }
+  if (!quiet && acct && kind() === 'token' && !sel.key) { keyDefaults(); if (sel.key) return renderTokens(); }
+  const k = kind(); $('linkWrap').classList.toggle('hide', k === 'token'); $('namedWrap').classList.toggle('hide', k !== 'named'); $('keyWrap').classList.toggle('hide', k !== 'token'); updateSummary(); }
 document.querySelectorAll('input[name=linkFor]').forEach(r => r.onchange = () => { document.querySelector('input[name=kind][value=link]').checked = true; syncKindUi(); });
-document.querySelectorAll('input[name=kind]').forEach(r => r.onchange = syncKindUi);
+document.querySelectorAll('input[name=kind]').forEach(r => r.onchange = () => syncKindUi());
 $('amtInput').oninput = updateSummary; $('expSel').onchange = updateSummary;
 function expLedger() { const d = Number($('expSel').value); if (!d || !acct) return 0; return curLedger(acct.cur) + Math.ceil(d * 86400 / avgSec()); }
 function updateSummary() {
@@ -593,7 +612,7 @@ function updateSummary() {
   $('amtNote').textContent = d === null ? t('amtBad') : '≈ ' + t('available').toLowerCase() + ': ' + dropsToXah(freeToLock(acct, !!sel.gift, kind() === 'token')) + ' XAH';
   const parts = []; if (d) parts.push(dropsToXah(d) + ' XAH'); if (sel.gift) parts.push('1 URIToken');
   const gt = sel.gift && acct.tokens.find(x => x.index === sel.gift);
-  $('gcModeHint').classList.toggle('hide', !(gt && gcTok(gt) && kind() !== 'token'));
+  $('gcModeHint').classList.toggle('hide', !(gt && gcTok(gt)));
   $('sumText').textContent = parts.join(' + ') || '—';
   const e = expLedger(), box = $('expNote'); box.textContent = '';
   box.append(liveRow(), row(t('ledgerExp'), e ? String(e) : t('limitNone')));
@@ -663,7 +682,9 @@ $('packBtn').onclick = () => {
   if (amt > freeToLock(acct, !!sel.gift, k === 'token')) return errSet('createErr', t('notEnough'));
   let named = null;
   if (k === 'named') { named = $('namedAddr').value.trim(); if (!L.isAddress(named)) return errSet('createErr', t('needNamed')); }
-  if (k === 'token' && !sel.key) return errSet('createErr', t('needKey'));
+  if (giftIsGc() && k !== 'token') return errSet('createErr', t('gcNeedsKey'));
+  if (k === 'token' && !sel.key) return errSet('createErr', t(freeKeys().length ? 'needKey' : 'noKeyYet'));
+  if (k === 'token' && (sel.key === sel.gift || !isKeyTok(acct.tokens.find(x => x.index === sel.key)))) return errSet('createErr', t('needKey'));
   const exp = expLedger();
   const b = { kind: k, h: acct.address, net: S.net, tid: sel.gift || Z64, amt: L.hex.u64(amt), exp: exp ? L.hex.u32(exp) : '00000000', named, created: Date.now() };
   if (k === 'token') { b.vc = L.randomVC(); b.ktid = sel.key; } else { const key = L.newBoxKey(); b.vc = key.vc; b.pub = key.pub; b.priv = key.priv; }
