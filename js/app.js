@@ -289,7 +289,7 @@ const appUrl = () => C.APP_URL || (location.origin + location.pathname);
 const qrLink = q => appUrl() + '#' + q;
 
 /* ---------- screens ---------- */
-const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'boxes', 'codes', 'security'];
+const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'boxes', 'codes', 'inbox', 'security'];
 let current = 'home', afterAccount = null;
 /* Back: the in-page "Back" button and the phone's / browser's Back do the same thing (goBack).
    History holds at most one extra entry above "#home" ({xb:1}): leaving home adds it, moving between
@@ -303,6 +303,7 @@ function show(name) {
   current = name;
   for (const s of SCREENS) $('s-' + s).classList.toggle('on', s === name);
   $('backBar').classList.toggle('hide', name === 'home');
+  if (name === 'home') setTimeout(inboxBadge, 0);
   window.scrollTo(0, 0);
   try {
     if (name === 'home') {
@@ -320,11 +321,12 @@ function goBack() {
       const to = accountFrom; afterAccount = null; S.back = null; save();
       if (to === 'sign' && p) return enterSign();
       if (to === 'open' || to === 'security') return show(to);
-      if ((to === 'create' || to === 'boxes' || to === 'codes') && S.account) return route(to);
+      if ((to === 'create' || to === 'boxes' || to === 'codes' || to === 'inbox') && S.account) return route(to);
       return show('home');
     }
     case 'sign':
       if (p && (p.op === 'pack' || p.op === 'mint' || p.op === 'gmint')) { const who = p.op === 'pack' ? p.box.h : p.tx.Account; return acct && acct.address === who ? show('create') : enterCreate(); }
+      if (p && p.op === 'claim' && p.from === 'inbox') { S.pending = null; save(); return enterInbox(); }
       if (p && p.op === 'claim') return $('boxView').childElementCount ? show('open') : enterOpen();
       if (p && p.op === 'open') return enterBoxes();
       if (p && p.op === 'remit' && p.back && p.back.box) { S.pending = p.back; save(); return finishPack(); }
@@ -360,6 +362,7 @@ function renderAcct() {
     tx.append(h('b', { class: 'mono' }, short(S.account.address)), ' · ' + (S.account.via === 'xaman' ? 'Xaman' : t('addrOnlyTag')) + ' · ' + NET().label);
     b.textContent = t('signOut'); b.className = 'chip acctbtn out';
   }
+  if (current === 'home') setTimeout(inboxBadge, 0);
 }
 function needAccount(next, back) { if (S.account) return true; afterAccount = next; S.back = back || null; save(); show('account'); return false; }
 
@@ -945,14 +948,15 @@ function buildClaim(who, msg) {
   else if (q.kind === 'bearer') { const m = L.claimMessage({ opener: who, vc: q.vc, hook: q.h, networkId: NET().networkId, exp: b.exp, tid: b.tid, amt: b.amt, nonce: b.nonce }); tx = claimKeyTx(who, q.h, q.pub, L.signClaim(q.b, m)); }
   else return (msg.textContent = t('notHolder'));
   if (!S.account || S.account.address !== who) { S.account = { address: who, via: 'json' }; renderAcct(); }
-  S.pending = { op: 'claim', tx, h: q.h, vc: q.vc, k: q.k || null, t: q.t || null, amt: b.amt, tid: b.tid }; save();
+  S.pending = { op: 'claim', tx, h: q.h, vc: q.vc, k: q.k || null, t: q.t || null, amt: b.amt, tid: b.tid, from: q.from || null }; save();
   enterSign();
 }
 async function finishClaim() {
   const p = S.pending; show('opened');
   const info = $('openedInfo'); info.textContent = '';
   const amt = BigInt('0x' + p.amt); if (amt) info.append(row(t('received'), dropsToXah(amt) + ' XAH', 'yel'));
-  if (!isZero(p.tid)) { const tok = await uriToken(p.tid).catch(() => null); if (tok) info.append(tokenCard(tok, { big: true, reveal: true })); if (tok && p.k) { const code = await giftCode(tok.URI, p.k); if (code) info.append(row(t('giftCode'), code, 'yel')); } }
+  if (!isZero(p.tid)) { const tok = await uriToken(p.tid).catch(() => null); if (tok) info.append(tokenCard(tok, { big: true, reveal: true })); if (tok && p.k) { const code = await giftCode(tok.URI, p.k); if (code) info.append(row(t('giftCode'), code, 'yel')); }
+    if (tok && gcTok(tok)) info.append(h('div', { class: 'card warn' }, h('p', null, t('gcGotHint')), h('button', { class: 'btn y', type: 'button', onclick: () => enterCodes() }, t('myCodes')))); }
   S.pending = null; save();
 }
 // Optional gift code: token URI "tgsE1:" + base64url(1 | iv12 | tag16 | ciphertext), AES-256-GCM key "k" from the QR.
@@ -999,6 +1003,8 @@ async function enterBoxes() {
   try { acct = await loadAccountView(S.account.address); } catch (e) { list.textContent = ''; return errSet('boxesErr', e.message); }
   list.textContent = '';
   list.append(h('div', { class: 'card' }, liveRow()));
+  const ib = h('div'); list.append(ib);
+  findInbox().then(l => { const n = l.filter(inboxOpenable).length; if (n) ib.append(h('button', { class: 'btn y', type: 'button', onclick: () => enterInbox() }, t('inboxT') + ' · ' + n)); }).catch(() => {});
   if (!acct.boxes.length) list.append(h('p', { class: 'sub' }, t('noBoxes')));
   const known = new Map(S.history.filter(x => x.h === acct.address && x.net === S.net).map(x => [L.boxKey(x.vc), x]));
   const links = new Map(), live = new Set(acct.boxes.map(b => b.key)), stale = [];
@@ -1051,6 +1057,109 @@ function boxCard(b, kn, lk) {
   set(boxOpen.has(b.nonce));
   return c;
 }
+/* ---------- BOXES FOR ME (key tokens this account holds -> the box on the issuer's hook) ----------
+   Only key-token boxes can be found this way (link/QR boxes are known only to whoever has the link).
+   The box record comes from the issuer's hook state; the box number (VC) needed for CLAIM is public in
+   the issuer's PACK transaction, and only the current key holder can use it. */
+const inboxCache = { at: 0, id: '', p: null };
+async function findInbox(force) {
+  const me = S.account && S.account.address; if (!me) return [];
+  const id = S.net + ':' + me;
+  if (!force && inboxCache.id === id && inboxCache.p && Date.now() - inboxCache.at < 60000) return inboxCache.p;
+  inboxCache.id = id; inboxCache.at = Date.now();
+  inboxCache.p = (async () => {
+    const [objs, cur] = await Promise.all([accountObjects(me, 'uri_token'), currentLedger()]);
+    const keys = objs.filter(o => o.LedgerEntryType === 'URIToken' && o.Owner === me && o.Issuer !== me && keyTokenId(o));
+    const byIss = new Map(); for (const k of keys) { if (!byIss.has(k.Issuer)) byIss.set(k.Issuer, []); byIss.get(k.Issuer).push(k); }
+    const out = [];
+    for (const [iss, ks] of byIss) {
+      let st = new Map(); try { st = new Map((await nsEntries(iss)).map(e => [e.HookStateKey, e.HookStateData])); } catch {}
+      const want = new Map(ks.map(k => [k.index.toUpperCase(), k]));
+      const found = new Set();
+      for (const [k, d] of st) {
+        if (d.length !== 170) continue; const m = st.get(L.modeKey(k));
+        if (!m || m.length !== 66 || !m.startsWith('01')) continue; const kt = m.slice(2).toUpperCase();
+        if (!want.has(kt)) continue; const b = parseBox(d); if (!b) continue;
+        found.add(kt); out.push(Object.assign(b, { key: k, h: iss, ktid: kt, keyTok: want.get(kt), cur }));
+      }
+      for (const [kt, k] of want) if (!found.has(kt)) out.push({ gone: true, h: iss, ktid: kt, keyTok: k, cur });
+    }
+    return out.sort((a, c) => (a.gone ? 1 : 0) - (c.gone ? 1 : 0) || (c.nonce || 0) - (a.nonce || 0));
+  })().catch(e => { inboxCache.at = 0; throw e; });
+  return inboxCache.p;
+}
+const inboxOpenable = b => !b.gone && b.status === 0 && !(parseInt(b.exp, 16) && curLedger(b.cur) > parseInt(b.exp, 16));
+async function inboxBadge() {
+  const btn = $('goInbox'), n = $('inboxN');
+  if (!S.account) { btn.classList.add('hide'); return; }
+  btn.classList.remove('hide'); n.textContent = '';
+  try { const l = await findInbox(); const c = l.filter(inboxOpenable).length; n.textContent = c ? String(c) : ''; n.classList.toggle('hide', !c); } catch { n.classList.add('hide'); }
+}
+/* the box number (VC) from the issuer's own PACK for this key token; checked against the box's state key */
+async function packVc(iss, ktid, bk) {
+  const nm = x => hexToText(x || '');
+  let marker;
+  for (let i = 0; i < 10; i++) {
+    const r = await rpc('account_tx', Object.assign({ account: iss, ledger_index_min: -1, ledger_index_max: -1, limit: 200, forward: false }, marker ? { marker } : {}));
+    for (const e of r.transactions || []) {
+      const tx = e.tx || e.tx_json || {}; if (tx.TransactionType !== 'Invoke' || tx.Account !== iss || !tx.HookParameters) continue;
+      if (e.meta && e.meta.TransactionResult !== 'tesSUCCESS') continue;
+      const ps = {}; for (const x of tx.HookParameters) ps[nm(x.HookParameter.HookParameterName)] = String(x.HookParameter.HookParameterValue || '').toUpperCase();
+      if (ps.CMD !== '5041434B' || ps.KTID !== ktid || !/^[0-9A-F]{64}$/.test(ps.VC || '')) continue;
+      if (L.boxKey(ps.VC).toUpperCase() === bk.toUpperCase()) return ps.VC;
+    }
+    marker = r.marker; if (!marker) break;
+  }
+  return null;
+}
+async function enterInbox() {
+  if (!needAccount(enterInbox, 'inbox')) return;
+  show('inbox'); errSet('inboxErr');
+  const list = $('inboxList'); list.textContent = ''; list.append(h('div', { class: 'spin sm' }));
+  let l; try { l = await findInbox(true); } catch (e) { list.textContent = ''; return errSet('inboxErr', e.message); }
+  list.textContent = '';
+  list.append(h('div', { class: 'card' }, liveRow()));
+  if (!l.length) list.append(h('p', { class: 'sub' }, t('inboxNone')));
+  for (const b of l) list.append(inboxCard(b));
+  renderLive(false); inboxBadge();
+}
+function inboxCard(b) {
+  const me = S.account.address;
+  const c = h('div', { class: 'card' + (inboxOpenable(b) ? ' inbox' : '') });
+  if (b.gone) {
+    c.append(row(t('tokenKind'), short(b.ktid)), row(t('inboxFrom'), short(b.h)), row(t('status'), t('stGone'), 'bad'), h('p', { class: 'sm' }, t('inboxGone')));
+    return c;
+  }
+  const amt = BigInt('0x' + b.amt), hasTok = !isZero(b.tid), expN = parseInt(b.exp, 16);
+  const sum = h('b', { class: 'yel' }, [amt ? dropsToXah(amt) + ' XAH' : null, hasTok ? '1 URIToken' : null].filter(Boolean).join(' + ') || t('bxEmpty'));
+  c.append(h('div', { class: 'row' }, h('span', { class: 'ibn' }, '🎁 #' + b.nonce), sum), row(t('inboxFrom'), short(b.h)), stRow(b, expN, b.status === 0 ? 'ok' : 'yel'));
+  const ins = h('div', { class: 'binside' }, h('div', { class: 'lbl' }, t('bxInside')));
+  if (amt) ins.append(row('XAH', dropsToXah(amt) + ' XAH', 'yel'));
+  let tok = null;
+  if (hasTok) {
+    const tr = row('URIToken', short(b.tid)), slot = h('div'); ins.append(tr, slot);
+    uriToken(b.tid).then(x => { tok = x; if (!x) return; if (gcTok(x)) { tr.lastChild.textContent = t('gcTag') + ' · ' + short(b.tid); sum.textContent = [amt ? dropsToXah(amt) + ' XAH' : null, t('gcTag')].filter(Boolean).join(' + '); slot.append(h('p', { class: 'sm' }, t('inboxGcNote'))); } slot.append(tokenCard(x)); }).catch(() => {});
+  }
+  c.append(ins, row(t('ledgerExp'), expN ? String(expN) : t('limitNone')));
+  if (expN) c.append(leftRow(expN, b.cur));
+  c.append(row(t('bxKeyTok'), short(b.ktid)));
+  const msg = h('p', { class: 'err-line' });
+  const go = h('button', { class: 'btn y big', type: 'button', disabled: inboxOpenable(b) ? null : true, onclick: async () => {
+    msg.textContent = ''; go.disabled = true;
+    try {
+      const [kt, vc] = await Promise.all([uriToken(b.ktid), packVc(b.h, b.ktid, b.key)]);
+      if (!kt || kt.Owner !== me) { go.disabled = false; return (msg.textContent = t('notHolder')); }
+      if (!vc) { go.disabled = false; return (msg.textContent = t('inboxNoVc')); }
+      if (!tok && hasTok) tok = await uriToken(b.tid).catch(() => null);
+      openQ = { h: b.h, vc, kind: 'token', from: 'inbox' };
+      openBox = Object.assign({}, b, { holder: kt.Owner, tok, cur: await currentLedger() });
+      go.disabled = false; buildClaim(me, msg);
+    } catch (e) { go.disabled = false; msg.textContent = e.message; }
+  } }, '🎁 ' + t('inboxOpen'));
+  c.append(msg, go);
+  if (!inboxOpenable(b)) c.append(h('p', { class: 'sm' }, b.status === 0 ? t('expired') : t('stClaiming')));
+  return c;
+}
 /* gift codes this account holds (moved out of My boxes): open a code with its password */
 async function enterCodes() {
   if (!needAccount(enterCodes, 'codes')) return;
@@ -1092,6 +1201,7 @@ function route(name) {
   if (name === 'open') return enterOpen();
   if (name === 'boxes') return enterBoxes();
   if (name === 'codes') return enterCodes();
+  if (name === 'inbox') return enterInbox();
   if (name === 'sign' && S.pending) return enterSign();
   if (name === 'account') return show('account');
   if (name === 'security') return show('security');
@@ -1101,6 +1211,7 @@ $('goCreate').onclick = () => enterCreate();
 $('goOpen').onclick = () => enterOpen();
 $('goBoxes').onclick = () => enterBoxes();
 $('goCodes').onclick = () => enterCodes();
+$('goInbox').onclick = () => enterInbox();
 $('goSecurity').onclick = () => show('security');
 $('secBack').onclick = () => goBack();
 $('backBtn').onclick = () => goBack();

@@ -180,3 +180,8 @@ select.inp option{background:#0b1a3d}
 .bhead .bsum{color:var(--mut)}
 .bbody{display:flex;flex-direction:column;gap:10px;padding:0 14px 14px;border-top:1px solid rgba(255,255,255,.08)}
 .binside{display:flex;flex-direction:column;gap:6px;padding-top:12px}
+.nbadge{display:inline-block;min-width:22px;padding:3px 7px;margin-left:6px;border-radius:12px;background:var(--y);color:var(--navy);font:800 13px/1.2 system-ui,sans-serif}
+.nbadge.hide{display:none}
+.card.inbox{border-color:rgba(248,206,34,.6)}
+.row .ibn{font:800 20px/1 system-ui,sans-serif;color:var(--y)}
+.btn.big{min-height:58px;font-size:18px}
