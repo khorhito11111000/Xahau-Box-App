@@ -214,7 +214,7 @@ ru: {
 Object.assign(window.BOX_I18N.en, {
 "setLink": "⚙️ Settings and info",
 "setTitle": "⚙️ Settings and info",
-"setSub": "My boxes, language, security, about the project, how it works and the rules. Tap a section to open it.",
+"setSub": "My boxes, gift codes, language, security, about the project, how it works and the rules. Tap a section to open it.",
 "setLangH": "🌐 Language",
 "setLangT": "Choose the page language. Your choice is saved on this device.",
 "setSecH": "🛡️ Security",
@@ -264,7 +264,7 @@ Object.assign(window.BOX_I18N.en, {
 Object.assign(window.BOX_I18N.es, {
 "setLink": "⚙️ Ajustes e información",
 "setTitle": "⚙️ Ajustes e información",
-"setSub": "Mis cajas, idioma, seguridad, sobre el proyecto, cómo funciona y las reglas. Toca una sección para abrirla.",
+"setSub": "Mis cajas, códigos regalo, idioma, seguridad, sobre el proyecto, cómo funciona y las reglas. Toca una sección para abrirla.",
 "setLangH": "🌐 Idioma",
 "setLangT": "Elige el idioma de la página. Tu elección se guarda en este dispositivo.",
 "setSecH": "🛡️ Seguridad",
@@ -314,7 +314,7 @@ Object.assign(window.BOX_I18N.es, {
 Object.assign(window.BOX_I18N.fr, {
 "setLink": "⚙️ Réglages et infos",
 "setTitle": "⚙️ Réglages et infos",
-"setSub": "Mes boîtes, langue, sécurité, à propos du projet, fonctionnement et règles. Touchez une section pour l’ouvrir.",
+"setSub": "Mes boîtes, codes cadeaux, langue, sécurité, à propos du projet, fonctionnement et règles. Touchez une section pour l’ouvrir.",
 "setLangH": "🌐 Langue",
 "setLangT": "Choisissez la langue de la page. Votre choix est enregistré sur cet appareil.",
 "setSecH": "🛡️ Sécurité",
@@ -364,7 +364,7 @@ Object.assign(window.BOX_I18N.fr, {
 Object.assign(window.BOX_I18N.ru, {
 "setLink": "⚙️ Настройки и информация",
 "setTitle": "⚙️ Настройки и информация",
-"setSub": "Мои боксы, язык, безопасность, о проекте, как всё работает и правила. Нажми на раздел, чтобы открыть его.",
+"setSub": "Мои боксы, подарочные коды, язык, безопасность, о проекте, как всё работает и правила. Нажми на раздел, чтобы открыть его.",
 "setLangH": "🌐 Язык",
 "setLangT": "Выбери язык страницы. Выбор сохранится на этом устройстве.",
 "setSecH": "🛡️ Безопасность",
@@ -534,3 +534,8 @@ Object.assign(window.BOX_I18N.en, { netSwitch: "Switch network: Testnet ⇄ Main
 Object.assign(window.BOX_I18N.es, { netSwitch: "Cambiar red: Testnet ⇄ Mainnet" });
 Object.assign(window.BOX_I18N.fr, { netSwitch: "Changer de réseau : Testnet ⇄ Mainnet" });
 Object.assign(window.BOX_I18N.ru, { netSwitch: "Переключить сеть: Testnet ⇄ Mainnet" });
+/* gift codes section in Settings */
+Object.assign(window.BOX_I18N.en, { gcSignIn: "Sign in with Xaman or enter your address to see your gift codes." });
+Object.assign(window.BOX_I18N.es, { gcSignIn: "Entra con Xaman o introduce tu dirección para ver tus códigos regalo." });
+Object.assign(window.BOX_I18N.fr, { gcSignIn: "Connectez-vous avec Xaman ou saisissez votre adresse pour voir vos codes cadeaux." });
+Object.assign(window.BOX_I18N.ru, { gcSignIn: "Войди через Xaman или введи адрес, чтобы увидеть свои подарочные коды." });

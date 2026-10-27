@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#020a1c">
 <title>Xahau Gift Box</title>
 <link rel="icon" href="img/icon-192.png">
-<link rel="stylesheet" href="css/app.css?v=20261027l">
+<link rel="stylesheet" href="css/app.css?v=20261027m">
 </head>
 <body>
 <div class="app">
@@ -32,9 +32,6 @@
     <button class="btn y" id="goCreate" type="button" data-t="createBox"></button>
     <button class="btn o" id="goOpen" type="button" data-t="openBox"></button>
     <button class="btn w hide" id="goInbox" type="button"><span data-t="inboxT"></span> <span class="nbadge hide" id="inboxN"></span></button>
-    <button class="lnk center" id="goBoxes" type="button" data-t="myBoxes"></button>
-    <button class="lnk center" id="goCodes" type="button" data-t="myCodes"></button>
-    <button class="btn o" id="goSettings" type="button" data-t="setLink"></button>
     <p class="sm center" data-t="homeNote"></p>
   </div>
 </section>
@@ -210,12 +207,6 @@
 </section>
 
 <!-- GIFT CODES -->
-<section class="screen" id="s-codes">
-  <h2 data-t="gcMine"></h2>
-  <p class="sub" data-t="gcMineSub"></p>
-  <div id="codesList"></div>
-  <p class="err-line" id="codesErr"></p>
-</section>
 <!-- SETTINGS AND INFO -->
 <section class="screen" id="s-settings">
   <h2 data-t="setTitle"></h2>
@@ -236,6 +227,14 @@
         <button class="btn w" id="vcOpenBtn" type="button" data-t="buildOpen"></button>
       </div>
       <p class="err-line" id="boxesErr"></p>
+    </div>
+  </details>
+  <details class="acc" id="acc-codes" name="setacc">
+    <summary><span data-t="myCodes"></span></summary>
+    <div class="accb">
+      <p class="sm" data-t="gcMineSub"></p>
+      <div id="codesList"></div>
+      <p class="err-line" id="codesErr"></p>
     </div>
   </details>
   <details class="acc" id="acc-lang" name="setacc">
@@ -311,16 +310,17 @@
       </ol>
     </div>
   </details>
-  <div class="foot"><button class="btn o" id="setBack" type="button" data-t="back"></button></div>
+  <div class="foot"><button class="btn o" id="setBack" type="button" data-t="back"></button>
+    <div class="setout" id="setOut"><p class="sm center" id="setOutTx"></p><button class="btn w" id="setOutBtn" type="button"></button></div></div>
 </section>
 
 <div class="toast hide" id="toast"></div>
 <footer class="foot-note"><div class="ledgerline" aria-live="off"><span class="ldot" id="ledgerDot"></span><span data-t="ledgerShort"></span> <b class="lcur mono">…</b> <span class="lavg" id="ledgerAvg"></span></div><span data-t="footer"></span></footer>
 </div>
-<script src="js/config.js?v=20261027l"></script>
-<script src="vendor/boxlib.js?v=20261027l"></script>
-<script src="vendor/xumm-oauth2-pkce-2.8.7.min.js?v=20261027l"></script>
-<script src="js/i18n.js?v=20261027l"></script>
-<script src="js/app.js?v=20261027l"></script>
+<script src="js/config.js?v=20261027m"></script>
+<script src="vendor/boxlib.js?v=20261027m"></script>
+<script src="vendor/xumm-oauth2-pkce-2.8.7.min.js?v=20261027m"></script>
+<script src="js/i18n.js?v=20261027m"></script>
+<script src="js/app.js?v=20261027m"></script>
 </body>
 </html>

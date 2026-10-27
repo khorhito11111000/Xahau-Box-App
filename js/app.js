@@ -289,7 +289,7 @@ const appUrl = () => C.APP_URL || (location.origin + location.pathname);
 const qrLink = q => appUrl() + '#' + q;
 
 /* ---------- screens ---------- */
-const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'codes', 'settings'];
+const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'settings'];
 let current = 'home', afterAccount = null;
 /* Back: the in-page "Back" button and the phone's / browser's Back do the same thing (goBack).
    History holds at most one extra entry above "#home" ({xb:1}): leaving home adds it, moving between
@@ -359,11 +359,14 @@ function renderAcct() {
   if (!S.account) {
     tx.textContent = t('notSignedIn'); $('acctVia').textContent = '';
     b.textContent = t('signInShort'); b.className = 'chip acctbtn in';
+    $('setOutTx').textContent = ''; $('setOutBtn').textContent = t('signInShort'); $('setOutBtn').className = 'btn y';
   } else {
     tx.append(h('b', { class: 'mono' }, short(S.account.address)));
     $('acctVia').textContent = (S.account.via === 'xaman' ? 'Xaman' : t('addrOnlyTag')) + ' · ';
-    b.textContent = t('signOut'); b.className = 'chip acctbtn out';
+    b.textContent = ''; b.className = 'chip acctbtn hide';
+    $('setOutTx').textContent = short(S.account.address) + ' · ' + (S.account.via === 'xaman' ? 'Xaman' : t('addrOnlyTag')) + ' · ' + NET().label; $('setOutBtn').textContent = t('signOut'); $('setOutBtn').className = 'btn w';
   }
+  if (current === 'settings' && $('acc-codes').open && codesFor !== (S.account ? S.account.address + S.net : null)) codesLoad();
   if (current === 'home') setTimeout(inboxBadge, 0);
 }
 function needAccount(next, back) { if (S.account) return true; afterAccount = next; S.back = back || null; save(); show('account'); return false; }
@@ -1138,14 +1141,21 @@ function inboxCard(b) {
 /* gift codes this account holds (moved out of My boxes): open a code with its password */
 async function enterCodes() {
   if (!needAccount(enterCodes, 'codes')) return;
-  show('codes'); errSet('codesErr');
-  const list = $('codesList'); list.textContent = ''; list.append(h('div', { class: 'spin sm' }));
-  try { acct = await loadAccountView(S.account.address); } catch (e) { list.textContent = ''; return errSet('codesErr', e.message); }
-  list.textContent = '';
-  const gcs = acct.tokens.filter(gcTok);
+  enterSettings('codes'); codesLoad();
+}
+let codesSeq = 0, codesFor = null;
+async function codesLoad() {
+  const seq = ++codesSeq, list = $('codesList'); errSet('codesErr'); list.textContent = ''; codesFor = null;
+  if (!S.account) return list.append(h('p', { class: 'sub' }, t('gcSignIn')), h('button', { class: 'btn y', type: 'button', onclick: () => enterCodes() }, t('signInShort')));
+  const me = S.account.address; codesFor = me + S.net;
+  list.append(h('div', { class: 'spin sm' }));
+  let v; try { v = await loadAccountView(me); } catch (e) { if (seq !== codesSeq) return; list.textContent = ''; codesFor = null; return errSet('codesErr', e.message); }
+  if (seq !== codesSeq) return; acct = v; list.textContent = '';
+  const gcs = v.tokens.filter(gcTok);
   if (!gcs.length) return list.append(h('p', { class: 'sub' }, t('gcNone')));
   list.append(h('div', { class: 'card gcmine' }, gcs.map(tok => tokenCard(tok, { big: true, reveal: true }))));
 }
+$('acc-codes').addEventListener('toggle', () => { if ($('acc-codes').open && current === 'settings' && codesFor !== (S.account ? S.account.address + S.net : null)) codesLoad(); });
 /* hand a box's key token to someone later, from the boxes list (a plain Remit, the hook does not take part) */
 function keyHandCard(ktid) {
   const inp = h('input', { class: 'inp', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: t('recipientPh') });
@@ -1363,8 +1373,6 @@ function route(name) {
 }
 $('goCreate').onclick = () => enterCreate();
 $('goOpen').onclick = () => enterOpen();
-$('goBoxes').onclick = () => enterBoxes();
-$('goCodes').onclick = () => enterCodes();
 $('goInbox').onclick = () => enterInbox();
 /* Settings and info: one screen, sections as an accordion (one open at a time) */
 function enterSettings(sec) {
@@ -1372,15 +1380,15 @@ function enterSettings(sec) {
   show('settings');
   if (sec && sec !== 'lang' && sec !== 'boxes') { const d = $('acc-' + sec); if (d) setTimeout(() => d.scrollIntoView({ block: 'start' }), 0); }
 }
-$('goSettings').onclick = () => enterSettings();
 $('setBack').onclick = () => goBack();
+$('setOutBtn').onclick = () => { if (S.account) signOut(); else signIn('settings'); };
 /* browsers without <details name> still keep only one section open */
 document.querySelectorAll('#s-settings details.acc').forEach(d => d.addEventListener('toggle', () => {
   if (d.open) document.querySelectorAll('#s-settings details.acc').forEach(o => { if (o !== d) o.open = false; });
 }));
 $('langList').onclick = e => {
   const b = e.target.closest('[data-lang]'); if (!b || b.dataset.lang === S.lang) return;
-  S.lang = b.dataset.lang; save(); applyLang(); if (mbData) mbRender(); else mbTabsUi();
+  S.lang = b.dataset.lang; save(); applyLang(); if (mbData) mbRender(); else mbTabsUi(); if (codesFor) codesLoad();
 };
 $('pageVer').textContent = (([...document.scripts].map(x => x.src).find(x => /app\.js/.test(x)) || '').split('v=')[1] || '—');
 $('backBtn').onclick = () => goBack();

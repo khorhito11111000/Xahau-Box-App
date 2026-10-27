@@ -222,3 +222,5 @@ select.inp option{background:#0b1a3d}
 .top .chip.net{padding:5px 9px;font-size:11.5px}
 .top .chip.acctbtn{padding:8px 11px}
 .chip.gear{flex:none;font-size:18px;line-height:1;padding:7px 9px;color:#fff;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.28)}
+.setout{display:flex;flex-direction:column;gap:6px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.setout .sm{margin:0}
