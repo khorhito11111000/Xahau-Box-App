@@ -289,7 +289,7 @@ const appUrl = () => C.APP_URL || (location.origin + location.pathname);
 const qrLink = q => appUrl() + '#' + q;
 
 /* ---------- screens ---------- */
-const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'boxes', 'codes', 'inbox', 'security'];
+const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'boxes', 'codes', 'inbox', 'settings'];
 let current = 'home', afterAccount = null;
 /* Back: the in-page "Back" button and the phone's / browser's Back do the same thing (goBack).
    History holds at most one extra entry above "#home" ({xb:1}): leaving home adds it, moving between
@@ -320,7 +320,8 @@ function goBack() {
     case 'account': {
       const to = accountFrom; afterAccount = null; S.back = null; save();
       if (to === 'sign' && p) return enterSign();
-      if (to === 'open' || to === 'security') return show(to);
+      if (to === 'open') return show(to);
+      if (to === 'settings') return enterSettings();
       if ((to === 'create' || to === 'boxes' || to === 'codes' || to === 'inbox') && S.account) return route(to);
       return show('home');
     }
@@ -345,8 +346,8 @@ function applyLang() {
   document.documentElement.lang = S.lang;
   document.querySelectorAll('[data-t]').forEach(e => { e.textContent = t(e.dataset.t); });
   document.querySelectorAll('[data-tp]').forEach(e => { e.placeholder = t(e.dataset.tp); });
-  $('langBtn').textContent = S.lang.toUpperCase();
-  document.querySelectorAll('#langMenu li').forEach(li => li.setAttribute('aria-selected', String(li.dataset.lang === S.lang)));
+  $('langBtn').textContent = '🌐 ' + S.lang.toUpperCase();
+  document.querySelectorAll('#langList [data-lang]').forEach(b => { const on = b.dataset.lang === S.lang; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   if (!C.XAMAN_API_KEY) $('xamanNote').textContent = t('xamanOff');
   if ($('ledgerDot')) renderLive(false);
   renderAcct();
@@ -442,7 +443,7 @@ $('addrGo').onclick = async () => {
   setAccount(a, 'json');
 };
 $('xamanBtn').onclick = () => { if (xp) signIn(S.back); };
-$('acctBtn').onclick = () => { if (S.account) return signOut(); signIn(['home', 'account', 'done', 'opened', 'security'].includes(current) ? null : current); };
+$('acctBtn').onclick = () => { if (S.account) return signOut(); signIn(['home', 'account', 'done', 'opened', 'settings'].includes(current) ? null : current); };
 
 async function loadAccountView(a) {
   const [info, objs, ns, res, cur] = await Promise.all([accountInfo(a), accountObjects(a), nsEntries(a).catch(() => []), reserves(), currentLedger()]);
@@ -1210,7 +1211,8 @@ function route(name) {
   if (name === 'inbox') return enterInbox();
   if (name === 'sign' && S.pending) return enterSign();
   if (name === 'account') return show('account');
-  if (name === 'security') return show('security');
+  if (name === 'settings') return enterSettings();
+  if (name === 'security') return enterSettings('security'); // old #security links
   show('home');
 }
 $('goCreate').onclick = () => enterCreate();
@@ -1218,27 +1220,26 @@ $('goOpen').onclick = () => enterOpen();
 $('goBoxes').onclick = () => enterBoxes();
 $('goCodes').onclick = () => enterCodes();
 $('goInbox').onclick = () => enterInbox();
-$('goSecurity').onclick = () => show('security');
-$('secBack').onclick = () => goBack();
+/* Settings and info: one screen, sections as an accordion (one open at a time) */
+function enterSettings(sec) {
+  if (sec) document.querySelectorAll('#s-settings details.acc').forEach(d => { d.open = d.id === 'acc-' + sec; });
+  show('settings');
+  if (sec && sec !== 'lang') { const d = $('acc-' + sec); if (d) setTimeout(() => d.scrollIntoView({ block: 'start' }), 0); }
+}
+$('goSettings').onclick = () => enterSettings();
+$('setBack').onclick = () => goBack();
+/* browsers without <details name> still keep only one section open */
+document.querySelectorAll('#s-settings details.acc').forEach(d => d.addEventListener('toggle', () => {
+  if (d.open) document.querySelectorAll('#s-settings details.acc').forEach(o => { if (o !== d) o.open = false; });
+}));
+$('langList').onclick = e => {
+  const b = e.target.closest('[data-lang]'); if (!b || b.dataset.lang === S.lang) return;
+  S.lang = b.dataset.lang; save(); applyLang();
+};
+$('pageVer').textContent = (([...document.scripts].map(x => x.src).find(x => /app\.js/.test(x)) || '').split('v=')[1] || '—');
 $('backBtn').onclick = () => goBack();
 document.querySelector('.top .brand').onclick = e => { e.preventDefault(); show('home'); };
-function langMenu(open) {
-  const m = $('langMenu'); m.hidden = !open; $('langBtn').setAttribute('aria-expanded', String(open));
-  if (open) { const sel = m.querySelector('[aria-selected="true"]') || m.firstElementChild; sel.focus(); }
-}
-$('langBtn').onclick = e => { e.stopPropagation(); langMenu($('langMenu').hidden); };
-$('langMenu').onclick = e => {
-  const li = e.target.closest('li[data-lang]'); if (!li) return;
-  e.stopPropagation(); langMenu(false); $('langBtn').focus();
-  if (li.dataset.lang !== S.lang) { S.lang = li.dataset.lang; save(); applyLang(); route(current); }
-};
-$('langMenu').onkeydown = e => {
-  const items = [...$('langMenu').children], i = items.indexOf(document.activeElement);
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus(); }
-  else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.activeElement.click(); }
-  else if (e.key === 'Escape') { langMenu(false); $('langBtn').focus(); }
-};
-document.addEventListener('click', () => { if (!$('langMenu').hidden) langMenu(false); });
+$('langBtn').onclick = () => enterSettings('lang');
 $('netBtn').onclick = () => { S.net = S.net === 'testnet' ? 'mainnet' : 'testnet'; save(); applyNet(); pollLedger(); renderAcct(); acct = null; route(current === 'sign' || current === 'done' || current === 'opened' ? 'home' : current); };
 for (const id of ['evergramTop', 'evergramDone']) $(id).href = C.EVERGRAM_URL;
 function handleHash() {
