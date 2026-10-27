@@ -1242,7 +1242,27 @@ function handleHash() {
   route(hs || 'home');
 }
 window.addEventListener('hashchange', () => { if (location.hash.slice(1) !== current) handleHash(); });
-initXaman(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack();
+/* every "Evergram" in page text becomes a small link pill with their logo (official site, new tab) */
+const EG_SKIP = new Set(['A', 'BUTTON', 'INPUT', 'TEXTAREA', 'PRE', 'OPTION', 'SCRIPT', 'STYLE', 'TITLE', 'LABEL']);
+function egPill() {
+  const a = h('a', { class: 'egpill', href: C.EVERGRAM_URL, target: '_blank', rel: 'noopener noreferrer' }, h('img', { src: 'img/evergram-logo.png', alt: '' }), 'Evergram');
+  return a;
+}
+function egify(root) {
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => {
+    if (!/Evergram/.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
+    for (let p = n.parentNode; p && p !== document.body; p = p.parentNode) if (EG_SKIP.has(p.nodeName) || (p.classList && p.classList.contains('noeg'))) return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT; } });
+  const hits = []; while (w.nextNode()) hits.push(w.currentNode);
+  for (const n of hits) {
+    const parts = n.nodeValue.split('Evergram'), f = document.createDocumentFragment();
+    parts.forEach((x, i) => { if (i) f.append(egPill()); if (x) f.append(x); });
+    n.parentNode.replaceChild(f, n);
+  }
+}
+new MutationObserver(ms => { for (const m of ms) { if (m.type === 'characterData') { if (m.target.parentNode) egify(m.target.parentNode); } else for (const n of m.addedNodes) if (n.nodeType === 1) egify(n); else if (n.nodeType === 3 && n.parentNode) egify(n.parentNode); } })
+  .observe(document.body, { childList: true, subtree: true, characterData: true });
+initXaman(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); egify(document.body);
 // test hook for automated checks (read-only helpers, no secrets)
 window.__box = { packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr, mintTx, gc: { encrypt: gcEncrypt, decrypt: gcDecrypt, genPw: gcGenPw, max: GC.MAX, iter: GC.ITER } };
 })();
