@@ -236,3 +236,4 @@ select.inp option{background:#0b1a3d}
 .xnpill{padding:1px 9px 1px 5px;border-color:rgba(248,206,34,.55);background:rgba(248,206,34,.12)}
 .xnpill .ico{color:var(--y)}
 .xnpill:active{background:rgba(248,206,34,.28)}
+.secitem p+p{margin-top:8px}
