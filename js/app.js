@@ -589,13 +589,19 @@ function tokenReason(tok) {
 function renderTokens() {
   keyDefaults(); syncKindUi(true);
   const g = $('giftTokens'), k = $('keyTokens'); g.textContent = ''; k.textContent = '';
-  const keys = acct.tokens.filter(isKeyTok), inside = acct.tokens.filter(x => !isKeyTok(x)); // key tokens never go inside
-  if (!inside.length) g.append(h('p', { class: 'sm' }, t('noTokens')));
+  // content: every URIToken this account owns (any issuer), except key tokens made by this page (own or received ones)
+  const keys = acct.tokens.filter(isKeyTok), all = acct.tokens.filter(x => !isKeyTok(x) && !keyTokenId(x));
+  const why0 = tok => tokenReason(tok) || (sel.key === tok.index ? t('keyIsGift') : null);
+  const inside = all.filter(x => !why0(x)).concat(all.filter(x => why0(x))); // pickable first, greyed (with the reason) after
+  const okN = all.filter(x => !why0(x)).length;
+  if (!all.length) g.append(h('p', { class: 'sm yel' }, t('noTokens')));
+  else if (!okN) g.append(h('p', { class: 'sm yel' }, t('noFreeTokens')));
+  else g.append(h('p', { class: 'sm' }, t('tokPick').replace('{n}', okN)));
   const free = freeKeys().some(x => x.index !== sel.gift);
   if (!free) k.append(h('p', { class: 'sm yel' }, t('noKeyYet')));
   $('mintKeyBtn').className = 'btn ' + (free ? 'o' : 'y');
   for (const tok of inside) {
-    const why = tokenReason(tok) || (sel.key === tok.index ? t('keyIsGift') : null);
+    const why = why0(tok);
     const c = tokenCard(tok, { disabled: why, selected: sel.gift === tok.index, onclick: () => { sel.gift = sel.gift === tok.index ? null : tok.index; if (sel.key === sel.gift) sel.key = null; renderTokens(); updateSummary(); } });
     if (gcTok(tok)) c.querySelector('.tinfo').insertBefore(h('span', { class: 'gctag' }, t('gcTag')), c.querySelector('.tinfo').children[1]);
     g.append(c);
