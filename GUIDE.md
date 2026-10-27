@@ -1,4 +1,4 @@
-# Xahau Gift Box — guide (in plain words)
+# Xahau Box — guide (in plain words)
 
 ## What this is
 A single web page for gift boxes on Xahau. You put XAH and/or one URIToken into a box, give the recipient a link, a QR code or a key token, and they collect the gift themselves.

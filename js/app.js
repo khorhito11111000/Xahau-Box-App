@@ -1,4 +1,4 @@
-/* Xahau Gift Box page. Static: no server, no analytics. Reads the public ledger, builds unsigned transactions. */
+/* Xahau Box page. Static: no server, no analytics. Reads the public ledger, builds unsigned transactions. */
 (() => {
 'use strict';
 const C = window.BOX_CONFIG, L = window.BoxLib, I = window.BOX_I18N;
@@ -895,10 +895,10 @@ function canvasBlob() { return new Promise(r => $('boxCanvas').toBlob(r, 'image/
 $('dlBtn').onclick = async () => { const b = await canvasBlob(); const a = h('a', { href: URL.createObjectURL(b), download: 'xahau-box.jpg' }); document.body.append(a); a.click(); a.remove(); };
 $('shareBtn').onclick = async () => {
   const b = await canvasBlob(); const f = new File([b], 'xahau-box.jpg', { type: 'image/jpeg' });
-  if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: 'Xahau Gift Box' }); } catch {} } else copy(doneLink);
+  if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: 'Xahau Box' }); } catch {} } else copy(doneLink);
 };
 $('copyLinkBtn').onclick = () => copy(doneLink);
-$('shareLinkBtn').onclick = async () => { if (navigator.share) { try { await navigator.share({ url: doneLink, title: 'Xahau Gift Box' }); } catch {} } else copy(doneLink); };
+$('shareLinkBtn').onclick = async () => { if (navigator.share) { try { await navigator.share({ url: doneLink, title: 'Xahau Box' }); } catch {} } else copy(doneLink); };
 $('handBtn').onclick = () => {
   const to = $('handAddr').value.trim(); const out = $('handOut'); out.textContent = '';
   if (!L.isAddress(to)) { out.append(h('p', { class: 'err-line' }, t('needAccount'))); return; }

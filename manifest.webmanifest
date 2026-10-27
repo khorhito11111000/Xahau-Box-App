@@ -1,6 +1,6 @@
 {
-  "name": "Xahau Gift Box",
-  "short_name": "Gift Box",
+  "name": "Xahau Box",
+  "short_name": "Xahau Box",
   "description": "Lock XAH and URITokens in a gift box on Xahau and hand it over by link, QR or key token.",
   "id": "./",
   "start_url": "./#home",

@@ -1,4 +1,4 @@
-# Xahau Gift Box — web page (draft)
+# Xahau Box — web page (draft)
 
 A static page for the Xahau gift-box hook: create a box (XAH and/or one URIToken), hand it over with a QR code, open it.
 
