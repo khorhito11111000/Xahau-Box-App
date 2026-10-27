@@ -16,6 +16,13 @@
 
 These are bounded proofs under a model of the host, not a full audit.
 
+
+## Credits
+
+The check was done with [xahc-prover](https://github.com/Hugegreencandle/xahc-prover) by [@Cryptocrazy589](https://x.com/Cryptocrazy589) (GitHub: [Hugegreencandle](https://github.com/Hugegreencandle), see also [xahc](https://github.com/Hugegreencandle/xahc)), extended for the box hook, with CBMC under the hood. Thank you! He did not review or endorse these specific results; any errors are ours.
+
+Проверка сделана с помощью xahc-prover от @Cryptocrazy589 (расширен для хука боксов, внутри CBMC). Спасибо! Он не проверял и не одобрял именно эти результаты.
+
 ---
 
 ## Кратко по-русски
