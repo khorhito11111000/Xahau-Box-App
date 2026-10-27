@@ -233,3 +233,6 @@ select.inp option{background:#0b1a3d}
 .chip .ico{width:1.2em;height:1.2em;vertical-align:-.28em}
 .chip.gear{font-size:12px;padding:7px 10px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .chip.gear .ico{color:var(--y)}
+.xnpill{padding:1px 9px 1px 5px;border-color:rgba(248,206,34,.55);background:rgba(248,206,34,.12)}
+.xnpill .ico{color:var(--y)}
+.xnpill:active{background:rgba(248,206,34,.28)}

@@ -544,3 +544,8 @@ Object.assign(window.BOX_I18N.en, { setBtnT: "⚙️ Settings & info" });
 Object.assign(window.BOX_I18N.es, { setBtnT: "⚙️ Ajustes e info" });
 Object.assign(window.BOX_I18N.fr, { setBtnT: "⚙️ Réglages et infos" });
 Object.assign(window.BOX_I18N.ru, { setBtnT: "⚙️ Настройки и инфо" });
+/* who can receive/open (How it works) */
+Object.assign(window.BOX_I18N.ru, {"hw0h": "Кто может получать и открывать боксы", "hw0a": "Получать и открывать боксы может любой пользователь сети", "hw0b": "— для этого не нужно ставить хук. Хук нужен только на аккаунте, который собирает и отправляет боксы."});
+Object.assign(window.BOX_I18N.en, {"hw0h": "Who can receive and open boxes", "hw0a": "Anyone on", "hw0b": "can receive and open boxes — no hook installation is needed for that. The hook is needed only on the account that builds and sends boxes."});
+Object.assign(window.BOX_I18N.es, {"hw0h": "Quién puede recibir y abrir cajas", "hw0a": "Cualquier usuario de la red", "hw0b": "puede recibir y abrir cajas: para eso no hace falta instalar ningún hook. El hook solo se necesita en la cuenta que arma y envía las cajas."});
+Object.assign(window.BOX_I18N.fr, {"hw0h": "Qui peut recevoir et ouvrir des boîtes", "hw0a": "Tout utilisateur du réseau", "hw0b": "peut recevoir et ouvrir des boîtes : aucune installation de hook n’est nécessaire pour cela. Le hook n’est nécessaire que sur le compte qui prépare et envoie les boîtes."});
