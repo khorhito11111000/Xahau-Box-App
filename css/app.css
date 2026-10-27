@@ -157,3 +157,13 @@ select.inp option{background:#0b1a3d}
 .backbtn{display:inline-flex;align-items:center;gap:6px;min-height:42px;padding:0 16px 0 10px;border-radius:21px;border:1.5px solid rgba(255,255,255,.22);background:rgba(255,255,255,.04);color:#fff;font:700 14.5px/1 system-ui,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .backbtn:active{background:rgba(255,255,255,.1)}
 .backbtn .bk{font-size:24px;line-height:1;margin-top:-3px;color:var(--y)}
+/* create wizard */
+.wprog{display:flex;flex-direction:column;gap:6px}
+.wbar{height:6px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}
+.wbar i{display:block;height:100%;width:0;background:var(--y);transition:width .2s}
+#wStepTxt{font-weight:700;font-size:13px;color:var(--mut)}
+.wstep{display:none;flex-direction:column;gap:12px}
+.wstep.on{display:flex}
+.wtitle{margin:0;font-size:19px;font-weight:800}
+.whint{margin:0}
+.tok .gctag{display:inline-block;font-size:12px;font-weight:800;color:var(--y);margin-top:2px}

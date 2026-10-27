@@ -547,7 +547,7 @@ async function enterCreate(preset) {
   $('packBtn').disabled = !acct.hook;
   // coming back to this screen (Back, language) keeps the form; a new account/network or a finished mint starts fresh
   const formFor = S.net + ':' + acct.address;
-  if (preset || createFor !== formFor) { sel.gift = null; sel.key = null; gcReset(); }
+  if (preset || createFor !== formFor) { sel.gift = null; sel.key = null; gcReset(); wStep = 1; }
   else {
     const ok = id => id && acct.tokens.some(x => x.index === id) && !tokenReason(acct.tokens.find(x => x.index === id)); if (!ok(sel.gift)) sel.gift = null; if (!ok(sel.key)) sel.key = null;
     $('gcToggle').textContent = t($('gcForm').classList.contains('hide') ? 'gcAdd' : 'gcCancel'); gcInfo();
@@ -561,7 +561,8 @@ async function enterCreate(preset) {
     if (preset.giftNew && sel.gift) newIds.add(sel.gift);
     syncKindUi();
   }
-  renderTokens(); updateSummary();
+  if (preset && preset.key && sel.key) wStep = 3;
+  renderTokens(); updateSummary(); wShow();
   if (preset && preset.giftNew && sel.gift) { toast(t('gcMinted')); const el = document.querySelector('#giftTokens .tok.sel'); if (el) el.scrollIntoView({ block: 'center' }); }
   else if (preset && sel.key) { toast(t('minted')); const el = document.querySelector('#keyTokens .tok.sel'); if (el) el.scrollIntoView({ block: 'center' }); }
 }
@@ -585,12 +586,16 @@ function tokenReason(tok) {
 function renderTokens() {
   keyDefaults(); syncKindUi(true);
   const g = $('giftTokens'), k = $('keyTokens'); g.textContent = ''; k.textContent = '';
-  if (!acct.tokens.length) g.append(h('p', { class: 'sm' }, t('noTokens')));
-  const keys = acct.tokens.filter(isKeyTok);
-  if (!freeKeys().some(x => x.index !== sel.gift)) k.append(h('p', { class: 'sm yel' }, t('noKeyYet')));
-  for (const tok of acct.tokens) {
-    const why = tokenReason(tok) || (isKeyTok(tok) ? t('isKeyTok') : null) || (sel.key === tok.index ? t('keyIsGift') : null);
-    g.append(tokenCard(tok, { disabled: why, selected: sel.gift === tok.index, onclick: () => { sel.gift = sel.gift === tok.index ? null : tok.index; if (sel.key === sel.gift) sel.key = null; renderTokens(); updateSummary(); } }));
+  const keys = acct.tokens.filter(isKeyTok), inside = acct.tokens.filter(x => !isKeyTok(x)); // key tokens never go inside
+  if (!inside.length) g.append(h('p', { class: 'sm' }, t('noTokens')));
+  const free = freeKeys().some(x => x.index !== sel.gift);
+  if (!free) k.append(h('p', { class: 'sm yel' }, t('noKeyYet')));
+  $('mintKeyBtn').className = 'btn ' + (free ? 'o' : 'y');
+  for (const tok of inside) {
+    const why = tokenReason(tok) || (sel.key === tok.index ? t('keyIsGift') : null);
+    const c = tokenCard(tok, { disabled: why, selected: sel.gift === tok.index, onclick: () => { sel.gift = sel.gift === tok.index ? null : tok.index; if (sel.key === sel.gift) sel.key = null; renderTokens(); updateSummary(); } });
+    if (gcTok(tok)) c.querySelector('.tinfo').insertBefore(h('span', { class: 'gctag' }, t('gcTag')), c.querySelector('.tinfo').children[1]);
+    g.append(c);
   }
   for (const tok of keys) {
     const why = tokenReason(tok);
@@ -601,7 +606,45 @@ const kind = () => { const top = document.querySelector('input[name=kind]:checke
 function syncKindUi(quiet) {
   if (acct && giftIsGc() && kind() !== 'token') { document.querySelector('input[name=kind][value=token]').checked = true; if (!quiet) toast(t('gcNeedsKey')); }
   if (!quiet && acct && kind() === 'token' && !sel.key) { keyDefaults(); if (sel.key) return renderTokens(); }
-  const k = kind(); $('linkWrap').classList.toggle('hide', k === 'token'); $('namedWrap').classList.toggle('hide', k !== 'named'); $('keyWrap').classList.toggle('hide', k !== 'token'); updateSummary(); }
+  const k = kind(); $('linkWrap').classList.toggle('hide', k === 'token'); $('namedWrap').classList.toggle('hide', k !== 'named'); $('keyWrap').classList.toggle('hide', k !== 'token'); updateSummary(); wProgress(); }
+/* create wizard: one step at a time (1 what, 2 how, 3 key - key-token mode only, 4 time limit, 5 check and sign) */
+let wStep = 1;
+const wSteps = () => kind() === 'token' ? [1, 2, 3, 4, 5] : [1, 2, 4, 5];
+function wProgress() {
+  const st = wSteps(); if (!st.includes(wStep)) wStep = st.find(x => x > wStep) || 5;
+  const i = st.indexOf(wStep);
+  document.querySelectorAll('#s-create .wstep').forEach(e => e.classList.toggle('on', Number(e.dataset.step) === wStep));
+  $('wStepTxt').textContent = t('wStepOf').replace('{n}', i + 1).replace('{m}', st.length);
+  $('wBar').style.width = Math.round((i + 1) / st.length * 100) + '%';
+  $('wNext').classList.toggle('hide', wStep === 5); $('packBtn').classList.toggle('hide', wStep !== 5);
+  if (wStep === 5) sumMore();
+}
+function wShow(n) { if (n) wStep = n; errSet('createErr'); wProgress(); }
+function wCheck(n) {
+  if (!acct) return t('notYet');
+  if (n === 1) {
+    if (!acct.hook) return t('hookNo');
+    const amt = xahToDrops($('amtInput').value); if (amt === null) return t('amtBad');
+    if (!amt && !sel.gift) return t('needSomething');
+    if (amt > freeToLock(acct, !!sel.gift, kind() === 'token')) return t('notEnough');
+  }
+  if (n === 2) {
+    if (giftIsGc() && kind() !== 'token') return t('gcNeedsKey');
+    if (kind() === 'named' && !L.isAddress($('namedAddr').value.trim())) return t('needNamed');
+  }
+  if (n === 3 && kind() === 'token' && !sel.key) return t(freeKeys().length ? 'needKey' : 'noKeyYet');
+  return null;
+}
+function sumMore() {
+  const m = $('sumMore'); m.textContent = ''; const k = kind();
+  const g = sel.gift && acct.tokens.find(x => x.index === sel.gift);
+  if (g) m.append(row('URIToken', (gcTok(g) ? t('gcTag') + ' · ' : '') + short(g.index)));
+  m.append(row(t('kind'), k === 'token' ? t('kToken') : k === 'named' ? t('kNamed') + ' ' + short($('namedAddr').value.trim()) : t('kBearer')));
+  if (k === 'token') m.append(row(t('sumKey'), sel.key ? short(sel.key) : '—', sel.key ? null : 'bad'));
+  m.append(row(t('timeLimit'), $('expSel').selectedOptions[0].textContent), row('Network', NET().label));
+}
+$('wNext').onclick = () => { const e = wCheck(wStep); if (e) return errSet('createErr', e); const st = wSteps(); wShow(st[st.indexOf(wStep) + 1] || 5); window.scrollTo(0, 0); };
+$('wPrev').onclick = () => { const st = wSteps(), i = st.indexOf(wStep); if (i <= 0) return goBack(); wShow(st[i - 1]); window.scrollTo(0, 0); };
 document.querySelectorAll('input[name=linkFor]').forEach(r => r.onchange = () => { document.querySelector('input[name=kind][value=link]').checked = true; syncKindUi(); });
 document.querySelectorAll('input[name=kind]').forEach(r => r.onchange = () => syncKindUi());
 $('amtInput').oninput = updateSummary; $('expSel').onchange = updateSummary;
@@ -810,6 +853,9 @@ async function finishPack(only) {
   await drawBox(doneLink);
   $('bearerWarn').classList.toggle('hide', b.kind !== 'bearer');
   $('handKey').classList.toggle('hide', b.kind !== 'token');
+  const gtok = !isZero(b.tid) && acct && acct.tokens ? acct.tokens.find(x => x.index === b.tid) : null;
+  $('gcPwRemind').classList.toggle('hide', !(gtok && gcTok(gtok)));
+  $('doneNext').textContent = t(b.kind === 'token' ? 'doneNextKey' : 'doneNextLink');
   const info = $('doneInfo'); info.textContent = '';
   const parts = []; if (BigInt('0x' + b.amt)) parts.push(dropsToXah(BigInt('0x' + b.amt)) + ' XAH'); if (!isZero(b.tid)) parts.push('1 URIToken');
   info.append(row(t('contents'), parts.join(' + '), 'yel'), row(t('kind'), t(b.kind + 'Kind')));

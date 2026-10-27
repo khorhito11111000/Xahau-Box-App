@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#020a1c">
 <title>Xahau Gift Box</title>
 <link rel="icon" href="img/icon-192.png">
-<link rel="stylesheet" href="css/app.css?v=20261027c">
+<link rel="stylesheet" href="css/app.css?v=20261027d">
 </head>
 <body>
 <div class="app">
@@ -64,65 +64,93 @@
 <!-- CREATE -->
 <section class="screen" id="s-create">
   <h2 data-t="createBox"></h2>
-  <div class="card" id="hookCard"></div>
-  <div class="card">
-    <div class="lbl" data-t="xahAmount"></div>
-    <div class="inpw"><input class="inp" id="amtInput" inputmode="decimal" placeholder="0"><span class="u">XAH</span></div>
-    <p class="sm" id="amtNote"></p>
-  </div>
-  <div class="card">
-    <div class="lbl"><span data-t="tokenInside"></span> <span class="sm" data-t="optional"></span></div>
-    <div class="tokens" id="giftTokens"></div>
-  </div>
-  <div class="card" id="gcCard">
-    <div class="lbl"><span data-t="gcTitle"></span> <span class="sm" data-t="optional"></span></div>
-    <p class="sm" data-t="gcSub"></p>
-    <button class="btn o" id="gcToggle" type="button" data-t="gcAdd"></button>
-    <div class="gcform hide" id="gcForm">
-      <div class="lbl" data-t="gcCodeLbl"></div>
-      <textarea class="inp ta" id="gcCode" autocomplete="off" autocapitalize="off" spellcheck="false" data-tp="gcCodePh"></textarea>
-      <p class="sm" id="gcLeft"></p>
-      <div class="lbl lbl2" data-t="gcPwLbl"></div>
-      <input class="inp mono" id="gcPw" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" data-tp="gcPwPh">
-      <div class="btn2"><button class="btn w" id="gcGen" type="button" data-t="gcGen"></button><button class="btn o" id="gcCopyPw" type="button" data-t="gcCopyPw"></button></div>
-      <p class="sm" id="gcPwNote"></p>
-      <div class="card warn" data-t="gcWarn"></div>
-      <label class="opt opt2"><input type="checkbox" id="gcSaved"><span><b data-t="gcSaved"></b></span></label>
-      <button class="btn y" id="gcMint" type="button" data-t="gcMint"></button>
-      <p class="sm" data-t="gcMintSub"></p>
+  <div class="wprog" id="wProg"><div class="wbar"><i id="wBar"></i></div><span id="wStepTxt"></span></div>
+  <!-- step 1: what goes in -->
+  <div class="wstep" data-step="1">
+    <h3 class="wtitle" data-t="w1T"></h3>
+    <p class="sm whint" data-t="w1H"></p>
+    <div class="card" id="hookCard"></div>
+    <div class="card">
+      <div class="lbl" data-t="xahAmount"></div>
+      <div class="inpw"><input class="inp" id="amtInput" inputmode="decimal" placeholder="0"><span class="u">XAH</span></div>
+      <p class="sm" id="amtNote"></p>
+    </div>
+    <div class="card">
+      <div class="lbl"><span data-t="tokenInside"></span> <span class="sm" data-t="optional"></span></div>
+      <div class="tokens" id="giftTokens"></div>
+    </div>
+    <div class="card" id="gcCard">
+      <div class="lbl"><span data-t="gcTitle"></span> <span class="sm" data-t="optional"></span></div>
+      <p class="sm" data-t="gcSub"></p>
+      <button class="btn o" id="gcToggle" type="button" data-t="gcAdd"></button>
+      <div class="gcform hide" id="gcForm">
+        <div class="lbl" data-t="gcCodeLbl"></div>
+        <textarea class="inp ta" id="gcCode" autocomplete="off" autocapitalize="off" spellcheck="false" data-tp="gcCodePh"></textarea>
+        <p class="sm" id="gcLeft"></p>
+        <div class="lbl lbl2" data-t="gcPwLbl"></div>
+        <input class="inp mono" id="gcPw" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" data-tp="gcPwPh">
+        <div class="btn2"><button class="btn w" id="gcGen" type="button" data-t="gcGen"></button><button class="btn o" id="gcCopyPw" type="button" data-t="gcCopyPw"></button></div>
+        <p class="sm" id="gcPwNote"></p>
+        <div class="card warn" data-t="gcWarn"></div>
+        <label class="opt opt2"><input type="checkbox" id="gcSaved"><span><b data-t="gcSaved"></b></span></label>
+        <button class="btn y" id="gcMint" type="button" data-t="gcMint"></button>
+        <p class="sm" data-t="gcMintSub"></p>
+      </div>
     </div>
   </div>
-  <div class="card">
-    <div class="lbl" data-t="howGive"></div>
-    <p class="sm yel hide" id="gcModeHint" data-t="gcModeHint"></p>
-    <label class="opt"><input type="radio" name="kind" value="link" checked><span><b data-t="kLink"></b><span data-t="kLinkSub"></span></span></label>
-    <div class="sub-in" id="linkWrap">
-      <label class="opt opt2"><input type="radio" name="linkFor" value="bearer" checked><span><b data-t="kBearer"></b><span data-t="kBearerSub"></span></span></label>
-      <label class="opt opt2"><input type="radio" name="linkFor" value="named"><span><b data-t="kNamed"></b><span data-t="kNamedSub"></span></span></label>
-      <div class="hide" id="namedWrap"><input class="inp" id="namedAddr" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="r... (recipient)" data-tp="recipientPh"></div>
+  <!-- step 2: how to give -->
+  <div class="wstep" data-step="2">
+    <h3 class="wtitle" data-t="w2T"></h3>
+    <p class="sm whint" data-t="w2H"></p>
+    <div class="card">
+      <p class="sm yel hide" id="gcModeHint" data-t="gcModeHint"></p>
+      <label class="opt"><input type="radio" name="kind" value="link" checked><span><b data-t="kLink"></b><span data-t="kLinkSub"></span></span></label>
+      <div class="sub-in" id="linkWrap">
+        <label class="opt opt2"><input type="radio" name="linkFor" value="bearer" checked><span><b data-t="kBearer"></b><span data-t="kBearerSub"></span></span></label>
+        <label class="opt opt2"><input type="radio" name="linkFor" value="named"><span><b data-t="kNamed"></b><span data-t="kNamedSub"></span></span></label>
+        <div class="hide" id="namedWrap"><input class="inp" id="namedAddr" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="r... (recipient)" data-tp="recipientPh"></div>
+      </div>
+      <label class="opt"><input type="radio" name="kind" value="token"><span><b data-t="kToken"></b><span data-t="kTokenSub"></span></span></label>
     </div>
-    <label class="opt"><input type="radio" name="kind" value="token"><span><b data-t="kToken"></b><span data-t="kTokenSub"></span></span></label>
-    <div class="sub-in hide" id="keyWrap">
-      <button class="btn w" id="mintKeyBtn" type="button" data-t="mintKey"></button>
-      <p class="sm" data-t="mintKeySub"></p>
-      <div class="lbl lbl2" data-t="orPickKey"></div>
+  </div>
+  <!-- step 3 (key-token mode only): the key -->
+  <div class="wstep" data-step="3">
+    <h3 class="wtitle" data-t="w3T"></h3>
+    <p class="sm whint" data-t="w3H"></p>
+    <div class="card" id="keyWrap">
+      <div class="lbl" data-t="pickKey"></div>
       <div class="tokens" id="keyTokens"></div>
+      <button class="btn o" id="mintKeyBtn" type="button" data-t="mintKey"></button>
+      <p class="sm" data-t="mintKeySub"></p>
     </div>
   </div>
-  <div class="card">
-    <div class="lbl" data-t="timeLimit"></div>
-    <select class="inp" id="expSel">
-      <option value="0" data-t="noLimit"></option>
-      <option value="1" data-t="d1"></option>
-      <option value="7" data-t="d7"></option>
-      <option value="30" data-t="d30"></option>
-      <option value="90" data-t="d90"></option>
-    </select>
-    <div class="ledgerbox" id="expNote"></div>
+  <!-- step 4: time limit -->
+  <div class="wstep" data-step="4">
+    <h3 class="wtitle" data-t="w4T"></h3>
+    <p class="sm whint" data-t="w4H"></p>
+    <div class="card">
+      <div class="lbl" data-t="timeLimit"></div>
+      <select class="inp" id="expSel">
+        <option value="0" data-t="noLimit"></option>
+        <option value="1" data-t="d1"></option>
+        <option value="7" data-t="d7"></option>
+        <option value="30" data-t="d30"></option>
+        <option value="90" data-t="d90"></option>
+      </select>
+      <div class="ledgerbox" id="expNote"></div>
+    </div>
   </div>
-  <div class="card sumcard"><div class="row"><span data-t="total"></span><b id="sumText">—</b></div></div>
+  <!-- step 5: check and sign -->
+  <div class="wstep" data-step="5">
+    <h3 class="wtitle" data-t="w5T"></h3>
+    <p class="sm whint" data-t="w5H"></p>
+    <div class="card sumcard"><div class="row"><span data-t="total"></span><b id="sumText">—</b></div><div id="sumMore"></div></div>
+  </div>
   <p class="err-line" id="createErr"></p>
-  <div class="foot"><button class="btn y" id="packBtn" type="button" data-t="buildBox"></button></div>
+  <div class="foot">
+    <button class="btn y hide" id="packBtn" type="button" data-t="buildBox"></button>
+    <div class="btn2"><button class="btn o" id="wPrev" type="button" data-t="wPrev"></button><button class="btn y" id="wNext" type="button" data-t="wNext"></button></div>
+  </div>
 </section>
 
 <!-- SIGN (shared) -->
@@ -143,12 +171,15 @@
   <div class="boximg"><canvas id="boxCanvas" width="1152" height="1712"></canvas></div>
   <div class="card warn hide" id="bearerWarn" data-t="bearerWarn"></div>
   <div class="card" id="doneInfo"></div>
+  <p class="sm whint" id="doneNext"></p>
   <div class="foot">
     <button class="btn y" id="dlBtn" type="button" data-t="download"></button>
     <button class="btn w" id="shareBtn" type="button" data-t="share"></button>
     <div class="btn2"><button class="btn o" id="copyLinkBtn" type="button" data-t="copyLink"></button><button class="btn o" id="shareLinkBtn" type="button" data-t="shareLink"></button></div>
   </div>
   <div class="card hide" id="handKey">
+    <h3 class="wtitle" data-t="doneStepKey"></h3>
+    <div class="card warn hide" id="gcPwRemind" data-t="doneGcPw"></div>
     <div class="lbl" data-t="handKey"></div>
     <input class="inp" id="handAddr" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="r... (recipient)" data-tp="recipientPh">
     <button class="btn w" id="handBtn" type="button" data-t="buildRemit"></button>
@@ -222,10 +253,10 @@
 <div class="toast hide" id="toast"></div>
 <footer class="foot-note"><div class="ledgerline" aria-live="off"><span class="ldot" id="ledgerDot"></span><span data-t="ledgerShort"></span> <b class="lcur mono">…</b> <span class="lavg" id="ledgerAvg"></span></div><span data-t="footer"></span></footer>
 </div>
-<script src="js/config.js?v=20261027c"></script>
-<script src="vendor/boxlib.js?v=20261027c"></script>
-<script src="vendor/xumm-oauth2-pkce-2.8.7.min.js?v=20261027c"></script>
-<script src="js/i18n.js?v=20261027c"></script>
-<script src="js/app.js?v=20261027c"></script>
+<script src="js/config.js?v=20261027d"></script>
+<script src="vendor/boxlib.js?v=20261027d"></script>
+<script src="vendor/xumm-oauth2-pkce-2.8.7.min.js?v=20261027d"></script>
+<script src="js/i18n.js?v=20261027d"></script>
+<script src="js/app.js?v=20261027d"></script>
 </body>
 </html>
