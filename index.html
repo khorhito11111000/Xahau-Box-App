@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#020a1c">
 <title>Xahau Gift Box</title>
 <link rel="icon" href="img/icon-192.png">
-<link rel="stylesheet" href="css/app.css?v=20261027j">
+<link rel="stylesheet" href="css/app.css?v=20261027k">
 </head>
 <body>
 <div class="app">
@@ -211,26 +211,6 @@
   <div class="foot"><button class="btn y" id="openedHome" type="button" data-t="home"></button></div>
 </section>
 
-<!-- MY BOXES -->
-<section class="screen" id="s-boxes">
-  <h2 data-t="myBoxes"></h2>
-  <p class="sub" data-t="myBoxesSub"></p>
-  <div id="boxesList"></div>
-  <div class="card">
-    <div class="lbl" data-t="takeBackByVc"></div>
-    <input class="inp" id="vcInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="VC (64 hex)">
-    <button class="btn w" id="vcOpenBtn" type="button" data-t="buildOpen"></button>
-  </div>
-  <p class="err-line" id="boxesErr"></p>
-</section>
-
-<!-- INBOX -->
-<section class="screen" id="s-inbox">
-  <h2 data-t="inboxT"></h2>
-  <p class="sub" data-t="inboxSub"></p>
-  <div id="inboxList"></div>
-  <p class="err-line" id="inboxErr"></p>
-</section>
 <!-- GIFT CODES -->
 <section class="screen" id="s-codes">
   <h2 data-t="gcMine"></h2>
@@ -242,6 +222,24 @@
 <section class="screen" id="s-settings">
   <h2 data-t="setTitle"></h2>
   <p class="sub" data-t="setSub"></p>
+  <details class="acc" id="acc-boxes" name="setacc">
+    <summary><span data-t="mbH"></span></summary>
+    <div class="accb">
+      <div class="tabs" role="tablist" id="mbTabs">
+        <button class="tab" type="button" role="tab" data-tab="built"><span data-t="mbBuilt"></span><span class="tn"></span></button>
+        <button class="tab" type="button" role="tab" data-tab="recv"><span data-t="mbRecv"></span><span class="tn"></span></button>
+        <button class="tab" type="button" role="tab" data-tab="sent"><span data-t="mbSent"></span><span class="tn"></span></button>
+      </div>
+      <p class="sm" id="mbSub"></p>
+      <div class="mblist" id="mbList"></div>
+      <div class="vccard hide" id="vcCard">
+        <div class="lbl" data-t="takeBackByVc"></div>
+        <input class="inp" id="vcInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="VC (64 hex)">
+        <button class="btn w" id="vcOpenBtn" type="button" data-t="buildOpen"></button>
+      </div>
+      <p class="err-line" id="boxesErr"></p>
+    </div>
+  </details>
   <details class="acc" id="acc-lang" name="setacc">
     <summary><span data-t="setLangH"></span></summary>
     <div class="accb">
@@ -321,10 +319,10 @@
 <div class="toast hide" id="toast"></div>
 <footer class="foot-note"><div class="ledgerline" aria-live="off"><span class="ldot" id="ledgerDot"></span><span data-t="ledgerShort"></span> <b class="lcur mono">…</b> <span class="lavg" id="ledgerAvg"></span></div><span data-t="footer"></span></footer>
 </div>
-<script src="js/config.js?v=20261027j"></script>
-<script src="vendor/boxlib.js?v=20261027j"></script>
-<script src="vendor/xumm-oauth2-pkce-2.8.7.min.js?v=20261027j"></script>
-<script src="js/i18n.js?v=20261027j"></script>
-<script src="js/app.js?v=20261027j"></script>
+<script src="js/config.js?v=20261027k"></script>
+<script src="vendor/boxlib.js?v=20261027k"></script>
+<script src="vendor/xumm-oauth2-pkce-2.8.7.min.js?v=20261027k"></script>
+<script src="js/i18n.js?v=20261027k"></script>
+<script src="js/app.js?v=20261027k"></script>
 </body>
 </html>

@@ -289,7 +289,7 @@ const appUrl = () => C.APP_URL || (location.origin + location.pathname);
 const qrLink = q => appUrl() + '#' + q;
 
 /* ---------- screens ---------- */
-const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'boxes', 'codes', 'inbox', 'settings'];
+const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'codes', 'settings'];
 let current = 'home', afterAccount = null;
 /* Back: the in-page "Back" button and the phone's / browser's Back do the same thing (goBack).
    History holds at most one extra entry above "#home" ({xb:1}): leaving home adds it, moving between
@@ -322,7 +322,7 @@ function goBack() {
       if (to === 'sign' && p) return enterSign();
       if (to === 'open') return show(to);
       if (to === 'settings') return enterSettings();
-      if ((to === 'create' || to === 'boxes' || to === 'codes' || to === 'inbox') && S.account) return route(to);
+      if ((to === 'create' || to === 'boxes' || to === 'codes' || to === 'inbox' || to === 'mybx') && S.account) return route(to);
       return show('home');
     }
     case 'sign':
@@ -402,7 +402,8 @@ function signOut() {
   if (xp) try { xp.logout(); } catch {}
   for (const st of [localStorage, sessionStorage]) for (const k of XAMAN_KEYS) try { st.removeItem(k); } catch {}
   save(); renderAcct();
-  if (['create', 'boxes', 'sign', 'account'].includes(current)) show('home');
+  if (['create', 'sign', 'account'].includes(current)) show('home');
+  mbRefresh();
   toast(t('signedOut'));
   setTimeout(() => { signingOut = false; }, 0);
 }
@@ -412,7 +413,7 @@ window.addEventListener('storage', e => {
   if (e.key === 'XummPkceJwt' && e.newValue && !xstate) return location.reload();
   if (e.key === 'XummPkceJwt' && !e.newValue && xstate) { xstate = null; }
   const a = load().account || null;
-  if (JSON.stringify(a) !== JSON.stringify(S.account)) { S.account = a; if (!a) xstate = null; acct = null; renderAcct(); if (!a && ['create', 'boxes', 'sign'].includes(current)) show('home'); }
+  if (JSON.stringify(a) !== JSON.stringify(S.account)) { S.account = a; if (!a) xstate = null; acct = null; renderAcct(); if (!a && ['create', 'sign'].includes(current)) show('home'); mbRefresh(); }
 });
 async function xamanSign(tx, box) {
   const sdk = xstate.sdk;
@@ -1003,29 +1004,6 @@ $('qrFile').onchange = async e => {
 };
 
 /* ---------- MY BOXES (creator) ---------- */
-async function enterBoxes() {
-  if (!needAccount(enterBoxes, 'boxes')) return;
-  show('boxes'); errSet('boxesErr');
-  const list = $('boxesList'); list.textContent = ''; list.append(h('div', { class: 'spin sm' }));
-  try { acct = await loadAccountView(S.account.address); } catch (e) { list.textContent = ''; return errSet('boxesErr', e.message); }
-  list.textContent = '';
-  list.append(h('div', { class: 'card' }, liveRow()));
-  const ib = h('div'); list.append(ib);
-  findInbox().then(l => { const n = l.filter(inboxOpenable).length; if (n) ib.append(h('button', { class: 'btn y', type: 'button', onclick: () => enterInbox() }, t('inboxT') + ' · ' + n)); }).catch(() => {});
-  if (!acct.boxes.length) list.append(h('p', { class: 'sub' }, t('noBoxes')));
-  const known = new Map(S.history.filter(x => x.h === acct.address && x.net === S.net).map(x => [L.boxKey(x.vc), x]));
-  const links = new Map(), live = new Set(acct.boxes.map(b => b.key)), stale = [];
-  for (const [id, x] of Object.entries(vaultAll())) {
-    if (!x || x.h !== acct.address || x.net !== S.net) continue;
-    const k = L.boxKey(x.vc);
-    if (live.has(k)) { links.set(k, x); if (!known.has(k)) known.set(k, x); }
-    else if (x.nonce != null || Date.now() - (x.created || 0) > 86400000) stale.push(id); // opened / taken back, or never packed
-  }
-  vaultDrop(stale);
-  // newest first; each box is a collapsed card: #N, type, status -> tap for contents, details, actions
-  for (const b of acct.boxes.slice().sort((a, c) => c.nonce - a.nonce)) list.append(boxCard(b, known.get(b.key), links.get(b.key)));
-  renderLive(false);
-}
 const boxOpen = new Set();
 function boxCard(b, kn, lk) {
   const amt = BigInt('0x' + b.amt), expN = parseInt(b.exp, 16), hasTok = !isZero(b.tid);
@@ -1119,17 +1097,6 @@ async function packVc(iss, ktid, bk) {
   }
   return null;
 }
-async function enterInbox() {
-  if (!needAccount(enterInbox, 'inbox')) return;
-  show('inbox'); errSet('inboxErr');
-  const list = $('inboxList'); list.textContent = ''; list.append(h('div', { class: 'spin sm' }));
-  let l; try { l = await findInbox(true); } catch (e) { list.textContent = ''; return errSet('inboxErr', e.message); }
-  list.textContent = '';
-  list.append(h('div', { class: 'card' }, liveRow()));
-  if (!l.length) list.append(h('p', { class: 'sub' }, t('inboxNone')));
-  for (const b of l) list.append(inboxCard(b));
-  renderLive(false); inboxBadge();
-}
 function inboxCard(b) {
   const me = S.account.address;
   const c = h('div', { class: 'card' + (inboxOpenable(b) ? ' inbox' : '') });
@@ -1202,11 +1169,189 @@ function keyHandCard(ktid) {
 function startOpen(vc) { S.pending = { op: 'open', tx: openTx(S.account.address, vc), h: S.account.address, vc }; save(); enterSign(); }
 $('vcOpenBtn').onclick = () => { const v = $('vcInput').value.trim().toUpperCase(); if (!/^[0-9A-F]{64}$/.test(v)) return errSet('boxesErr', t('vcBad')); startOpen(v); };
 
+/* ---------- MY BOXES (Settings and info -> 📦 My boxes): Built / Received / Sent ----------
+   Built    = box records that are still locked in this account's hook state (same list as before).
+   Received = boxes this account can open with a key token it holds (hook state of the key issuer),
+              plus boxes this account already opened (its own successful CLAIM transactions).
+   Sent     = boxes this account built that went to someone else: key token now held by another address,
+              "for one address" boxes (known only from this device's records), and boxes another address
+              opened (successful CLAIM transactions sent to this account's hook).
+   An unopened "for anyone" link box stays in Built only: the page cannot know whether the link was sent. */
+const HX = { PACK: '5041434B', CLAIM: '434C41494D', OPEN: '4F50454E' };
+const histCache = { id: '', at: 0, p: null };
+async function boxHistory(me, force) {
+  const id = S.net + ':' + me;
+  if (!force && histCache.id === id && histCache.p && Date.now() - histCache.at < 60000) return histCache.p;
+  histCache.id = id; histCache.at = Date.now();
+  histCache.p = (async () => {
+    const recs = []; let marker, more = false, n = 0;
+    for (let i = 0; i < 5; i++) {
+      const r = await rpc('account_tx', Object.assign({ account: me, ledger_index_min: -1, ledger_index_max: -1, limit: 200, forward: false }, marker ? { marker } : {}));
+      for (const e of r.transactions || []) {
+        n++;
+        const tx = e.tx || e.tx_json || {}, meta = e.meta || e.metaData || {};
+        if (tx.TransactionType !== 'Invoke' || !tx.HookParameters || meta.TransactionResult !== 'tesSUCCESS') continue;
+        const ps = {}; for (const x of tx.HookParameters) ps[hexToText(x.HookParameter.HookParameterName || '')] = String(x.HookParameter.HookParameterValue || '').toUpperCase();
+        const cmd = Object.keys(HX).find(k => HX[k] === ps.CMD); if (!cmd) continue;
+        let vc = /^[0-9A-F]{64}$/.test(ps.VC || '') ? ps.VC : null;
+        if (!vc && cmd === 'CLAIM' && /^[0-9A-F]{66}$/.test(ps.PK || '')) { try { vc = L.vcFromPub(ps.PK).toUpperCase(); } catch {} }
+        if (!vc) continue;
+        const bk = L.boxKey(vc).toUpperCase(); let b = null;
+        for (const nd of meta.AffectedNodes || []) {
+          const v = nd.CreatedNode || nd.ModifiedNode || nd.DeletedNode; if (!v || v.LedgerEntryType !== 'HookState') continue;
+          const f = v.NewFields || v.FinalFields || {}; if (String(f.HookStateKey || '').toUpperCase() !== bk) continue;
+          b = parseBox(f.HookStateData || (v.PreviousFields || {}).HookStateData);
+        }
+        recs.push({ cmd, vc, bk, b, from: tx.Account, hk: cmd === 'CLAIM' ? (tx.Destination || tx.Account) : tx.Account, link: cmd === 'CLAIM' ? !!ps.PK : null, ktid: ps.KTID || null,
+          date: tx.date ? (tx.date + 946684800) * 1000 : 0, hash: tx.hash || e.hash || '' });
+      }
+      marker = r.marker; if (!marker) break; if (i === 4) more = true;
+    }
+    return { recs, more, n };
+  })().catch(e => { histCache.at = 0; throw e; });
+  return histCache.p;
+}
+let mbTab = 'built', mbSeq = 0, mbData = null, mbBusy = false;
+function enterMyBoxes(tab) {
+  if (tab) mbTab = tab;
+  if (!needAccount(() => enterMyBoxes(tab), 'mybx')) return;
+  enterSettings('boxes'); mbLoad();
+}
+const enterBoxes = () => enterMyBoxes('built');
+const enterInbox = () => enterMyBoxes('recv');
+function mbRefresh() { if (current === 'settings' && $('acc-boxes').open) mbLoad(); }
+async function mbLoad() {
+  const seq = ++mbSeq, list = $('mbList'); errSet('boxesErr'); mbData = null; mbBusy = true; mbTabsUi();
+  list.textContent = ''; $('vcCard').classList.add('hide');
+  if (!S.account) {
+    $('mbSub').textContent = ''; mbBusy = false;
+    list.append(h('p', { class: 'sub' }, t('mbSignIn')), h('button', { class: 'btn y', type: 'button', onclick: () => enterMyBoxes() }, t('signInShort')));
+    return;
+  }
+  list.append(h('div', { class: 'spin sm' }));
+  const me = S.account.address;
+  try {
+    const [v, inbox, hist] = await Promise.all([loadAccountView(me), findInbox(true).catch(() => null), boxHistory(me, true).catch(() => null)]);
+    if (seq !== mbSeq) return;
+    acct = v;
+    const recs = hist ? hist.recs : [];
+    const packByKey = new Map(), claimOn = new Map();
+    for (const r of recs) {
+      if (r.cmd === 'PACK' && r.hk === me && !packByKey.has(r.bk)) packByKey.set(r.bk, r);
+      if (r.cmd === 'CLAIM' && r.hk === me && r.from !== me && !claimOn.has(r.bk)) claimOn.set(r.bk, r);
+    }
+    // the box number (VC) of a live box: this device's records first, then the public PACK of this account
+    const known = new Map(S.history.filter(x => x.h === me && x.net === S.net).map(x => [L.boxKey(x.vc), x]));
+    const links = new Map(), live = new Set(v.boxes.map(b => b.key)), stale = [];
+    for (const [id, x] of Object.entries(vaultAll())) {
+      if (!x || x.h !== me || x.net !== S.net) continue;
+      const k = L.boxKey(x.vc);
+      if (live.has(k)) { links.set(k, x); if (!known.has(k)) known.set(k, x); }
+      else if (x.nonce != null || Date.now() - (x.created || 0) > 86400000) stale.push(id);
+    }
+    vaultDrop(stale);
+    const kn = b => known.get(b.key) || (packByKey.get(String(b.key).toUpperCase()) ? { vc: packByKey.get(String(b.key).toUpperCase()).vc } : null);
+    const built = v.boxes.slice().sort((a, c) => c.nonce - a.nonce);
+    // who holds the key token of each live key box now
+    const holders = new Map();
+    await Promise.all(built.filter(b => b.ktid).map(b => uriToken(b.ktid).then(x => holders.set(b.key, x ? x.Owner : null)).catch(() => {})));
+    if (seq !== mbSeq) return;
+    const sent = [];
+    for (const b of built) {
+      if (b.status !== 0) continue; // being opened: listed below with its CLAIM
+      const ho = holders.get(b.key), lk = links.get(b.key) || known.get(b.key);
+      if (b.ktid && ho && ho !== me) sent.push({ b, nonce: b.nonce, live: true, key: true, st: t('mbNotOpened'), who: [t('mbKeyAt'), ho] });
+      else if (b.ktid && holders.has(b.key) && !ho) sent.push({ b, nonce: b.nonce, live: true, key: true, st: t('mbKeyGone'), bad: true });
+      else if (!b.ktid && lk && lk.kind === 'named') sent.push({ b, nonce: b.nonce, live: true, key: false, st: t('mbNotOpened'), who: lk.named ? [t('mbFor'), lk.named] : null, local: true });
+    }
+    for (const [bk, r] of claimOn) {
+      const lb = v.boxes.find(b => String(b.key).toUpperCase() === bk), pk = packByKey.get(bk);
+      const b = lb || r.b; if (!b) continue;
+      sent.push({ b, nonce: b.nonce, key: pk ? !!pk.ktid : !r.link, st: lb && lb.status !== 0 ? t('stClaiming') : t('mbOpenedSt'), ok: true, who: [t('mbOpenedBy'), r.from], date: r.date, hash: r.hash });
+    }
+    sent.sort((a, c) => (c.nonce || 0) - (a.nonce || 0));
+    const recvOpen = (inbox || []).filter(b => !b.gone), recvGone = (inbox || []).filter(b => b.gone);
+    const mine = recs.filter(r => r.cmd === 'CLAIM' && r.from === me && r.hk !== me && r.b)
+      .map(r => ({ b: r.b, nonce: r.b.nonce, key: !r.link, st: t('mbOpenedYou'), ok: true, who: [t('inboxFrom'), r.hk], date: r.date, hash: r.hash }))
+      .sort((a, c) => (c.date || 0) - (a.date || 0));
+    mbData = { me, built, kn, links, sent, recvOpen, recvGone, mine, inboxErr: !inbox, histErr: !hist, more: hist && hist.more, n: hist ? hist.n : 0 };
+    mbBusy = false; mbRender();
+  } catch (e) { if (seq !== mbSeq) return; mbBusy = false; list.textContent = ''; errSet('boxesErr', e.message); }
+}
+function mbTabsUi() {
+  const d = mbData, cnt = { built: d && d.built.length, recv: d && (d.recvOpen.filter(inboxOpenable).length || null), sent: d && d.sent.length };
+  document.querySelectorAll('#mbTabs .tab').forEach(b => {
+    const on = b.dataset.tab === mbTab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on));
+    const n = cnt[b.dataset.tab]; b.querySelector('.tn').textContent = n ? String(n) : ''; b.querySelector('.tn').classList.toggle('hide', !n);
+  });
+  $('mbSub').textContent = t(mbTab === 'built' ? 'mbBuiltSub' : mbTab === 'recv' ? 'mbRecvSub' : 'mbSentSub');
+}
+function mbRender() {
+  const d = mbData, list = $('mbList'); if (!d) return;
+  mbTabsUi(); list.textContent = ''; errSet('boxesErr');
+  list.append(h('div', { class: 'card' }, liveRow()));
+  const note = k => list.append(h('p', { class: 'sm mbnote' }, k));
+  if (mbTab === 'built') {
+    if (!d.built.length) list.append(h('p', { class: 'sub' }, t('noBoxes')));
+    for (const b of d.built) list.append(boxCard(b, d.kn(b), d.links.get(b.key)));
+    $('vcCard').classList.toggle('hide', false);
+  } else if (mbTab === 'recv') {
+    $('vcCard').classList.add('hide');
+    if (d.inboxErr) note(t('mbPartErr'));
+    if (!d.recvOpen.length && !d.mine.length && !d.recvGone.length) list.append(h('p', { class: 'sub' }, t('mbNone')));
+    for (const b of d.recvOpen) list.append(inboxCard(b));
+    for (const x of d.mine) list.append(histCard(x));
+    if (d.recvGone.length) { list.append(h('div', { class: 'lbl' }, t('mbOldKeys'))); for (const b of d.recvGone) list.append(inboxCard(b)); }
+    note(t('mbRecvNote'));
+  } else {
+    $('vcCard').classList.add('hide');
+    if (!d.sent.length) list.append(h('p', { class: 'sub' }, t('mbNone')));
+    for (const x of d.sent) list.append(histCard(x));
+    note(t('mbSentNote'));
+  }
+  if (mbTab !== 'built' && d.histErr) note(t('mbPartErr'));
+  if (mbTab !== 'built' && d.more) note(t('mbTrunc').replace('{n}', String(d.n)));
+  renderLive(false);
+}
+$('mbTabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (!b || b.dataset.tab === mbTab) return; mbTab = b.dataset.tab; if (mbData) mbRender(); else mbTabsUi(); };
+$('acc-boxes').addEventListener('toggle', () => { if ($('acc-boxes').open && !mbData && !mbBusy && current === 'settings') mbLoad(); });
+/* a box that is no longer (or not only) in this account's hook state: read-only card from the ledger */
+const histOpen = new Set();
+function histCard(x) {
+  const b = x.b, amt = BigInt('0x' + b.amt), hasTok = !isZero(b.tid), id = (x.hash || '') + ':' + b.nonce;
+  const sumTxt = h('span', { class: 'bsum' }, [amt ? dropsToXah(amt) + ' XAH' : null, hasTok ? '1 URIToken' : null].filter(Boolean).join(' + ') || t('bxEmpty'));
+  const head = h('button', { class: 'bhead', type: 'button', 'aria-expanded': 'false' },
+    h('span', { class: 'bn' }, '#' + b.nonce),
+    h('span', { class: 'bbadge' + (x.key ? ' key' : '') }, x.key ? '🔑 ' + t('tokenKind') : '🔗 ' + t('kLink')),
+    h('span', { class: 'bchev', 'aria-hidden': 'true' }, '▾'),
+    h('span', { class: 'bmeta' }, h('span', { class: 'bst' + (x.bad ? ' bad' : x.ok ? ' ok' : ' yel') }, x.st), sumTxt));
+  const inside = h('div', { class: 'binside' }, h('div', { class: 'lbl' }, t('bxInside')));
+  if (amt) inside.append(row('XAH', dropsToXah(amt) + ' XAH', 'yel'));
+  if (hasTok) {
+    const tr = row('URIToken', short(b.tid)), slot = h('div'); inside.append(tr, slot);
+    uriToken(b.tid).then(tok => { if (!tok) return; if (gcTok(tok)) tr.lastChild.textContent = t('gcTag') + ' · ' + short(b.tid); slot.append(tokenCard(tok)); }).catch(() => {});
+  }
+  if (!amt && !hasTok) inside.append(h('p', { class: 'sm' }, t('bxEmpty')));
+  const body = h('div', { class: 'bbody hide' }, inside,
+    x.who ? row(x.who[0], short(x.who[1])) : null,
+    x.date ? row(t('mbWhen'), new Date(x.date).toLocaleString(S.lang)) : null,
+    row(t('bxNo'), '#' + b.nonce),
+    x.local ? h('p', { class: 'sm' }, t('mbLocal')) : null,
+    x.live ? h('p', { class: 'sm' }, t('mbSeeBuilt')) : null,
+    x.hash ? h('a', { class: 'lnk', href: NET().explorerTx + x.hash, target: '_blank', rel: 'noopener noreferrer' }, t('explorer') + ' ↗') : null);
+  const c = h('div', { class: 'card bcard' }, head, body);
+  const set = on => { body.classList.toggle('hide', !on); c.classList.toggle('open', on); head.setAttribute('aria-expanded', String(on)); };
+  head.onclick = () => { const on = !histOpen.has(id); if (on) histOpen.add(id); else histOpen.delete(id); set(on); };
+  set(histOpen.has(id));
+  return c;
+}
+
 /* ---------- routing / header ---------- */
 function route(name) {
   if (name === 'create') return enterCreate();
   if (name === 'open') return enterOpen();
   if (name === 'boxes') return enterBoxes();
+  if (name === 'mybx') return enterMyBoxes();
   if (name === 'codes') return enterCodes();
   if (name === 'inbox') return enterInbox();
   if (name === 'sign' && S.pending) return enterSign();
@@ -1224,7 +1369,7 @@ $('goInbox').onclick = () => enterInbox();
 function enterSettings(sec) {
   if (sec) document.querySelectorAll('#s-settings details.acc').forEach(d => { d.open = d.id === 'acc-' + sec; });
   show('settings');
-  if (sec && sec !== 'lang') { const d = $('acc-' + sec); if (d) setTimeout(() => d.scrollIntoView({ block: 'start' }), 0); }
+  if (sec && sec !== 'lang' && sec !== 'boxes') { const d = $('acc-' + sec); if (d) setTimeout(() => d.scrollIntoView({ block: 'start' }), 0); }
 }
 $('goSettings').onclick = () => enterSettings();
 $('setBack').onclick = () => goBack();
@@ -1234,7 +1379,7 @@ document.querySelectorAll('#s-settings details.acc').forEach(d => d.addEventList
 }));
 $('langList').onclick = e => {
   const b = e.target.closest('[data-lang]'); if (!b || b.dataset.lang === S.lang) return;
-  S.lang = b.dataset.lang; save(); applyLang();
+  S.lang = b.dataset.lang; save(); applyLang(); if (mbData) mbRender(); else mbTabsUi();
 };
 $('pageVer').textContent = (([...document.scripts].map(x => x.src).find(x => /app\.js/.test(x)) || '').split('v=')[1] || '—');
 $('backBtn').onclick = () => goBack();
