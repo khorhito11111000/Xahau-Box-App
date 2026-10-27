@@ -8,3 +8,7 @@ A static page for the Xahau gift-box hook: create a box (XAH and/or one URIToken
 - Libraries are vendored in `vendor/` (see `vendor/LICENSES.md`).
 
 Status: draft, testnet first.
+
+## Verification
+
+See [docs/VERIFICATION.md](docs/VERIFICATION.md) for the hook PACK verification results.

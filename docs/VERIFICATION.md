@@ -1,0 +1,23 @@
+# Verification results (2026-10-27)
+
+**What was checked:** the PACK command of the box hook (v14), the command that creates a box. Checked by bounded model checking with CBMC, using reduced table sizes (up to 3 objects, 3 fields, 3 hashes, 4 old state records). The check also covers the balance accounting (how much XAH and how many tokens are locked under boxes).
+
+**Results**
+
+| Check | Result |
+|---|---|
+| PACK variants (signed link / key token × URIToken, XAH, URIToken+XAH) | 6 of 6 proven |
+| Deliberately broken hook versions (no exists check, no owner check, wrong box status, balance not updated) | 4 of 4 caught |
+| Real bugs found in v14 | none |
+
+**Assumption:** two different 256-bit hashes never collide (practically impossible).
+
+**Note for v15 (hardening only, not exploitable):** PACK does not reject a token ID equal to the box's own internal state keys. This could only matter with a hash collision.
+
+These are bounded proofs under a model of the host, not a full audit.
+
+---
+
+## Кратко по-русски
+
+Проверена команда PACK хука v14 (создание бокса) методом ограниченной проверки моделей (CBMC) на уменьшенных размерах, вместе с учётом баланса. Все 6 вариантов доказаны, все 4 специально испорченные версии хука пойманы, ошибок в v14 не найдено. Допущение: разные 256-битные хэши не совпадают. Заметка для v15: PACK не отклоняет ID токена, совпадающий со служебными ключами бокса; это не уязвимость.
