@@ -265,3 +265,4 @@ select.inp option{background:#0b1a3d}
 .pj .pjt .sm{color:var(--mut);overflow-wrap:anywhere}
 .pj .ar{color:var(--y);flex-shrink:0}
 .pjnote{color:var(--mut);text-align:center}
+.pjsub{color:var(--mut);margin-top:-4px}

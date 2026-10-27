@@ -1661,3 +1661,10 @@ Object.assign(window.BOX_I18N.ru, {"pjTitle": "Полезные проекты X
 Object.assign(window.BOX_I18N.de, {"pjTitle": "Nützliche Xahau-Projekte", "pjEg": "Messenger, bei dem deine Schlüssel und Nachrichten bei dir bleiben (Ende-zu-Ende-verschlüsselt)", "pjXc": "Kartenpacks auf Xahau", "pjXv": "NFT-Marktplatz für XRPL und Xahau", "pjOx": "Anlaufstelle für das Xahau-Ökosystem", "pjXe": "Xahau-Explorer von Bithomp", "pjBt": "XRPL-Explorer", "pjXw": "XRP-Ledger-Explorer", "pjNote": "Unabhängige Links. Wir gehören nicht zu diesen Projekten, und das ist keine Empfehlung."});
 Object.assign(window.BOX_I18N.zh, {"pjTitle": "实用的 Xahau 项目", "pjEg": "密钥和消息只属于你的通讯应用（端到端加密）", "pjXc": "Xahau 上的卡包", "pjXv": "XRPL 和 Xahau 的 NFT 市场", "pjOx": "Xahau 生态导航", "pjXe": "Bithomp 出品的 Xahau 浏览器", "pjBt": "XRPL 浏览器", "pjXw": "XRP Ledger 浏览器", "pjNote": "以上为独立链接，我们与这些项目无关联，也不代表推荐。"});
 Object.assign(window.BOX_I18N.ja, {"pjTitle": "便利な Xahau プロジェクト", "pjEg": "鍵もメッセージも自分の手元に残るメッセンジャー（エンドツーエンド暗号化）", "pjXc": "Xahau のカードパック", "pjXv": "XRPL と Xahau の NFT マーケットプレイス", "pjOx": "Xahau エコシステムのポータル", "pjXe": "Bithomp による Xahau エクスプローラー", "pjBt": "XRPL エクスプローラー", "pjXw": "XRP Ledger エクスプローラー", "pjNote": "各リンクは独立したものです。これらのプロジェクトとは提携しておらず、推奨するものでもありません。"});
+Object.assign(window.BOX_I18N.en, {"pjSub": "These projects make using Xahau Box easier and better."});
+Object.assign(window.BOX_I18N.es, {"pjSub": "Estos proyectos te ayudan a usar Xahau Box de forma más fácil y mejor."});
+Object.assign(window.BOX_I18N.fr, {"pjSub": "Ces projets t’aident à utiliser Xahau Box plus facilement et mieux."});
+Object.assign(window.BOX_I18N.ru, {"pjSub": "Эти проекты помогут тебе удобнее и лучше пользоваться Xahau Box."});
+Object.assign(window.BOX_I18N.de, {"pjSub": "Mit diesen Projekten nutzt du Xahau Box einfacher und besser."});
+Object.assign(window.BOX_I18N.zh, {"pjSub": "这些项目能让你更方便、更好地使用 Xahau Box。"});
+Object.assign(window.BOX_I18N.ja, {"pjSub": "これらのプロジェクトを使うと、Xahau Box をもっと便利に、快適に使えます。"});
