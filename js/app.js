@@ -328,6 +328,7 @@ function goBack() {
       if (p && p.op === 'claim') return $('boxView').childElementCount ? show('open') : enterOpen();
       if (p && p.op === 'open') return enterBoxes();
       if (p && p.op === 'remit' && p.back && p.back.box) { S.pending = p.back; save(); return finishPack(); }
+      if (p && p.op === 'remit' && p.from === 'boxes') { S.pending = null; save(); return enterBoxes(); }
       return show('home');
     case 'done': return doneFrom === 'boxes' ? enterBoxes() : show('home');
     default: return show('home');
@@ -753,7 +754,7 @@ async function checkPending() {
   }
   if (p.op === 'remit') {
     const tok = await uriToken(p.tx.URITokenIDs[0]); if (!tok || tok.Owner !== p.tx.Destination) return errSet('signErr', t('notYet'));
-    const back = p.back; S.pending = back || null; save(); toast('✓'); return back ? finishPack() : show('home');
+    const back = p.back; S.pending = back || null; save(); toast('✓'); return back ? finishPack() : p.from === 'boxes' ? enterBoxes() : show('home');
   }
 }
 
@@ -953,9 +954,31 @@ async function enterBoxes() {
     const lk = links.get(b.key);
     if (lk) c.append(h('button', { class: 'btn y', type: 'button', onclick: () => { lk.nonce = b.nonce; finishPack(lk); } }, t('showLink')));
     if (kn) c.append(h('button', { class: 'btn o', type: 'button', onclick: () => startOpen(kn.vc) }, t('takeBack')));
+    if (b.ktid) c.append(keyHandCard(b.ktid));
     list.append(c);
   }
   renderLive(false);
+}
+/* hand a box's key token to someone later, from the boxes list (a plain Remit, the hook does not take part) */
+function keyHandCard(ktid) {
+  const inp = h('input', { class: 'inp', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: t('recipientPh') });
+  const out = h('div');
+  const go = h('button', { class: 'btn w', type: 'button', onclick: async () => {
+    out.textContent = ''; const to = inp.value.trim(), me = S.account && S.account.address;
+    if (!L.isAddress(to)) return out.append(h('p', { class: 'err-line' }, t('needAccount')));
+    if (to === me) return out.append(h('p', { class: 'err-line' }, t('keySelf')));
+    go.disabled = true; out.append(h('p', { class: 'sm' }, t('keyChecking')));
+    let tok;
+    try { tok = await uriToken(ktid); } catch (e) { out.textContent = ''; go.disabled = false; return out.append(h('p', { class: 'err-line' }, e.message)); }
+    out.textContent = ''; go.disabled = false;
+    if (!tok) return out.append(h('p', { class: 'err-line' }, t('keyGone')));
+    if (tok.Owner !== me) return out.append(h('p', { class: 'err-line' }, t('keyNotYours') + ' ' + short(tok.Owner)));
+    S.pending = { op: 'remit', tx: remitTx(me, to, ktid), from: 'boxes' }; save();
+    enterSign();
+  } }, t('buildRemit'));
+  const wrap = h('div', { class: 'hide' }, h('div', { class: 'lbl' }, t('handKey')), inp, go, out);
+  const open = h('button', { class: 'btn o', type: 'button', onclick: () => { wrap.classList.remove('hide'); open.classList.add('hide'); inp.focus(); } }, t('transferKey'));
+  return h('div', {}, open, wrap);
 }
 function startOpen(vc) { S.pending = { op: 'open', tx: openTx(S.account.address, vc), h: S.account.address, vc }; save(); enterSign(); }
 $('vcOpenBtn').onclick = () => { const v = $('vcInput').value.trim().toUpperCase(); if (!/^[0-9A-F]{64}$/.test(v)) return errSet('boxesErr', t('vcBad')); startOpen(v); };
