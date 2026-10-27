@@ -62,8 +62,14 @@ select.inp option{background:#0b1a3d}
 .tok{display:flex;gap:12px;padding:10px;border-radius:14px;border:1.5px solid rgba(255,255,255,.14);background:rgba(2,10,28,.45);cursor:pointer;align-items:center}
 .tok.sel{border-color:var(--y);background:rgba(248,206,34,.1);box-shadow:0 0 0 3px rgba(248,206,34,.14)}
 .tok.dis{opacity:.5;cursor:not-allowed}
-.timg{width:54px;height:54px;border-radius:12px;background:linear-gradient(135deg,#1d3a7a,#0b1a3d);display:grid;place-items:center;overflow:hidden;flex:none;color:var(--y);font-size:20px}
-.timg img{width:100%;height:100%;object-fit:cover}
+.timg{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,#1d3a7a,#0b1a3d);display:grid;place-items:center;overflow:hidden;flex:none;color:var(--y);font-size:20px}
+.timg img{width:100%;height:100%;object-fit:contain}
+.timg.has{background:none}
+.tok.big{flex-direction:column;align-items:stretch;cursor:default}
+.tok.big .timg{width:100%;height:auto;min-height:120px;font-size:44px}
+.tok.big .timg img{height:auto;max-height:460px}
+.tok.big .tinfo b{white-space:normal;font-size:16px}
+.rem .desc{white-space:normal;color:#9fb6e0}
 .tinfo{display:flex;flex-direction:column;gap:2px;min-width:0}
 .tinfo b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rem{display:flex;flex-direction:column;font-size:11.5px;color:#cfe0ff}

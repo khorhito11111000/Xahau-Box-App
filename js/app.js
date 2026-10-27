@@ -66,44 +66,104 @@ const parseBox = d => d && d.length === 170 ? { tid: d.slice(0, 64), amt: d.slic
 const fill = (b, n) => b.repeat(n);
 const K_META = fill('11', 32), K_AUD = fill('33', 32), K_OCK = fill('44', 32), K_NCK = fill('66', 32);
 
-/* ---------- tokens: URI, image, remarks ---------- */
-const imgCache = new Map();
-function ipfs(u) { return u.startsWith('ipfs://') ? C.IPFS_GATEWAY + u.slice(7).replace(/^ipfs\//, '') : u; }
-function safeUrl(u) { try { const x = new URL(ipfs(u)); return x.protocol === 'https:' || x.origin === location.origin ? x.href : null; } catch { return null; } }
-function remarks(tok) { return (tok.Remarks || []).map(r => r.Remark || {}).map(r => ({ name: hexToText(r.RemarkName || '') || r.RemarkName, value: hexToText(r.RemarkValue || '') ?? r.RemarkValue, immutable: !!((r.Flags || 0) & 1) })); }
-async function tokenImage(tok) {
-  if (imgCache.has(tok.index)) return imgCache.get(tok.index);
-  let res = null;
-  const rem = remarks(tok).find(r => /^image$/i.test(r.name || '') && printable(r.value));
-  const uri = hexToText(tok.URI || '');
-  const cand = rem ? rem.value : uri;
-  const u = cand && safeUrl(cand.trim());
-  if (u) {
-    if (/\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(u)) res = u;
-    else {
-      try {
-        const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 4000);
-        const r = await fetch(u, { signal: ac.signal, credentials: 'omit', referrerPolicy: 'no-referrer' }); clearTimeout(tm);
-        const ct = r.headers.get('content-type') || '';
-        if (ct.startsWith('image/')) res = u; else if (ct.includes('json')) { const j = await r.json(); const im = j && (j.image || j.image_url || j.imageUrl); if (typeof im === 'string') res = safeUrl(im); }
-      } catch {}
-    }
-  }
-  imgCache.set(tok.index, res); return res;
+/* ---------- tokens: shown the way Xahau Cards, Xahau Vault and the explorer show them ----------
+   Name + attributes: the token's own on-ledger metadata (Remarks "schema" + "meta.N", std xahau-nft-remark/v1).
+   Picture: only from the project that issued the token, nothing else is ever requested:
+     Xahau Cards   -> https://xahaucards.com/card/<id>.webp (the "image" in its metadata, strictly checked)
+     Odin's Eyes   -> the WebP stored in the token itself (Remarks img.N), shown only if its sha256 matches the schema
+     Xahmoeba      -> https://api.xahmoeba.com (their public API: name + picture), testnet species only
+     our key token -> img/key.jpg from this page
+     anything else -> ◆ and the name, no network request. */
+const ISS = { CARDS: 'rCardMi9ZsS5dBMrtZtaDeZchvW64W38c', RAVEN: 'rodinGM9xiKq7rDDnLPyieREkqGJ6zKyb', MOEBA: 'rMmx5nHzoVJAoMTFWkgCCMrZryTaD682tr' };
+const CARD_IMG = /^https:\/\/xahaucards\.com\/card\/[A-Za-z0-9-]+\.webp$/;
+const MOEBA_API = 'https://api.xahmoeba.com/v1/moebas/';
+const viewCache = new Map();
+const clean = (v, n) => { if (typeof v !== 'string' || !printable(v) || !v.trim()) return null; const x = v.trim().replace(/[\n\r\t]+/g, ' '), m = n || 80; return x.length > m ? x.slice(0, m - 1).trimEnd() + '…' : x; };
+function remarkMap(tok) {
+  const m = new Map();
+  for (const x of tok.Remarks || []) { const r = x.Remark || {}; const name = hexToText(r.RemarkName || ''); if (name) m.set(name, { hex: r.RemarkValue || '', text: hexToText(r.RemarkValue || ''), immutable: !!((r.Flags || 0) & 1) }); }
+  return m;
 }
-function tokenName(tok) { const u = hexToText(tok.URI || ''); const km = u && /\/img\/key\.jpg\?k=([0-9a-f]{16})$/.exec(u); if (km) return t('tokenKind') + ' · ' + km[1].slice(0, 6); return u && printable(u) ? u : (tok.URI || '').slice(0, 16) + '…'; }
+function remarkMeta(rm) {
+  try {
+    const sc = rm.get('schema'); if (!sc || !sc.text) return null;
+    const schema = JSON.parse(sc.text); if (!schema || schema.std !== 'xahau-nft-remark/v1') return null;
+    const parts = schema.meta && schema.meta.parts; if (!Number.isInteger(parts) || parts < 1 || parts > 64) return { schema, meta: null };
+    let hx = ''; for (let i = 0; i < parts; i++) { const r = rm.get('meta.' + i); if (!r) return { schema, meta: null }; hx += r.hex; }
+    const txt = hexToText(hx); const meta = txt ? JSON.parse(txt) : null;
+    return { schema, meta: meta && typeof meta === 'object' ? meta : null };
+  } catch { return null; }
+}
+const attrList = a => Array.isArray(a) ? a.filter(x => x && clean(String(x.trait_type ?? ''), 40) && x.value != null).map(x => clean(String(x.trait_type), 40) + ': ' + (clean(String(x.value), 60) || '…')) : [];
+async function onChainWebp(tok, rm, schema) {
+  const s = schema && schema.img; const sc = rm.get('schema');
+  if (!sc || !sc.immutable || !s || s.mime !== 'image/webp' || !Number.isInteger(s.parts) || s.parts < 1 || s.parts > 64 || !/^[0-9A-Fa-f]{64}$/.test(s.sha256 || '')) return null;
+  let hx = ''; for (let i = 0; i < s.parts; i++) { const r = rm.get('img.' + i); if (!r || !/^[0-9A-Fa-f]*$/.test(r.hex)) return null; hx += r.hex; }
+  const bytes = L.hex.fromHex(hx);
+  if (bytes.length < 16 || hexToText(L.hex.toHex(bytes.slice(0, 4))) !== 'RIFF' || hexToText(L.hex.toHex(bytes.slice(8, 12))) !== 'WEBP') return null;
+  const dg = L.hex.toHex(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))).toUpperCase();
+  if (dg !== s.sha256.toUpperCase()) return null;
+  return URL.createObjectURL(new Blob([bytes], { type: 'image/webp' }));
+}
+// polite to their API: at most 2 requests at a time, and only for cards that are on screen
+const moebaQ = { n: 0, q: [] };
+function moebaSlot() { return new Promise(r => { if (moebaQ.n < 2) { moebaQ.n++; r(); } else moebaQ.q.push(r); }); }
+function moebaDone() { const nx = moebaQ.q.shift(); if (nx) nx(); else moebaQ.n--; }
+async function moebaApi(id) {
+  await moebaSlot(); try { return await moebaFetch(id); } finally { moebaDone(); }
+}
+async function moebaFetch(id) {
+  const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 6000);
+  try {
+    const r = await fetch(MOEBA_API + id + '/metadata.json', { signal: ac.signal, credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'force-cache' });
+    if (!r.ok) return null; const j = await r.json(); return j && typeof j === 'object' ? j : null;
+  } catch { return null; } finally { clearTimeout(tm); }
+}
+function keyTokenId(tok) { const u = hexToText(tok.URI || ''); const km = u && /\/img\/key\.jpg\?k=([0-9a-f]{16})$/.exec(u); return km ? km[1] : null; }
+function uriLabel(tok) { const u = hexToText(tok.URI || ''); return u && printable(u) ? u : (tok.URI || '').slice(0, 16) + '…'; }
+function tokenView(tok) {
+  const ck = S.net + ':' + tok.index;
+  if (viewCache.has(ck)) return viewCache.get(ck);
+  const p = (async () => {
+    const id = String(tok.index || '').toUpperCase(); const rm = remarkMap(tok); const rmeta = remarkMeta(rm); const meta = rmeta && rmeta.meta;
+    const v = { name: null, img: null, attrs: [], desc: null, remarks: [] };
+    const k = keyTokenId(tok);
+    if (k) { v.name = t('tokenKind') + ' · ' + k.slice(0, 6); v.img = 'img/key.jpg'; return v; }
+    if (meta) { v.name = clean(meta.name); v.desc = clean(meta.desc || meta.description, 160); v.attrs = attrList(meta.attributes); }
+    else v.remarks = [...rm].filter(([, r]) => clean(r.text, 80)).slice(0, 4).map(([n, r]) => (clean(n, 30) + ': ' + clean(r.text, 80)));
+    if (tok.Issuer === ISS.CARDS && meta && typeof meta.image === 'string' && CARD_IMG.test(meta.image)) v.img = meta.image;
+    else if (tok.Issuer === ISS.RAVEN && rmeta) v.img = await onChainWebp(tok, rm, rmeta.schema).catch(() => null);
+    else if (tok.Issuer === ISS.MOEBA && S.net === 'testnet' && /^[0-9A-F]{64}$/.test(id)) {
+      const j = await moebaApi(id);
+      if (!j) setTimeout(() => viewCache.delete(ck), 30000); // try again later, e.g. after a rate limit
+      if (j) { v.name = clean(j.name) || v.name; v.desc = clean(j.description, 160); v.attrs = attrList(j.attributes); v.remarks = []; v.img = MOEBA_API + id + '.png?size=400'; }
+    }
+    if (!v.name) v.name = uriLabel(tok);
+    return v;
+  })();
+  viewCache.set(ck, p); return p;
+}
 function tokenCard(tok, opts) {
   const o = opts || {};
   const img = h('div', { class: 'timg' }, h('span', null, '◆'));
-  tokenImage(tok).then(u => { if (!u) return; const im = h('img', { alt: '', referrerpolicy: 'no-referrer' }); im.onload = () => { img.textContent = ''; img.append(im); }; im.src = u; });
-  const rem = remarks(tok).filter(r => r.name);
-  const card = h('div', { class: 'tok' + (o.disabled ? ' dis' : '') + (o.selected ? ' sel' : ''), role: o.onclick ? 'button' : null, tabindex: o.onclick && !o.disabled ? '0' : null, onclick: o.disabled ? null : o.onclick },
+  const title = h('b', null, uriLabel(tok)); const extra = h('div', { class: 'rem' });
+  const card = h('div', { class: 'tok' + (o.big ? ' big' : '') + (o.disabled ? ' dis' : '') + (o.selected ? ' sel' : ''), role: o.onclick ? 'button' : null, tabindex: o.onclick && !o.disabled ? '0' : null, onclick: o.disabled ? null : o.onclick },
     img,
     h('div', { class: 'tinfo' },
-      h('b', null, tokenName(tok), tok.index === newKey ? h('span', { class: 'new' }, ' · ' + t('newTag')) : null),
+      title, tok.index === newKey ? h('span', { class: 'new' }, t('newTag')) : null,
       h('span', { class: 'sm mono' }, short(tok.index)),
-      rem.length ? h('div', { class: 'rem' }, rem.slice(0, 4).map(r => h('span', null, (r.name + ': ' + (printable(r.value) ? r.value : '…')).slice(0, 80)))) : null,
+      extra,
       o.disabled ? h('span', { class: 'why' }, o.disabled) : null));
+  const io = window.IntersectionObserver ? new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); fillCard(); } }, { rootMargin: '400px' }) : null;
+  if (io) io.observe(card); else fillCard();
+  function fillCard() { tokenView(tok).then(v => {
+    title.textContent = v.name;
+    const lines = (v.attrs.length ? v.attrs : v.remarks).slice(0, o.big ? 12 : 3);
+    if (o.big && v.desc) extra.append(h('span', { class: 'desc' }, v.desc));
+    lines.forEach(x => extra.append(h('span', null, x)));
+    if (!v.img) return;
+    const im = h('img', { alt: v.name, referrerpolicy: 'no-referrer', decoding: 'async' }); im.onload = () => { img.textContent = ''; img.append(im); img.classList.add('has'); }; im.src = v.img;
+  }); }
   return card;
 }
 
@@ -541,7 +601,7 @@ async function showBox() {
   if (!b) { card.append(row(t('status'), t('stGone'), 'bad'), row(t('boxNumber'), short(q.vc))); return; }
   const amt = BigInt('0x' + b.amt), parts = []; if (amt) parts.push(dropsToXah(amt) + ' XAH'); if (tok) parts.push('1 URIToken');
   card.append(row(t('contents'), parts.join(' + '), 'yel'));
-  if (tok) card.append(tokenCard(tok));
+  if (tok) card.append(tokenCard(tok, { big: true }));
   const ekind = ktid ? 'token' : q.kind;
   card.append(row(t('kind'), t(ekind + 'Kind')));
   if (q.kind === 'named') card.append(row(t('signedFor'), short(q.a)));
@@ -576,7 +636,7 @@ async function finishClaim() {
   const p = S.pending; show('opened');
   const info = $('openedInfo'); info.textContent = '';
   const amt = BigInt('0x' + p.amt); if (amt) info.append(row(t('received'), dropsToXah(amt) + ' XAH', 'yel'));
-  if (!isZero(p.tid)) { const tok = await uriToken(p.tid).catch(() => null); if (tok) info.append(tokenCard(tok)); if (tok && p.k) { const code = await giftCode(tok.URI, p.k); if (code) info.append(row(t('giftCode'), code, 'yel')); } }
+  if (!isZero(p.tid)) { const tok = await uriToken(p.tid).catch(() => null); if (tok) info.append(tokenCard(tok, { big: true })); if (tok && p.k) { const code = await giftCode(tok.URI, p.k); if (code) info.append(row(t('giftCode'), code, 'yel')); } }
   S.pending = null; save();
 }
 // Optional gift code: token URI "tgsE1:" + base64url(1 | iv12 | tag16 | ciphertext), AES-256-GCM key "k" from the QR.
@@ -631,6 +691,7 @@ async function enterBoxes() {
     const c = h('div', { class: 'card' }, row('#' + b.nonce, parts.join(' + '), 'yel'), row(t('kind'), b.ktid ? t('tokenKind') : t('kLink')),
       row(t('ledgerExp'), expN ? String(expN) : t('limitNone')), expN ? leftRow(expN, acct.cur) : null,
       stRow(b, expN), row(t('boxNumber'), kn ? short(kn.vc) : t('vcUnknown')));
+    if (!isZero(b.tid)) { const slot = h('div'); c.insertBefore(slot, c.children[1]); uriToken(b.tid).then(tok => { if (tok) slot.append(tokenCard(tok)); }).catch(() => {}); }
     if (kn) c.append(h('button', { class: 'btn o', type: 'button', onclick: () => startOpen(kn.vc) }, t('takeBack')));
     list.append(c);
   }
