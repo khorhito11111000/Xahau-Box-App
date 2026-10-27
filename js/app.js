@@ -346,7 +346,7 @@ function applyLang() {
   document.documentElement.lang = S.lang;
   document.querySelectorAll('[data-t]').forEach(e => { e.textContent = t(e.dataset.t); });
   document.querySelectorAll('[data-tp]').forEach(e => { e.placeholder = t(e.dataset.tp); });
-  $('setBtn').title = $('setBtn').ariaLabel = t('setTitle').replace(/^⚙️\s*/, '') || 'Settings'; $('netBtn').title = t('netSwitch');
+  $('netBtn').title = t('netSwitch');
   document.querySelectorAll('#langList [data-lang]').forEach(b => { const on = b.dataset.lang === S.lang; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   if (!C.XAMAN_API_KEY) $('xamanNote').textContent = t('xamanOff');
   if ($('ledgerDot')) renderLive(false);
@@ -357,7 +357,7 @@ function applyNet() { $('netBtn').textContent = NET().label + ' ⇄'; $('netBtn'
 function renderAcct() {
   const tx = $('acctText'), b = $('acctBtn'); tx.textContent = '';
   if (!S.account) {
-    tx.textContent = t('notSignedIn'); $('acctVia').textContent = '';
+    tx.textContent = ''; $('acctVia').textContent = '';
     b.textContent = t('signInShort'); b.className = 'chip acctbtn in';
     $('setOutTx').textContent = ''; $('setOutBtn').textContent = t('signInShort'); $('setOutBtn').className = 'btn y';
   } else {

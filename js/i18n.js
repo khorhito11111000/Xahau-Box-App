@@ -539,3 +539,8 @@ Object.assign(window.BOX_I18N.en, { gcSignIn: "Sign in with Xaman or enter your 
 Object.assign(window.BOX_I18N.es, { gcSignIn: "Entra con Xaman o introduce tu dirección para ver tus códigos regalo." });
 Object.assign(window.BOX_I18N.fr, { gcSignIn: "Connectez-vous avec Xaman ou saisissez votre adresse pour voir vos codes cadeaux." });
 Object.assign(window.BOX_I18N.ru, { gcSignIn: "Войди через Xaman или введи адрес, чтобы увидеть свои подарочные коды." });
+/* header settings button */
+Object.assign(window.BOX_I18N.en, { setBtnT: "⚙️ Settings & info" });
+Object.assign(window.BOX_I18N.es, { setBtnT: "⚙️ Ajustes e info" });
+Object.assign(window.BOX_I18N.fr, { setBtnT: "⚙️ Réglages et infos" });
+Object.assign(window.BOX_I18N.ru, { setBtnT: "⚙️ Настройки и инфо" });
