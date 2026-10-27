@@ -289,7 +289,7 @@ const appUrl = () => C.APP_URL || (location.origin + location.pathname);
 const qrLink = q => appUrl() + '#' + q;
 
 /* ---------- screens ---------- */
-const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'boxes', 'security'];
+const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'boxes', 'codes', 'security'];
 let current = 'home', afterAccount = null;
 /* Back: the in-page "Back" button and the phone's / browser's Back do the same thing (goBack).
    History holds at most one extra entry above "#home" ({xb:1}): leaving home adds it, moving between
@@ -320,7 +320,7 @@ function goBack() {
       const to = accountFrom; afterAccount = null; S.back = null; save();
       if (to === 'sign' && p) return enterSign();
       if (to === 'open' || to === 'security') return show(to);
-      if ((to === 'create' || to === 'boxes') && S.account) return route(to);
+      if ((to === 'create' || to === 'boxes' || to === 'codes') && S.account) return route(to);
       return show('home');
     }
     case 'sign':
@@ -1009,22 +1009,58 @@ async function enterBoxes() {
     else if (x.nonce != null || Date.now() - (x.created || 0) > 86400000) stale.push(id); // opened / taken back, or never packed
   }
   vaultDrop(stale);
-  const gcs = acct.tokens.filter(gcTok);
-  if (gcs.length) list.append(h('div', { class: 'card gcmine' }, h('div', { class: 'lbl' }, t('gcMine')), h('p', { class: 'sm' }, t('gcMineSub')), gcs.map(tok => tokenCard(tok, { big: true, reveal: true }))));
-  for (const b of acct.boxes.sort((a, c) => a.nonce - c.nonce)) {
-    const amt = BigInt('0x' + b.amt), parts = []; if (amt) parts.push(dropsToXah(amt) + ' XAH'); if (!isZero(b.tid)) parts.push('1 URIToken');
-    const expN = parseInt(b.exp, 16), kn = known.get(b.key);
-    const c = h('div', { class: 'card' }, row('#' + b.nonce, parts.join(' + '), 'yel'), row(t('kind'), b.ktid ? t('tokenKind') : t('kLink')),
-      row(t('ledgerExp'), expN ? String(expN) : t('limitNone')), expN ? leftRow(expN, acct.cur) : null,
-      stRow(b, expN), row(t('boxNumber'), kn ? short(kn.vc) : t('vcUnknown')));
-    if (!isZero(b.tid)) { const slot = h('div'); c.insertBefore(slot, c.children[1]); uriToken(b.tid).then(tok => { if (tok) slot.append(tokenCard(tok)); }).catch(() => {}); }
-    const lk = links.get(b.key);
-    if (lk) c.append(h('button', { class: 'btn y', type: 'button', onclick: () => { lk.nonce = b.nonce; finishPack(lk); } }, t('showLink')));
-    if (kn) c.append(h('button', { class: 'btn o', type: 'button', onclick: () => startOpen(kn.vc) }, t('takeBack')));
-    if (b.ktid) c.append(keyHandCard(b.ktid));
-    list.append(c);
-  }
+  // newest first; each box is a collapsed card: #N, type, status -> tap for contents, details, actions
+  for (const b of acct.boxes.slice().sort((a, c) => c.nonce - a.nonce)) list.append(boxCard(b, known.get(b.key), links.get(b.key)));
   renderLive(false);
+}
+const boxOpen = new Set();
+function boxCard(b, kn, lk) {
+  const amt = BigInt('0x' + b.amt), expN = parseInt(b.exp, 16), hasTok = !isZero(b.tid);
+  const gone = expN && acct.cur && acct.cur > expN && b.status === 0;
+  const st = h('span', { class: 'bst' + (b.status === 0 ? (gone ? ' bad' : ' ok') : ' yel') }, b.status === 0 ? (gone ? t('stExpired') : t('stClosed')) : t('stClaiming'));
+  if (expN && b.status === 0) { st.dataset.stexp = String(expN); st.dataset.stok = t('stClosed'); st.dataset.stcls = 'ok'; }
+  const sumTxt = h('span', { class: 'bsum' }, [amt ? dropsToXah(amt) + ' XAH' : null, hasTok ? '1 URIToken' : null].filter(Boolean).join(' + ') || t('bxEmpty'));
+  const head = h('button', { class: 'bhead', type: 'button', 'aria-expanded': 'false' },
+    h('span', { class: 'bn' }, '#' + b.nonce),
+    h('span', { class: 'bbadge' + (b.ktid ? ' key' : '') }, b.ktid ? '🔑 ' + t('tokenKind') : '🔗 ' + t('kLink')),
+    h('span', { class: 'bchev', 'aria-hidden': 'true' }, '▾'),
+    h('span', { class: 'bmeta' }, st, sumTxt));
+  const inside = h('div', { class: 'binside' }, h('div', { class: 'lbl' }, t('bxInside')));
+  if (amt) inside.append(row('XAH', dropsToXah(amt) + ' XAH', 'yel'));
+  if (hasTok) {
+    const tr = row('URIToken', short(b.tid)); inside.append(tr);
+    const slot = h('div'); inside.append(slot);
+    uriToken(b.tid).then(tok => {
+      if (!tok) return;
+      if (gcTok(tok)) { tr.lastChild.textContent = t('gcTag') + ' · ' + short(b.tid); sumTxt.textContent = [amt ? dropsToXah(amt) + ' XAH' : null, t('gcTag')].filter(Boolean).join(' + '); }
+      slot.append(tokenCard(tok));
+    }).catch(() => {});
+  }
+  if (!amt && !hasTok) inside.append(h('p', { class: 'sm' }, t('bxEmpty')));
+  const body = h('div', { class: 'bbody hide' }, inside,
+    row(t('kind'), b.ktid ? t('tokenKind') : t('kLink')),
+    stRow(b, expN), row(t('ledgerExp'), expN ? String(expN) : t('limitNone')), expN ? leftRow(expN, acct.cur) : null,
+    row(t('bxNo'), '#' + b.nonce), row(t('boxNumber'), kn ? short(kn.vc) : t('vcUnknown')),
+    b.ktid ? row(t('bxKeyTok'), short(b.ktid)) : null);
+  if (lk) body.append(h('button', { class: 'btn y', type: 'button', onclick: () => { lk.nonce = b.nonce; finishPack(lk); } }, t('showLink')));
+  if (b.ktid) body.append(keyHandCard(b.ktid));
+  if (kn) body.append(h('button', { class: 'btn o', type: 'button', onclick: () => startOpen(kn.vc) }, t('takeBack')));
+  const c = h('div', { class: 'card bcard' }, head, body);
+  const set = on => { body.classList.toggle('hide', !on); c.classList.toggle('open', on); head.setAttribute('aria-expanded', String(on)); };
+  head.onclick = () => { const on = !boxOpen.has(b.nonce); if (on) boxOpen.add(b.nonce); else boxOpen.delete(b.nonce); set(on); };
+  set(boxOpen.has(b.nonce));
+  return c;
+}
+/* gift codes this account holds (moved out of My boxes): open a code with its password */
+async function enterCodes() {
+  if (!needAccount(enterCodes, 'codes')) return;
+  show('codes'); errSet('codesErr');
+  const list = $('codesList'); list.textContent = ''; list.append(h('div', { class: 'spin sm' }));
+  try { acct = await loadAccountView(S.account.address); } catch (e) { list.textContent = ''; return errSet('codesErr', e.message); }
+  list.textContent = '';
+  const gcs = acct.tokens.filter(gcTok);
+  if (!gcs.length) return list.append(h('p', { class: 'sub' }, t('gcNone')));
+  list.append(h('div', { class: 'card gcmine' }, gcs.map(tok => tokenCard(tok, { big: true, reveal: true }))));
 }
 /* hand a box's key token to someone later, from the boxes list (a plain Remit, the hook does not take part) */
 function keyHandCard(ktid) {
@@ -1055,6 +1091,7 @@ function route(name) {
   if (name === 'create') return enterCreate();
   if (name === 'open') return enterOpen();
   if (name === 'boxes') return enterBoxes();
+  if (name === 'codes') return enterCodes();
   if (name === 'sign' && S.pending) return enterSign();
   if (name === 'account') return show('account');
   if (name === 'security') return show('security');
@@ -1063,6 +1100,7 @@ function route(name) {
 $('goCreate').onclick = () => enterCreate();
 $('goOpen').onclick = () => enterOpen();
 $('goBoxes').onclick = () => enterBoxes();
+$('goCodes').onclick = () => enterCodes();
 $('goSecurity').onclick = () => show('security');
 $('secBack').onclick = () => goBack();
 $('backBtn').onclick = () => goBack();
