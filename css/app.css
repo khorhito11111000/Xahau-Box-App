@@ -185,3 +185,4 @@ select.inp option{background:#0b1a3d}
 .card.inbox{border-color:rgba(248,206,34,.6)}
 .row .ibn{font:800 20px/1 system-ui,sans-serif;color:var(--y)}
 .btn.big{min-height:58px;font-size:18px}
+.secitem.scam{border-left:3px solid #ff6b6b;padding-left:10px}.secitem.scam b{color:#ff8a80}
