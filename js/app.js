@@ -8,9 +8,9 @@ const KEY = 'xbox.v1';
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
 const LANGS = ['en', 'es', 'fr', 'ru'];
 function browserLang() { for (const l of (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''])) { const c = String(l).slice(0, 2).toLowerCase(); if (LANGS.includes(c)) return c; } return 'en'; }
-const S = Object.assign({ net: C.DEFAULT_NETWORK, lang: browserLang(), account: null, history: [], pending: null }, load());
+const S = Object.assign({ net: C.DEFAULT_NETWORK, lang: browserLang(), account: null, history: [], pending: null, back: null }, load());
 if (!C.NETWORKS[S.net]) S.net = C.DEFAULT_NETWORK;
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ net: S.net, lang: S.lang, account: S.account, history: S.history.slice(-200), pending: S.pending })); } catch {} };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ net: S.net, lang: S.lang, account: S.account, history: S.history.slice(-200), pending: S.pending, back: S.back || null })); } catch {} };
 if (!LANGS.includes(S.lang)) S.lang = 'en';
 /* Box links saved on this device (localStorage, never sent anywhere). Written BEFORE the signature is requested,
    so a reload, a new tab or a lost Xaman return can always show the link/QR again. Key: network:hook:VC. */
@@ -223,24 +223,69 @@ function applyLang() {
   document.querySelectorAll('#langMenu li').forEach(li => li.setAttribute('aria-selected', String(li.dataset.lang === S.lang)));
   if (!C.XAMAN_API_KEY) $('xamanNote').textContent = t('xamanOff');
   if ($('ledgerDot')) renderLive(false);
+  renderAcct();
 }
 function applyNet() { $('netBtn').textContent = NET().label; $('netBtn').classList.toggle('main', S.net === 'mainnet'); }
+/* Header: signed out -> "Sign in with Xaman"; signed in -> short address + "Sign out". */
 function renderAcct() {
-  const bar = $('acctBar');
-  if (!S.account) { bar.classList.add('hide'); return; }
-  bar.classList.remove('hide');
-  $('acctText').textContent = short(S.account.address) + ' · ' + (S.account.via === 'xaman' ? 'Xaman' : 'JSON') + ' · ' + NET().label;
+  const tx = $('acctText'), b = $('acctBtn'); tx.textContent = '';
+  if (!S.account) {
+    tx.append(t('notSignedIn') + ' · ' + NET().label);
+    b.textContent = xp ? t('signIn') : t('signInShort'); b.className = 'chip acctbtn in';
+  } else {
+    tx.append(h('b', { class: 'mono' }, short(S.account.address)), ' · ' + (S.account.via === 'xaman' ? 'Xaman' : t('addrOnlyTag')) + ' · ' + NET().label);
+    b.textContent = t('signOut'); b.className = 'chip acctbtn out';
+  }
 }
-function needAccount(next) { if (S.account) return true; afterAccount = next; show('account'); return false; }
+function needAccount(next, back) { if (S.account) return true; afterAccount = next; S.back = back || null; save(); show('account'); return false; }
 
 /* ---------- Xaman (PKCE, browser only) ---------- */
 let xp = null, xstate = null;
 function initXaman() {
   if (!C.XAMAN_API_KEY || !window.XummPkce) { $('xamanBtn').classList.add('dis'); return; }
   xp = new window.XummPkce(C.XAMAN_API_KEY, { redirectUrl: appUrl(), rememberJwt: true });
-  const on = async () => { try { xstate = await xp.state(); if (xstate && xstate.me) { setAccount(xstate.me.account, 'xaman'); } } catch {} };
+  // 'success' / 'retrieved' also fire in a NEW tab opened by the return from Xaman (Android): the SDK reads the
+  // ?authorization_code from the address and finishes the sign-in there (its PKCE verifier lives in localStorage).
+  const on = async () => {
+    try {
+      const st = await xp.state(); const a = st && st.me && st.me.account; if (!a || signingOut) return;
+      xstate = st;
+      if (S.account && S.account.address === a && S.account.via === 'xaman') { renderAcct(); if (current === 'sign') enterSign(); return; }
+      setAccount(a, 'xaman'); toast(t('signedIn'));
+    } catch {}
+  };
   xp.on('success', on); xp.on('retrieved', on); xp.on('error', e => errSet('acctErr', String(e && e.message || e)));
+  // the SDK found no valid Xaman session (none saved, or it expired): do not keep showing a Xaman account
+  xp.on('loggedout', () => { if (!xstate && S.account && S.account.via === 'xaman') { S.account = null; save(); renderAcct(); if (current === 'sign') enterSign(); } });
 }
+function signIn(back) {
+  errSet('acctErr');
+  if (!xp) { afterAccount = back ? () => route(back) : null; S.back = back || null; save(); return show('account'); }
+  if (back) { S.back = back; save(); if (!afterAccount) afterAccount = () => route(back); }
+  xp.authorize().catch(e => errSet('acctErr', String(e && e.message || e)));
+}
+/* Sign out: ends the Xaman session and forgets the account on this device.
+   Box links / QR keys (xbox.links.v1), box history and an unfinished box are NOT touched. */
+const XAMAN_KEYS = ['XummPkceJwt', 'XummSdkJwt', 'pkce_code_verifier', 'pkce_state'];
+let signingOut = false;
+function signOut() {
+  signingOut = true;
+  xstate = null; acct = null; afterAccount = null; S.account = null; S.back = null;
+  if (xp) try { xp.logout(); } catch {}
+  for (const st of [localStorage, sessionStorage]) for (const k of XAMAN_KEYS) try { st.removeItem(k); } catch {}
+  save(); renderAcct();
+  if (['create', 'boxes', 'sign', 'account'].includes(current)) show('home');
+  toast(t('signedOut'));
+  setTimeout(() => { signingOut = false; }, 0);
+}
+// Another tab of this browser signed in or out (e.g. the tab Xaman returned to): follow it here.
+window.addEventListener('storage', e => {
+  if (e.key !== 'XummPkceJwt' && e.key !== KEY) return;
+  if (e.key === 'XummPkceJwt' && e.newValue && !xstate) return location.reload();
+  if (e.key === 'XummPkceJwt' && !e.newValue && xstate) { xstate = null; }
+  const a = load().account || null;
+  if (JSON.stringify(a) !== JSON.stringify(S.account)) { S.account = a; if (!a) xstate = null; acct = null; renderAcct(); if (!a && ['create', 'boxes', 'sign'].includes(current)) show('home'); }
+});
 async function xamanSign(tx, box) {
   const sdk = xstate.sdk;
   const sub = await sdk.payload.createAndSubscribe({ txjson: tx }, ev => { if (typeof ev.data.signed !== 'undefined') return ev.data; });
@@ -259,9 +304,9 @@ async function waitTx(hash) {
 /* ---------- account ---------- */
 let acct = null; // cached ledger view of the connected account
 async function setAccount(address, via) {
-  S.account = { address, via }; save(); renderAcct();
+  const back = S.back; S.account = { address, via }; S.back = null; save(); renderAcct();
   const next = afterAccount; afterAccount = null;
-  if (next) next(); else show('home');
+  if (next) next(); else if (back) route(back); else if (current === 'account') show('home');
 }
 $('addrGo').onclick = async () => {
   const a = $('addrInput').value.trim(); errSet('acctErr');
@@ -269,8 +314,8 @@ $('addrGo').onclick = async () => {
   try { if (!(await accountInfo(a))) return errSet('acctErr', t('notFoundAcct')); } catch (e) { return errSet('acctErr', e.message); }
   setAccount(a, 'json');
 };
-$('xamanBtn').onclick = () => { if (xp) xp.authorize().catch(e => errSet('acctErr', String(e && e.message || e))); };
-$('acctChange').onclick = () => { S.account = null; xstate = null; if (xp) try { xp.logout(); } catch {} save(); renderAcct(); afterAccount = current === 'home' ? null : (() => route(current)); show('account'); };
+$('xamanBtn').onclick = () => { if (xp) signIn(S.back); };
+$('acctBtn').onclick = () => { if (S.account) return signOut(); signIn(['home', 'account', 'done', 'opened', 'security'].includes(current) ? null : current); };
 
 async function loadAccountView(a) {
   const [info, objs, ns, res, cur] = await Promise.all([accountInfo(a), accountObjects(a), nsEntries(a).catch(() => []), reserves(), currentLedger()]);
@@ -367,7 +412,7 @@ const leftRow = (exp, cur) => row(t('timeLeft'), h('span', { 'data-exp': String(
 /* ---------- CREATE ---------- */
 const sel = { gift: null, key: null };
 async function enterCreate(preset) {
-  if (!needAccount(() => enterCreate(preset))) return;
+  if (!needAccount(() => enterCreate(preset), 'create')) return;
   show('create'); errSet('createErr');
   const hc = $('hookCard'); hc.textContent = ''; hc.append(h('div', { class: 'spin sm' })); $('giftTokens').textContent = ''; $('keyTokens').textContent = '';
   try { acct = await loadAccountView(S.account.address); } catch (e) { hc.textContent = e.message; return; }
@@ -477,7 +522,11 @@ function enterSign() {
   $('signSub').textContent = t('signHere') + ' ' + short(signer) + ' · ' + NET().label + ' (NetworkID ' + NET().networkId + ').' + (p.op === 'pack' && p.audit ? ' ' + t('auditFirst') : '');
   const body = $('signBody'); body.textContent = '';
   const items = signTxs();
-  if (xstate && S.account && S.account.via === 'xaman') {
+  const xme = xstate && xstate.me && xstate.me.account;
+  if (xp && !xme) {
+    body.append(h('div', { class: 'card xin' }, h('p', { class: 'sm' }, t('signInToSign')), h('button', { class: 'btn y', type: 'button', onclick: () => { afterAccount = () => enterSign(); signIn('sign'); } }, t('signIn'))));
+  } else if (xme && xme !== signer) body.append(h('div', { class: 'card warn' }, t('otherAcct') + ' ' + short(signer) + '.'));
+  if (xme && xme === signer) {
     for (const it of items) {
       const out = h('div', { class: 'xout' });
       body.append(h('div', { class: 'card' }, h('div', { class: 'lbl' }, it.label), h('button', { class: 'btn y', type: 'button', onclick: async ev => {
@@ -701,7 +750,7 @@ $('qrFile').onchange = async e => {
 
 /* ---------- MY BOXES (creator) ---------- */
 async function enterBoxes() {
-  if (!needAccount(enterBoxes)) return;
+  if (!needAccount(enterBoxes, 'boxes')) return;
   show('boxes'); errSet('boxesErr');
   const list = $('boxesList'); list.textContent = ''; list.append(h('div', { class: 'spin sm' }));
   try { acct = await loadAccountView(S.account.address); } catch (e) { list.textContent = ''; return errSet('boxesErr', e.message); }
@@ -775,7 +824,7 @@ function handleHash() {
   route(hs || 'home');
 }
 window.addEventListener('hashchange', () => { if (location.hash.slice(1) !== current) handleHash(); });
-applyLang(); applyNet(); renderAcct(); initXaman(); handleHash(); resumePack();
+initXaman(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack();
 // test hook for automated checks (read-only helpers, no secrets)
 window.__box = { packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr };
 })();
