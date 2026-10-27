@@ -153,3 +153,7 @@ select.inp option{background:#0b1a3d}
 .gcin,.gcout{display:flex;flex-direction:column;gap:8px}
 .gccode{background:rgba(0,0,0,.45);border:1.5px solid var(--y);border-radius:12px;padding:12px;font-size:18px;font-weight:700;color:#fff;white-space:pre-wrap;word-break:break-all;user-select:all}
 .gcmine{gap:10px}
+.backbar{display:flex;padding:0 0 6px}
+.backbtn{display:inline-flex;align-items:center;gap:6px;min-height:42px;padding:0 16px 0 10px;border-radius:21px;border:1.5px solid rgba(255,255,255,.22);background:rgba(255,255,255,.04);color:#fff;font:700 14.5px/1 system-ui,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.backbtn:active{background:rgba(255,255,255,.1)}
+.backbtn .bk{font-size:24px;line-height:1;margin-top:-3px;color:var(--y)}

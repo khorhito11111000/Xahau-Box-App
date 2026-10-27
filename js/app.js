@@ -291,12 +291,53 @@ const qrLink = q => appUrl() + '#' + q;
 /* ---------- screens ---------- */
 const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'boxes', 'security'];
 let current = 'home', afterAccount = null;
+/* Back: the in-page "Back" button and the phone's / browser's Back do the same thing (goBack).
+   History holds at most one extra entry above "#home" ({xb:1}): leaving home adds it, moving between
+   screens only replaces it, and the phone's Back pops it -> popstate -> goBack(), which adds it again
+   unless the step before is home. So Back on home leaves the page as usual. Nothing is cleared:
+   typed values stay in the form, box links (xbox.links.v1) and the unfinished box stay in localStorage. */
+let accountFrom = 'home', doneFrom = 'home', popQuiet = false;
+const armed = () => !!(history.state && history.state.xb);
 function show(name) {
+  if (name === 'account' && current !== 'account') accountFrom = current;
   current = name;
   for (const s of SCREENS) $('s-' + s).classList.toggle('on', s === name);
+  $('backBar').classList.toggle('hide', name === 'home');
   window.scrollTo(0, 0);
-  if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+  try {
+    if (name === 'home') {
+      if (armed()) { popQuiet = true; history.back(); } // drop the extra entry: the one below is "#home"
+      else if (location.hash !== '#home') history.replaceState(null, '', '#home');
+    } else if (armed()) { if (location.hash !== '#' + name) history.replaceState({ xb: 1 }, '', '#' + name); }
+    else { history.replaceState(null, '', '#home'); history.pushState({ xb: 1 }, '', '#' + name); }
+  } catch { if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name); }
 }
+/* where Back goes from each screen (home when there is no step before) */
+function goBack() {
+  const p = S.pending;
+  switch (current) {
+    case 'account': {
+      const to = accountFrom; afterAccount = null; S.back = null; save();
+      if (to === 'sign' && p) return enterSign();
+      if (to === 'open' || to === 'security') return show(to);
+      if ((to === 'create' || to === 'boxes') && S.account) return route(to);
+      return show('home');
+    }
+    case 'sign':
+      if (p && (p.op === 'pack' || p.op === 'mint' || p.op === 'gmint')) { const who = p.op === 'pack' ? p.box.h : p.tx.Account; return acct && acct.address === who ? show('create') : enterCreate(); }
+      if (p && p.op === 'claim') return $('boxView').childElementCount ? show('open') : enterOpen();
+      if (p && p.op === 'open') return enterBoxes();
+      if (p && p.op === 'remit' && p.back && p.back.box) { S.pending = p.back; save(); return finishPack(); }
+      return show('home');
+    case 'done': return doneFrom === 'boxes' ? enterBoxes() : show('home');
+    default: return show('home');
+  }
+}
+window.addEventListener('popstate', e => {
+  if (e.state && e.state.xb) return; // browser Forward: the hashchange handler shows that screen
+  if (popQuiet) { popQuiet = false; return; }
+  if (current !== 'home') goBack();
+});
 function applyLang() {
   document.documentElement.lang = S.lang;
   document.querySelectorAll('[data-t]').forEach(e => { e.textContent = t(e.dataset.t); });
@@ -352,7 +393,7 @@ const XAMAN_KEYS = ['XummPkceJwt', 'XummSdkJwt', 'pkce_code_verifier', 'pkce_sta
 let signingOut = false;
 function signOut() {
   signingOut = true;
-  xstate = null; acct = null; afterAccount = null; S.account = null; S.back = null;
+  xstate = null; acct = null; afterAccount = null; S.account = null; S.back = null; gcReset(); sel.gift = null; sel.key = null;
   if (xp) try { xp.logout(); } catch {}
   for (const st of [localStorage, sessionStorage]) for (const k of XAMAN_KEYS) try { st.removeItem(k); } catch {}
   save(); renderAcct();
@@ -493,6 +534,7 @@ const leftRow = (exp, cur) => row(t('timeLeft'), h('span', { 'data-exp': String(
 
 /* ---------- CREATE ---------- */
 const sel = { gift: null, key: null };
+let createFor = null;
 async function enterCreate(preset) {
   if (!needAccount(() => enterCreate(preset), 'create')) return;
   show('create'); errSet('createErr');
@@ -502,7 +544,14 @@ async function enterCreate(preset) {
   hc.append(h('div', { class: acct.hook ? 'ok' : 'bad' }, (acct.hook ? '✓ ' : '⚠ ') + t(acct.hook ? 'hookYes' : 'hookNo')),
     row(t('balance'), dropsToXah(acct.balance) + ' XAH'), row(t('available'), '≈ ' + dropsToXah(freeToLock(acct, false, false)) + ' XAH', 'yel'));
   $('packBtn').disabled = !acct.hook;
-  sel.gift = null; sel.key = null; gcReset();
+  // coming back to this screen (Back, language) keeps the form; a new account/network or a finished mint starts fresh
+  const formFor = S.net + ':' + acct.address;
+  if (preset || createFor !== formFor) { sel.gift = null; sel.key = null; gcReset(); }
+  else {
+    const ok = id => id && acct.tokens.some(x => x.index === id) && !tokenReason(acct.tokens.find(x => x.index === id)); if (!ok(sel.gift)) sel.gift = null; if (!ok(sel.key)) sel.key = null;
+    $('gcToggle').textContent = t($('gcForm').classList.contains('hide') ? 'gcAdd' : 'gcCancel'); gcInfo();
+  }
+  createFor = formFor;
   if (preset) {
     $('amtInput').value = preset.amt || ''; $('expSel').value = String(preset.expDays || 0);
     document.querySelector('input[name=kind][value=token]').checked = true;
@@ -672,7 +721,7 @@ function txResult(id, r) {
   return d;
 }
 $('checkBtn').onclick = () => checkPending().catch(e => errSet('signErr', e.message));
-$('signBack').onclick = () => { const p = S.pending; if (p && (p.op === 'pack' || p.op === 'mint' || p.op === 'gmint')) show('create'); else if (p && p.op === 'claim') show('open'); else show('home'); };
+$('signBack').onclick = () => goBack();
 async function checkPending() {
   const p = S.pending; if (!p) return; errSet('signErr');
   if (p.op === 'pack') {
@@ -734,6 +783,7 @@ async function finishPack(only) {
   if (only) S.pending = { op: 'pack', box: b, audit: false, shown: true };
   save();
   doneLink = qrLink(makeQr(q));
+  doneFrom = only ? 'boxes' : 'home';
   show('done');
   await drawBox(doneLink);
   $('bearerWarn').classList.toggle('hide', b.kind !== 'bearer');
@@ -924,7 +974,9 @@ $('goCreate').onclick = () => enterCreate();
 $('goOpen').onclick = () => enterOpen();
 $('goBoxes').onclick = () => enterBoxes();
 $('goSecurity').onclick = () => show('security');
-$('secBack').onclick = () => show('home');
+$('secBack').onclick = () => goBack();
+$('backBtn').onclick = () => goBack();
+document.querySelector('.top .brand').onclick = e => { e.preventDefault(); show('home'); };
 function langMenu(open) {
   const m = $('langMenu'); m.hidden = !open; $('langBtn').setAttribute('aria-expanded', String(open));
   if (open) { const sel = m.querySelector('[aria-selected="true"]') || m.firstElementChild; sel.focus(); }
