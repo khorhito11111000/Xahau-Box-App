@@ -519,7 +519,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') mwHide(); })
 function mwCarriedErr() { let m = null; try { m = sessionStorage.getItem('xbox.mwerr'); sessionStorage.removeItem('xbox.mwerr'); } catch {} if (m) setTimeout(() => { mwShow(); xamanErrShow('mwErr', new Error(m)); }, 300); }
 function initXaman() {
   if (!C.XAMAN_API_KEY || !window.XummPkce) { $('xamanBtn').classList.add('dis'); return; }
-  xp = new window.XummPkce(C.XAMAN_API_KEY, { redirectUrl: appUrl(), rememberJwt: true });
+  xp = new window.XummPkce(C.XAMAN_API_KEY, { redirectUrl: location.origin + location.pathname, rememberJwt: true });
   // 'success' / 'retrieved' also fire in a NEW tab opened by the return from Xaman (Android): the SDK reads the
   // ?authorization_code from the address and finishes the sign-in there (its PKCE verifier lives in localStorage).
   const on = async () => {

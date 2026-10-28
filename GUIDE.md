@@ -96,7 +96,7 @@ How it is locked: the token URI is `tgsc1:` + base64url(salt 16 | IV 12 | cipher
 - Which exact token is the key is recorded in the hook state at PACK. Only that token opens the box; another token with the same picture will not work.
 
 ## What to set up before publishing (`js/config.js`)
-- `APP_URL` — the exact page address (`https://khorhito11111000.github.io/Xahau-Box-App/`, later your own domain). It goes into QR codes, links and the key token URI. Empty = the address the page is opened from. **Set it before the first mainnet mint**, otherwise old keys will point to the old address.
+- `APP_URL` — the exact page address (`https://xahaubox.com/`). It goes into QR codes, links and the key token URI. Empty = the address the page is opened from. **Set it before the first mainnet mint**, otherwise old keys will point to the old address.
 - `XAMAN_API_KEY` — the public API Key from apps.xaman.dev (not a secret!). Passed through a form, not in chat. In the Xaman app settings, set the page address as the redirect. Empty = Xaman sign-in is off and the JSON option works.
 - `EVERGRAM_URL` — currently `https://evergram.app`. Change it if there is a link to the xApp inside Xaman.
 

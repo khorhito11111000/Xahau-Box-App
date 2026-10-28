@@ -17,5 +17,5 @@ window.BOX_CONFIG = {
   // Hook accounts whose public history feeds the home-page box statistics (per network; empty = block hidden).
   STATS_HOOKS: { mainnet: ['rNHBiY7RQhmAviL8cj56maSiHMyYPJvzW6'], testnet: [] },
   // Link put into QR codes. Empty = the address this page is opened from.
-  APP_URL: 'https://khorhito11111000.github.io/Xahau-Box-App/'
+  APP_URL: 'https://xahaubox.com/'
 };
