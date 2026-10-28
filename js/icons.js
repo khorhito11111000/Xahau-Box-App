@@ -24,10 +24,14 @@
     swap: '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
     sparkles: '<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
     heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+    moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+    sunmoon: '<path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/>',
+    palette: '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>',
     flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>'
   };
-  const MAP = { '🎁': 'gift', '🔒': 'lock', '⚙': 'settings', '📦': 'package', '🌐': 'globe', '🛡': 'shield', 'ℹ': 'info', '📖': 'book', '📜': 'scroll', '🔑': 'key', '🔗': 'link', '✓': 'check', '⚠': 'alert', '⇄': 'swap', '🎉': 'sparkles', '🙏': 'heart', '🔥': 'flame' };
-  const RX = /(🎁|🔒|⚙|📦|🌐|🛡|ℹ|📖|📜|🔑|🔗|✓|⚠|⇄|🎉|🙏|🔥)\uFE0F?/g;
+  const MAP = { '🎨': 'palette', '🎁': 'gift', '🔒': 'lock', '⚙': 'settings', '📦': 'package', '🌐': 'globe', '🛡': 'shield', 'ℹ': 'info', '📖': 'book', '📜': 'scroll', '🔑': 'key', '🔗': 'link', '✓': 'check', '⚠': 'alert', '⇄': 'swap', '🎉': 'sparkles', '🙏': 'heart', '🔥': 'flame' };
+  const RX = /(🎨|🎁|🔒|⚙|📦|🌐|🛡|ℹ|📖|📜|🔑|🔗|✓|⚠|⇄|🎉|🙏|🔥)\uFE0F?/g;
   const NS = 'http://www.w3.org/2000/svg';
   function icon(name, cls) {
     const s = document.createElementNS(NS, 'svg');

@@ -1668,3 +1668,12 @@ Object.assign(window.BOX_I18N.ru, {"pjSub": "Эти проекты помогу�
 Object.assign(window.BOX_I18N.de, {"pjSub": "Mit diesen Projekten nutzt du Xahau Box einfacher und besser."});
 Object.assign(window.BOX_I18N.zh, {"pjSub": "这些项目能让你更方便、更好地使用 Xahau Box。"});
 Object.assign(window.BOX_I18N.ja, {"pjSub": "これらのプロジェクトを使うと、Xahau Box をもっと便利に、快適に使えます。"});
+
+/* theme picker (v20261028a) */
+Object.assign(window.BOX_I18N.en, {"setThemeH": "🎨 Theme", "setThemeT": "Choose how the page looks. “System” follows your phone’s light or dark mode.", "themeDark": "Dark", "themeLight": "Light", "themeSys": "System"});
+Object.assign(window.BOX_I18N.es, {"setThemeH": "🎨 Tema", "setThemeT": "Elige cómo se ve la página. «Sistema» sigue el modo claro u oscuro de tu móvil.", "themeDark": "Oscuro", "themeLight": "Claro", "themeSys": "Sistema"});
+Object.assign(window.BOX_I18N.fr, {"setThemeH": "🎨 Thème", "setThemeT": "Choisis l’apparence de la page. « Système » suit le mode clair ou sombre de ton téléphone.", "themeDark": "Sombre", "themeLight": "Clair", "themeSys": "Système"});
+Object.assign(window.BOX_I18N.ru, {"setThemeH": "🎨 Тема", "setThemeT": "Выбери, как выглядит страница. «Как в системе» повторяет светлый или тёмный режим телефона.", "themeDark": "Тёмная", "themeLight": "Светлая", "themeSys": "Как в системе"});
+Object.assign(window.BOX_I18N.de, {"setThemeH": "🎨 Design", "setThemeT": "Wähle, wie die Seite aussieht. „System“ folgt dem hellen oder dunklen Modus deines Handys.", "themeDark": "Dunkel", "themeLight": "Hell", "themeSys": "System"});
+Object.assign(window.BOX_I18N.zh, {"setThemeH": "🎨 主题", "setThemeT": "选择页面的外观。“跟随系统”会随手机的浅色或深色模式切换。", "themeDark": "深色", "themeLight": "浅色", "themeSys": "跟随系统"});
+Object.assign(window.BOX_I18N.ja, {"setThemeH": "🎨 テーマ", "setThemeT": "ページの見た目を選べます。「システム」はスマホのライト／ダークモードに合わせます。", "themeDark": "ダーク", "themeLight": "ライト", "themeSys": "システム"});

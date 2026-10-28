@@ -290,3 +290,54 @@ select.inp option{background:#0b1a3d}
   .hero img{width:auto;height:auto;max-width:100%;max-height:520px;object-fit:contain}
   .hero.sm img{max-height:320px}
 }
+/* light theme (Settings > Theme; js/theme.js sets html[data-theme]) */
+html[data-theme=light]{--bg:#f4f6fb;--card:#fff;--line:rgba(27,36,96,.13);--txt:#14204a;--mut:#56668c;--ok:#12995a;--err:#d23f31;--blue:#1f6fe0;--gold:#9a6c00;color-scheme:light}
+html[data-theme=light] body{background:url(../img/net-light.svg) center top/480px auto repeat-y,radial-gradient(120% 50% at 50% 0%,#dfe8fb 0%,var(--bg) 60%) fixed}
+@media (min-width:600px){html[data-theme=light] body{background:url(../img/net-light.svg) center top/520px auto repeat,radial-gradient(120% 50% at 50% 0%,#dfe8fb 0%,var(--bg) 60%) fixed}}
+html[data-theme=light] .brand,html[data-theme=light] .acc>summary,html[data-theme=light] h1,html[data-theme=light] h2,html[data-theme=light] .wtitle{color:var(--navy)}
+html[data-theme=light] .chip{color:var(--gold);background:rgba(248,206,34,.14);border-color:rgba(176,125,0,.3)}
+html[data-theme=light] .chip.ev,html[data-theme=light] .chip.acctbtn.out,html[data-theme=light] .chip.gear{color:var(--navy);background:#fff;border-color:rgba(27,36,96,.18);box-shadow:0 1px 4px rgba(27,36,96,.08)}
+html[data-theme=light] .chip.gear .ico{color:var(--gold)}
+html[data-theme=light] .chip.net.main,html[data-theme=light] .chip.acctbtn.in{color:var(--navy);background:var(--y)}
+html[data-theme=light] .yel,html[data-theme=light] .lnk,html[data-theme=light] .inpw .u,html[data-theme=light] .tag.lock,html[data-theme=light] .tok .new,html[data-theme=light] .row span.yel,html[data-theme=light] .secitem b,html[data-theme=light] .secbye,html[data-theme=light] .backbtn .bk,html[data-theme=light] .tok .gctag,html[data-theme=light] .bhead .bn,html[data-theme=light] .bhead .bbadge.key,html[data-theme=light] .bhead .bst.yel,html[data-theme=light] .row .ibn,html[data-theme=light] .langopt b,html[data-theme=light] .langopt.on::after,html[data-theme=light] .rules li::marker,html[data-theme=light] .xnpill .ico,html[data-theme=light] .pj .pji .ico,html[data-theme=light] .pj .ar,html[data-theme=light] .acc summary .ico,html[data-theme=light] .tab .tn{color:var(--gold)}
+html[data-theme=light] .pj .pjt b{color:var(--navy)}
+html[data-theme=light] .acc>summary::after{border-color:var(--gold)}
+html[data-theme=light] .hero{box-shadow:0 10px 30px rgba(27,36,96,.18)}
+html[data-theme=light] .card,html[data-theme=light] .acc,html[data-theme=light] .pj,html[data-theme=light] .wal{box-shadow:0 4px 16px rgba(27,36,96,.08);border-color:rgba(27,36,96,.12)}
+html[data-theme=light] .card.warn{color:#9b2c20;background:#fff4f2;border-color:rgba(210,63,49,.4)}
+html[data-theme=light] .card.inbox{border-color:rgba(200,150,30,.6)}
+html[data-theme=light] .btn.w{border:1px solid rgba(27,36,96,.15);box-shadow:0 2px 8px rgba(27,36,96,.08)}
+html[data-theme=light] .btn.o,html[data-theme=light] .backbtn,html[data-theme=light] .langopt{color:var(--navy);background:#fff;border-color:rgba(27,36,96,.18)}
+html[data-theme=light] .backbtn:active{background:#eef2fa}
+html[data-theme=light] .btn.y{box-shadow:0 6px 18px rgba(200,150,30,.3)}
+html[data-theme=light] .inp{background:#fff;color:var(--txt);border-color:rgba(27,36,96,.2)}
+html[data-theme=light] .inp:focus{border-color:#d4a514;box-shadow:0 0 0 3px rgba(248,206,34,.25)}
+html[data-theme=light] select.inp option{background:#fff}
+html[data-theme=light] .opt,html[data-theme=light] .tok{background:#fff;border-color:rgba(27,36,96,.15)}
+html[data-theme=light] .opt:has(input:checked),html[data-theme=light] .tok.sel,html[data-theme=light] .langopt.on{border-color:#d4a514;background:#fff8dc}
+html[data-theme=light] .row,html[data-theme=light] .bbody{border-color:rgba(27,36,96,.1)}
+html[data-theme=light] .rem{color:#3d4f7a} html[data-theme=light] .rem .desc{color:#56668c}
+html[data-theme=light] .json,html[data-theme=light] .gccode{background:#f0f3fa;color:#1d2b55;border-color:rgba(27,36,96,.15)}
+html[data-theme=light] .gccode{border-color:#d4a514}
+html[data-theme=light] .timg{background:linear-gradient(135deg,#e3eafa,#cfdaf3);color:var(--gold)}
+html[data-theme=light] .tok.gc .timg{background:linear-gradient(135deg,#fff1b8,#e3eafa)}
+html[data-theme=light] .ledgerline b{color:var(--navy)}
+html[data-theme=light] .ldot{background:#a9b3c9}
+html[data-theme=light] .secitem p,html[data-theme=light] .rules li{color:#2c3a63}
+html[data-theme=light] .secitem.scam b{color:#c0392b}
+html[data-theme=light] .bhead .bbadge,html[data-theme=light] .egpill{color:var(--navy);background:rgba(31,111,224,.08);border-color:rgba(31,111,224,.35)}
+html[data-theme=light] .bhead .bst.ok{color:var(--ok)} html[data-theme=light] .bhead .bst.bad,html[data-theme=light] .row b.bad,html[data-theme=light] .row span.bad{color:var(--err)}
+html[data-theme=light] .tabs{background:rgba(27,36,96,.07)}
+html[data-theme=light] .tab.on .tn{background:var(--navy);color:var(--y)}
+html[data-theme=light] .wbar{background:rgba(27,36,96,.1)}
+html[data-theme=light] .toast{background:var(--navy);color:#fff;box-shadow:0 8px 24px rgba(27,36,96,.3)}
+html[data-theme=light] .xqr{box-shadow:0 0 0 1px rgba(27,36,96,.12)}
+html[data-theme=light] .xnpill{border-color:rgba(176,125,0,.45)}
+html[data-theme=light] .giftcard{box-shadow:0 14px 30px rgba(200,150,30,.28);border:1px solid rgba(176,125,0,.25)}
+/* theme picker */
+.themelist{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.themelist .langopt{flex-direction:column;justify-content:center;gap:5px;min-height:70px;padding:8px 6px;text-align:center;font-size:13.5px}
+.themelist .langopt .ico{width:22px;height:22px;color:var(--y)}
+html[data-theme=light] .themelist .langopt .ico{color:var(--gold)}
+.themelist .langopt.on::after{display:none}
+html[data-theme=light] .wal .ic{background:#eef2fa;border:1px solid rgba(27,36,96,.12)}

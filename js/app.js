@@ -1410,6 +1410,11 @@ $('langList').onclick = e => {
   const b = e.target.closest('[data-lang]'); if (!b || b.dataset.lang === S.lang) return;
   S.lang = b.dataset.lang; save(); applyLang(); if (mbData) mbRender(); else mbTabsUi(); if (codesFor) codesLoad();
 };
+function themeUi() { const cur = window.XBOX_THEME ? XBOX_THEME.get() : 'dark';
+  document.querySelectorAll('#themeList [data-theme-opt]').forEach(b => { const on = b.dataset.themeOpt === cur; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }); }
+document.querySelectorAll('#themeList [data-ti]').forEach(e => { if (window.BOX_ICON) e.replaceWith(BOX_ICON(e.dataset.ti)); });
+$('themeList').onclick = e => { const b = e.target.closest('[data-theme-opt]'); if (!b || !window.XBOX_THEME) return; XBOX_THEME.set(b.dataset.themeOpt); themeUi(); };
+themeUi();
 $('pageVer').textContent = (([...document.scripts].map(x => x.src).find(x => /app\.js/.test(x)) || '').split('v=')[1] || '—');
 $('backBtn').onclick = () => goBack();
 $('setBtn').onclick = () => enterSettings();
