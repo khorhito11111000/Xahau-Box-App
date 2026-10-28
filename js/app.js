@@ -933,6 +933,12 @@ function enterOpen(text) {
   if (text) { $('qrInput').value = text.includes('tgs1:') ? text.slice(text.indexOf('tgs1:')) : text; showBox(); }
 }
 $('qrGo').onclick = () => showBox();
+$('qrPaste').onclick = async () => {
+  errSet('openErr');
+  let txt = ''; try { txt = await navigator.clipboard.readText(); } catch {}
+  if (!txt) { $('qrInput').focus(); return errSet('openErr', t('pasteManual')); }
+  $('qrInput').value = txt.trim(); showBox();
+};
 async function showBox() {
   errSet('openErr'); const v = $('boxView'); v.textContent = '';
   const q = parseQr($('qrInput').value); if (!q) return errSet('openErr', t('badQr'));
