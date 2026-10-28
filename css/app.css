@@ -341,3 +341,5 @@ html[data-theme=light] .giftcard{box-shadow:0 14px 30px rgba(200,150,30,.28);bor
 html[data-theme=light] .themelist .langopt .ico{color:var(--gold)}
 .themelist .langopt.on::after{display:none}
 html[data-theme=light] .wal .ic{background:#eef2fa;border:1px solid rgba(27,36,96,.12)}
+
+.xrelog{margin-top:10px}.xrelog .btn{width:100%}

@@ -386,7 +386,7 @@ function initXaman() {
       setAccount(a, 'xaman'); toast(t('signedIn'));
     } catch {}
   };
-  xp.on('success', on); xp.on('retrieved', on); xp.on('error', e => errSet('acctErr', String(e && e.message || e)));
+  xp.on('success', on); xp.on('retrieved', on); xp.on('error', e => xamanErrShow('acctErr', e));
   // the SDK found no valid Xaman session (none saved, or it expired): do not keep showing a Xaman account
   xp.on('loggedout', () => { if (!xstate && S.account && S.account.via === 'xaman') { S.account = null; save(); renderAcct(); if (current === 'sign') enterSign(); } });
 }
@@ -394,7 +394,7 @@ function signIn(back) {
   errSet('acctErr');
   if (!xp) { afterAccount = back ? () => route(back) : null; S.back = back || null; save(); return show('account'); }
   if (back) { S.back = back; save(); if (!afterAccount) afterAccount = () => route(back); }
-  xp.authorize().catch(e => errSet('acctErr', String(e && e.message || e)));
+  xp.authorize().catch(e => xamanErrShow('acctErr', e));
 }
 /* Sign out: ends the Xaman session and forgets the account on this device.
    Box links / QR keys (xbox.links.v1), box history and an unfinished box are NOT touched. */
@@ -419,9 +419,28 @@ window.addEventListener('storage', e => {
   const a = load().account || null;
   if (JSON.stringify(a) !== JSON.stringify(S.account)) { S.account = a; if (!a) xstate = null; acct = null; renderAcct(); if (!a && ['create', 'sign'].includes(current)) show('home'); mbRefresh(); }
 });
+/* Xaman SDK failures: the SDK hides network / non-JSON failures behind a generic text, and an expired sign-in comes
+   back as "Error code 401". Both get a plain "sign in again" message with a button; other Xaman errors keep their own text. */
+function xamanErrInfo(e) {
+  const m = String(e && e.message || e || '');
+  const relogin = /Unexpected response (from|for) XUMM/i.test(m) || /Error code (401|403)\b/.test(m) || /\b(jwt|unauthori[sz]ed|expired)\b/i.test(m);
+  return { relogin, msg: relogin ? t('xamanRelogin') : m };
+}
+function xamanErrShow(id, e) {
+  try { console.error('[Xaman]', e && e.stack || e); } catch {}
+  const inf = xamanErrInfo(e), el = $(id); if (!el) return;
+  el.textContent = inf.msg;
+  if (inf.relogin) {
+    const back = current === 'sign' ? 'sign' : null;
+    el.append(h('div', { class: 'xrelog' }, h('button', { class: 'btn y', type: 'button', onclick: () => { signOut(); afterAccount = back ? () => enterSign() : null; signIn(back); } }, t('xamanReloginBtn'))));
+  }
+}
 async function xamanSign(tx, box) {
   const sdk = xstate.sdk;
-  const sub = await sdk.payload.createAndSubscribe({ txjson: tx }, ev => { if (typeof ev.data.signed !== 'undefined') return ev.data; });
+  let sub;
+  try { sub = await sdk.payload.createAndSubscribe({ txjson: tx }, ev => { if (typeof ev.data.signed !== 'undefined') return ev.data; }); }
+  catch (e) { e.xaman = true; throw e; }
+  if (!sub || !sub.created) { const e = new Error('Unexpected response from XUMM API [POST:payload]'); e.xaman = true; throw e; }
   box.textContent = '';
   box.append(h('p', { class: 'sub' }, t('xamanWait')), h('a', { class: 'btn w', href: sub.created.next.always, target: '_blank', rel: 'noopener noreferrer' }, t('xamanOpen')));
   if (sub.created.refs && sub.created.refs.qr_png) box.append(h('img', { class: 'xqr', src: sub.created.refs.qr_png, alt: '' }));
@@ -780,7 +799,7 @@ function enterSign() {
       body.append(h('div', { class: 'card' }, h('div', { class: 'lbl' }, it.label), h('button', { class: 'btn y', type: 'button', onclick: async ev => {
         ev.target.disabled = true; errSet('signErr');
         try { const id = await xamanSign(it.tx, out); out.textContent = t('waiting'); const r = await waitTx(id); out.textContent = ''; out.append(txResult(id, r)); if (it.main) await checkPending(); }
-        catch (e) { errSet('signErr', e.message); } finally { ev.target.disabled = false; }
+        catch (e) { if (e && e.xaman) xamanErrShow('signErr', e); else errSet('signErr', e.message); } finally { ev.target.disabled = false; }
       } }, t('xamanSign')), out));
     }
   } else items.forEach(it => body.append(jsonBlock(it)));
