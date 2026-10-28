@@ -486,11 +486,21 @@ async function loadAccountView(a) {
   return {
     address: a, info, cur, res, boxes, keyOf, locked, held, ock: ock ? BigInt('0x' + ock) : 0n, F, nck: st.has(K_NCK),
     aud: aud && aud.length === 82 ? { done: aud.slice(32, 34) !== '00', count: BigInt('0x' + aud.slice(16, 32)) } : null,
-    hook: objs.some(o => o.LedgerEntryType === 'Hook') && (info.HookNamespaces || []).includes(C.HOOK_NAMESPACE),
+    hook: (info.HookNamespaces || []).includes(C.HOOK_NAMESPACE) ? objs.some(o => o.LedgerEntryType === 'Hook') : await hookNsInstalled(objs),
     hasHook: objs.some(o => o.LedgerEntryType === 'Hook'),
     tokens: objs.filter(o => o.LedgerEntryType === 'URIToken' && o.Owner === a),
     balance: BigInt(info.Balance)
   };
+}
+// A fresh install has no hook state yet, so HookNamespaces is empty: read the namespace from the Hook entry or its definition.
+async function hookNsInstalled(objs) {
+  const ho = objs.find(o => o.LedgerEntryType === 'Hook'); if (!ho) return false;
+  for (const e of ho.Hooks || []) {
+    const k = e.Hook || {}; let ns = k.HookNamespace;
+    if (!ns && k.HookHash) { try { const r = await rpc('ledger_entry', { hook_definition: k.HookHash, ledger_index: 'validated' }); ns = r.node && r.node.HookNamespace; } catch (x) {} }
+    if (ns && ns.toUpperCase() === C.HOOK_NAMESPACE.toUpperCase()) return true;
+  }
+  return false;
 }
 function needsAudit(v, hasTok) { let F = v.F; if (hasTok && F) F -= 1n; if (F <= 1n) return false; return !(v.aud && v.aud.done && F <= v.aud.count); }
 function freeToLock(v, hasTok, hasKey) {
