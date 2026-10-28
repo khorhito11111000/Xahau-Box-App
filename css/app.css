@@ -344,3 +344,7 @@ html[data-theme=light] .wal .ic{background:#eef2fa;border:1px solid rgba(27,36,9
 
 .xrelog{margin-top:10px}.xrelog .btn{width:100%}
 #openInputCard .row2{grid-template-columns:1fr 1fr}
+
+#acc-hook .accb>.inp,#acc-hook .btn2 .inp{width:100%;font-size:13px}
+#acc-hook .btn2>div{flex:1;min-width:0}
+#acc-hook #hkFileInfo,#acc-hook #hkOut .mono{overflow-wrap:anywhere}
