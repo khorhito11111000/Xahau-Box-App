@@ -374,6 +374,87 @@ function needAccount(next, back) { if (S.account) return true; afterAccount = ne
 
 /* ---------- Xaman (PKCE, browser only) ---------- */
 let xp = null, xstate = null;
+/* ---------- connected wallets (this device only) ----------
+   xbox.wallets.v1: [{address, via}] (public addresses). xbox.wsess.v1: per address, a copy of the Xaman SDK's own
+   browser session (XummPkceJwt / XummSdkJwt), the same data the SDK already keeps here. Switching to a Xaman wallet
+   puts its own session back and reloads, so the SDK restores that wallet; signing is always gated on the Xaman
+   account === the signer. No saved / expired session -> one-tap Xaman sign-in. Nothing is sent anywhere. */
+const MWK = 'xbox.wallets.v1', MWS = 'xbox.wsess.v1';
+let mwExpired = null, mwQuiet = false;
+const mwList = () => { try { const v = JSON.parse(localStorage.getItem(MWK)); return Array.isArray(v) ? v.filter(w => w && L.isAddress(w.address)) : []; } catch { return []; } };
+const mwSave = l => { try { localStorage.setItem(MWK, JSON.stringify(l)); } catch {} };
+const mwSessAll = () => { try { return JSON.parse(localStorage.getItem(MWS)) || {}; } catch { return {}; } };
+function mwSessDrop(a) { const m = mwSessAll(); if (m[a]) { delete m[a]; try { localStorage.setItem(MWS, JSON.stringify(m)); } catch {} } }
+function mwAddW(address, via) { const l = mwList(), w = l.find(x => x.address === address); if (w) { if (via === 'xaman') w.via = 'xaman'; } else l.push({ address, via }); mwSave(l); }
+function mwSnap(a) {
+  try {
+    const j = JSON.parse(localStorage.getItem('XummPkceJwt') || '{}'); if (!j.me || j.me.account !== a) return;
+    const m = mwSessAll(); m[a] = { pkce: localStorage.getItem('XummPkceJwt'), sdk: localStorage.getItem('XummSdkJwt') }; localStorage.setItem(MWS, JSON.stringify(m));
+  } catch {}
+  mwAddW(a, 'xaman');
+}
+function mwClearXaman() { xstate = null; if (xp) { mwQuiet = true; try { xp.logout(); } catch {} setTimeout(() => { mwQuiet = false; }, 1500); } for (const st of [localStorage, sessionStorage]) for (const k of XAMAN_KEYS) try { st.removeItem(k); } catch {} }
+const mwColor = a => { let n = 0; for (const c of a) n = (n * 31 + c.charCodeAt(0)) >>> 0; return 'hsl(' + (n % 360) + ',55%,45%)'; };
+function mwCopyIco() {
+  const NS = 'http://www.w3.org/2000/svg', sv = document.createElementNS(NS, 'svg');
+  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', width: '16', height: '16', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })) sv.setAttribute(k, v);
+  const r = document.createElementNS(NS, 'rect'); for (const [k, v] of Object.entries({ x: '9', y: '9', width: '12', height: '12', rx: '2' })) r.setAttribute(k, v);
+  const p = document.createElementNS(NS, 'path'); p.setAttribute('d', 'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1');
+  sv.append(r, p); return sv;
+}
+function mwShow() { $('mw').classList.remove('hide'); mwRender(); }
+function mwHide() { $('mw').classList.add('hide'); }
+function mwRender() {
+  const list = $('mwList'), l = mwList(), cur = S.account && S.account.address; list.textContent = ''; errSet('mwErr');
+  if (S.account && !l.some(w => w.address === cur)) { mwAddW(cur, S.account.via); return mwRender(); }
+  $('mwNote').textContent = l.length ? '' : t('mwEmpty');
+  const sess = mwSessAll(), xme = xstate && xstate.me && xstate.me.account;
+  for (const w of l) {
+    const on = w.address === cur, bal = h('span', null, '…');
+    const warn = w.address === mwExpired ? h('div', { class: 'mwwarn' }, t('xamanRelogin')) : (w.via === 'xaman' && !on && !sess[w.address] ? h('div', { class: 'mwwarn' }, t('mwNeedSign')) : null);
+    list.append(h('div', { class: 'mwr' + (on ? ' on' : '') },
+      (() => { const e = h('div', { class: 'mwav' }, w.address.slice(1, 2).toUpperCase()); e.style.background = mwColor(w.address); return e; })(),
+      h('div', { class: 'mwi' }, h('div', { class: 'mwa' }, w.address.slice(0, 7) + '…' + w.address.slice(-5)),
+        h('div', { class: 'mwm' }, bal, h('span', { class: 'mwtag' + (w.via === 'xaman' ? '' : ' v') }, w.via === 'xaman' ? 'Xaman' : t('mwView')), on && w.via === 'xaman' && xme !== w.address ? h('span', { class: 'mwwarn' }, t('mwNoSess')) : null), warn),
+      h('button', { class: 'mwb', type: 'button', title: t('mwCopy'), 'aria-label': t('mwCopy'), onclick: () => copy(w.address) }, mwCopyIco()),
+      h('button', { class: 'mwb ck' + (on ? ' on' : ''), type: 'button', title: t('mwMake'), 'aria-label': t('mwMake'), 'aria-pressed': String(on), onclick: () => mwUse(w) }, '✓'),
+      h('button', { class: 'mwb', type: 'button', title: t('mwOut'), 'aria-label': t('mwOut'), onclick: () => mwOut(w.address) }, '⏻')));
+    accountInfo(w.address).then(d => { bal.textContent = d ? (Number(dropsToXah(d.Balance)).toLocaleString(S.lang, { maximumFractionDigits: 2 }) + ' XAH') : '—'; }).catch(() => { bal.textContent = '—'; });
+  }
+}
+function mwActivate(w) {
+  if (w.via !== 'xaman') { mwClearXaman(); acct = null; setAccount(w.address, w.via); mbRefresh(); return mwRender(); }
+  const se = mwSessAll()[w.address];
+  if (se && se.pkce) {
+    mwClearXaman();
+    try { localStorage.setItem('XummPkceJwt', se.pkce); if (se.sdk) localStorage.setItem('XummSdkJwt', se.sdk); } catch {}
+    S.account = { address: w.address, via: 'xaman' }; save(); return location.reload();
+  }
+  mwSignIn(w.address);
+}
+function mwUse(w) { if (S.account && S.account.address === w.address && (w.via !== 'xaman' || (xstate && xstate.me && xstate.me.account === w.address))) return mwHide(); mwActivate(w); }
+function mwSignIn(want) {
+  if (!xp) { mwHide(); return signIn(null); }
+  if (xstate && xstate.me) mwSnap(xstate.me.account);
+  mwClearXaman(); acct = null; mwExpired = null;
+  if (want) toast(t('mwSignFor') + ' ' + short(want));
+  xp.authorize().catch(e => xamanErrShow('mwErr', e));
+}
+function mwOut(a) {
+  const l = mwList().filter(w => w.address !== a); mwSave(l); mwSessDrop(a); if (mwExpired === a) mwExpired = null;
+  if (S.account && S.account.address === a) {
+    signOut(true);
+    const next = l.find(w => w.via !== 'xaman' || mwSessAll()[w.address]);
+    if (next) return mwActivate(next);
+  }
+  mwRender(); toast(t('mwRemoved'));
+}
+$('mwClose').onclick = mwHide;
+$('mw').addEventListener('click', e => { if (e.target === $('mw')) mwHide(); });
+$('mwAdd').onclick = () => mwSignIn(null);
+$('acctText').onclick = () => mwShow();
+$('setWallets').onclick = () => mwShow();
+document.addEventListener('keydown', e => { if (e.key === 'Escape') mwHide(); });
 function initXaman() {
   if (!C.XAMAN_API_KEY || !window.XummPkce) { $('xamanBtn').classList.add('dis'); return; }
   xp = new window.XummPkce(C.XAMAN_API_KEY, { redirectUrl: appUrl(), rememberJwt: true });
@@ -382,14 +463,14 @@ function initXaman() {
   const on = async () => {
     try {
       const st = await xp.state(); const a = st && st.me && st.me.account; if (!a || signingOut) return;
-      xstate = st;
+      xstate = st; mwSnap(a); mwExpired = null;
       if (S.account && S.account.address === a && S.account.via === 'xaman') { renderAcct(); if (current === 'sign') enterSign(); return; }
       setAccount(a, 'xaman'); toast(t('signedIn'));
     } catch {}
   };
   xp.on('success', on); xp.on('retrieved', on); xp.on('error', e => xamanErrShow('acctErr', e));
   // the SDK found no valid Xaman session (none saved, or it expired): do not keep showing a Xaman account
-  xp.on('loggedout', () => { if (!xstate && S.account && S.account.via === 'xaman') { S.account = null; save(); renderAcct(); if (current === 'sign') enterSign(); } });
+  xp.on('loggedout', () => { if (mwQuiet) return; if (!xstate && S.account && S.account.via === 'xaman') { mwExpired = S.account.address; mwSessDrop(S.account.address); S.account = null; save(); renderAcct(); if (current === 'sign') enterSign(); mwShow(); } });
 }
 function signIn(back) {
   errSet('acctErr');
@@ -401,15 +482,16 @@ function signIn(back) {
    Box links / QR keys (xbox.links.v1), box history and an unfinished box are NOT touched. */
 const XAMAN_KEYS = ['XummPkceJwt', 'XummSdkJwt', 'pkce_code_verifier', 'pkce_state'];
 let signingOut = false;
-function signOut() {
+function signOut(keepList) {
   signingOut = true;
+  if (!keepList) { mwSave([]); try { localStorage.removeItem(MWS); } catch {} }
   xstate = null; acct = null; afterAccount = null; S.account = null; S.back = null; gcReset(); sel.gift = null; sel.key = null;
   if (xp) try { xp.logout(); } catch {}
   for (const st of [localStorage, sessionStorage]) for (const k of XAMAN_KEYS) try { st.removeItem(k); } catch {}
   save(); renderAcct();
   if (['create', 'sign', 'account'].includes(current)) show('home');
   mbRefresh();
-  toast(t('signedOut'));
+  if (!keepList) toast(t('signedOut'));
   setTimeout(() => { signingOut = false; }, 0);
 }
 // Another tab of this browser signed in or out (e.g. the tab Xaman returned to): follow it here.
@@ -457,7 +539,7 @@ async function waitTx(hash) {
 /* ---------- account ---------- */
 let acct = null; // cached ledger view of the connected account
 async function setAccount(address, via) {
-  const back = S.back; S.account = { address, via }; S.back = null; save(); renderAcct();
+  const back = S.back; S.account = { address, via }; S.back = null; save(); mwAddW(address, via); renderAcct(); if (!$('mw').classList.contains('hide')) mwRender();
   const next = afterAccount; afterAccount = null;
   if (next) next(); else if (back) route(back); else if (current === 'account') show('home');
 }
