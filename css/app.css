@@ -343,3 +343,4 @@ html[data-theme=light] .themelist .langopt .ico{color:var(--gold)}
 html[data-theme=light] .wal .ic{background:#eef2fa;border:1px solid rgba(27,36,96,.12)}
 
 .xrelog{margin-top:10px}.xrelog .btn{width:100%}
+#openInputCard .row2{grid-template-columns:1fr 1fr}
