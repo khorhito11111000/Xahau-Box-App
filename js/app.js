@@ -1419,10 +1419,7 @@ function histCard(x) {
 /* ---------- install a hook (SetHook) on the signed-in Xaman account ----------
    The wasm file is read here in the browser only; it leaves the page only inside the Xaman payload. Nothing is stored. */
 const HK_ON = 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF10FFFFFFFCFFC1FFFBF800240';
-const HK_FEE = '1000000';
-let hkFeeTouched = false;
 const isHex = (v, n) => new RegExp('^[0-9A-F]{' + n + '}$').test(v);
-function hkFeeUi() { const v = $('hkFeeIn').value.trim(); $('hkFeeXah').textContent = /^\d{1,12}$/.test(v) ? '= ' + dropsToXah(v) + ' XAH' : ''; }
 function hkUi() {
   const w = $('hkWho'); w.textContent = ''; w.className = 'card' + (S.net === 'mainnet' ? ' warn' : '');
   w.append(row(t('hkAcct'), S.account && S.account.via === 'xaman' ? short(S.account.address) : '—', 'mono'), row(t('hkNet'), 'Xahau ' + NET().label + ' (NetworkID ' + NET().networkId + ')'));
@@ -1430,10 +1427,7 @@ function hkUi() {
   if (!S.account || S.account.via !== 'xaman') w.append(h('p', { class: 'sm' }, t('hkNeedXaman')));
   if (!$('hkOn').value) $('hkOn').value = HK_ON;
   if (!$('hkNs').value) $('hkNs').value = C.HOOK_NAMESPACE;
-  if (!hkFeeTouched) $('hkFeeIn').value = HK_FEE;
-  hkFeeUi();
 }
-$('hkFeeIn').oninput = () => { hkFeeTouched = true; hkFeeUi(); };
 $('acc-hook').addEventListener('toggle', () => { if ($('acc-hook').open) hkUi(); });
 async function hkDefExists(hash) {
   const r = await rpc('ledger_entry', { hook_definition: hash, ledger_index: 'validated' });
@@ -1442,15 +1436,14 @@ async function hkDefExists(hash) {
   throw new Error(r.error_message || r.error || 'ledger_entry');
 }
 function hkTx(who) {
-  const on = $('hkOn').value.trim().toUpperCase(), ns = $('hkNs').value.trim().toUpperCase(), api = $('hkApi').value.trim(), fl = $('hkFlags').value.trim(), fee = $('hkFeeIn').value.trim();
+  const on = $('hkOn').value.trim().toUpperCase(), ns = $('hkNs').value.trim().toUpperCase(), api = $('hkApi').value.trim(), fl = $('hkFlags').value.trim();
   if (!isHex(on, 64)) throw new Error('HookOn: 64 hex');
   if (!isHex(ns, 64)) throw new Error('HookNamespace: 64 hex');
   if (!/^\d{1,3}$/.test(api) || !/^\d{1,10}$/.test(fl)) throw new Error('HookApiVersion / Flags');
-  if (!/^\d{1,12}$/.test(fee) || fee === '0') throw new Error(t('hkFee'));
   const hs = $('hkHash').value.trim().toUpperCase(); if (!isHex(hs, 64)) throw new Error('HookHash: 64 hex');
   const hk = { HookHash: hs };
   Object.assign(hk, { HookOn: on, HookNamespace: ns, HookApiVersion: Number(api), Flags: Number(fl) });
-  return { TransactionType: 'SetHook', Account: who || S.account.address, NetworkID: NET().networkId, Fee: fee, Hooks: [{ Hook: hk }] };
+  return { TransactionType: 'SetHook', Account: who || S.account.address, NetworkID: NET().networkId, Hooks: [{ Hook: hk }] };
 }
 $('hkGo').onclick = async () => {
   errSet('hkErr'); const out = $('hkOut'); out.textContent = '';
@@ -1464,7 +1457,7 @@ $('hkGo').onclick = async () => {
       out.textContent = '';
       if (!ok) return errSet('hkErr', t('hkNoDef'));
     }
-    out.append(h('div', { class: 'card' + (S.net === 'mainnet' ? ' warn' : '') }, row(t('hkAcct'), short(tx.Account), 'mono'), row(t('hkNet'), NET().label + ' · ' + tx.NetworkID), row(t('hkFee'), dropsToXah(tx.Fee) + ' XAH')));
+    out.append(h('div', { class: 'card' + (S.net === 'mainnet' ? ' warn' : '') }, row(t('hkAcct'), short(tx.Account), 'mono'), row(t('hkNet'), NET().label + ' · ' + tx.NetworkID)), h('p', { class: 'sm' }, t('hkFeeNote')));
     const box = h('div'); out.append(box);
     const id = await xamanSign(tx, box);
     box.textContent = ''; box.append(h('p', { class: 'sub' }, t('hkSent')), h('p', { class: 'mono sm' }, id),
