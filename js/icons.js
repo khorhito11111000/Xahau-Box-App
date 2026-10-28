@@ -8,6 +8,8 @@
  * Served locally, no CDN. Emoji in texts are swapped for these icons as the page renders. */
 (function () {
   const P = {
+    wallet: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+    hook: '<circle cx="12" cy="4" r="2"/><path d="M12 6v9a4 4 0 0 1-8 0v-2l2.5 2"/>',
     gift: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/>',
     lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
     settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
@@ -30,8 +32,8 @@
     palette: '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>',
     flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>'
   };
-  const MAP = { '🎨': 'palette', '🎁': 'gift', '🔒': 'lock', '⚙': 'settings', '📦': 'package', '🌐': 'globe', '🛡': 'shield', 'ℹ': 'info', '📖': 'book', '📜': 'scroll', '🔑': 'key', '🔗': 'link', '✓': 'check', '⚠': 'alert', '⇄': 'swap', '🎉': 'sparkles', '🙏': 'heart', '🔥': 'flame' };
-  const RX = /(🎨|🎁|🔒|⚙|📦|🌐|🛡|ℹ|📖|📜|🔑|🔗|✓|⚠|⇄|🎉|🙏|🔥)\uFE0F?/g;
+  const MAP = { '👛': 'wallet', '🪝': 'hook', '🎨': 'palette', '🎁': 'gift', '🔒': 'lock', '⚙': 'settings', '📦': 'package', '🌐': 'globe', '🛡': 'shield', 'ℹ': 'info', '📖': 'book', '📜': 'scroll', '🔑': 'key', '🔗': 'link', '✓': 'check', '⚠': 'alert', '⇄': 'swap', '🎉': 'sparkles', '🙏': 'heart', '🔥': 'flame' };
+  const RX = /(👛|🪝|🎨|🎁|🔒|⚙|📦|🌐|🛡|ℹ|📖|📜|🔑|🔗|✓|⚠|⇄|🎉|🙏|🔥)\uFE0F?/g;
   const NS = 'http://www.w3.org/2000/svg';
   function icon(name, cls) {
     const s = document.createElementNS(NS, 'svg');

@@ -381,6 +381,9 @@ let xp = null, xstate = null;
    account === the signer. No saved / expired session -> one-tap Xaman sign-in. Nothing is sent anywhere. */
 const MWK = 'xbox.wallets.v1', MWS = 'xbox.wsess.v1';
 let mwExpired = null, mwQuiet = false;
+const xRet = /[?&](authorization_code|access_token|error_description)=/.test(location.search); // this load is the return from Xaman
+const MWR = 'xbox.mwrestore';
+function mwRestore(a, msg) { const se = mwSessAll()[a]; if (!se || !se.pkce) return false; try { sessionStorage.setItem(MWR, a); if (msg) sessionStorage.setItem('xbox.mwerr', msg); localStorage.setItem('XummPkceJwt', se.pkce); if (se.sdk) localStorage.setItem('XummSdkJwt', se.sdk); } catch { return false; } S.account = { address: a, via: 'xaman' }; save(); try { history.replaceState(history.state, "", location.pathname + location.hash); } catch {} location.reload(); return true; }
 const mwList = () => { try { const v = JSON.parse(localStorage.getItem(MWK)); return Array.isArray(v) ? v.filter(w => w && L.isAddress(w.address)) : []; } catch { return []; } };
 const mwSave = l => { try { localStorage.setItem(MWK, JSON.stringify(l)); } catch {} };
 const mwSessAll = () => { try { return JSON.parse(localStorage.getItem(MWS)) || {}; } catch { return {}; } };
@@ -425,11 +428,7 @@ function mwRender() {
 function mwActivate(w) {
   if (w.via !== 'xaman') { mwClearXaman(); acct = null; setAccount(w.address, w.via); mbRefresh(); return mwRender(); }
   const se = mwSessAll()[w.address];
-  if (se && se.pkce) {
-    mwClearXaman();
-    try { localStorage.setItem('XummPkceJwt', se.pkce); if (se.sdk) localStorage.setItem('XummSdkJwt', se.sdk); } catch {}
-    S.account = { address: w.address, via: 'xaman' }; save(); return location.reload();
-  }
+  if (se && se.pkce) { mwClearXaman(); if (mwRestore(w.address)) return; }
   mwSignIn(w.address);
 }
 function mwUse(w) { if (S.account && S.account.address === w.address && (w.via !== 'xaman' || (xstate && xstate.me && xstate.me.account === w.address))) return mwHide(); mwActivate(w); }
@@ -455,6 +454,7 @@ $('mwAdd').onclick = () => mwSignIn(null);
 $('acctText').onclick = () => mwShow();
 $('setWallets').onclick = () => mwShow();
 document.addEventListener('keydown', e => { if (e.key === 'Escape') mwHide(); });
+function mwCarriedErr() { let m = null; try { m = sessionStorage.getItem('xbox.mwerr'); sessionStorage.removeItem('xbox.mwerr'); } catch {} if (m) setTimeout(() => { mwShow(); xamanErrShow('mwErr', new Error(m)); }, 300); }
 function initXaman() {
   if (!C.XAMAN_API_KEY || !window.XummPkce) { $('xamanBtn').classList.add('dis'); return; }
   xp = new window.XummPkce(C.XAMAN_API_KEY, { redirectUrl: appUrl(), rememberJwt: true });
@@ -463,14 +463,27 @@ function initXaman() {
   const on = async () => {
     try {
       const st = await xp.state(); const a = st && st.me && st.me.account; if (!a || signingOut) return;
-      xstate = st; mwSnap(a); mwExpired = null;
+      xstate = st; mwSnap(a); mwExpired = null; try { sessionStorage.removeItem(MWR); } catch {}
       if (S.account && S.account.address === a && S.account.via === 'xaman') { renderAcct(); if (current === 'sign') enterSign(); return; }
       setAccount(a, 'xaman'); toast(t('signedIn'));
     } catch {}
   };
-  xp.on('success', on); xp.on('retrieved', on); xp.on('error', e => xamanErrShow('acctErr', e));
+  xp.on('success', on); xp.on('retrieved', on); xp.on('error', e => {
+    // a failed sign-in (also the return tab): show it, and bring the previous wallet back if we have its session
+    const prev = S.account && S.account.via === 'xaman' && !xstate ? S.account.address : null;
+    if (prev && sessionStorage.getItem(MWR) !== prev && mwRestore(prev, String(e && e.message || e || ''))) return;
+    xamanErrShow('acctErr', e); if (mwList().length) { mwShow(); xamanErrShow('mwErr', e); }
+  });
   // the SDK found no valid Xaman session (none saved, or it expired): do not keep showing a Xaman account
-  xp.on('loggedout', () => { if (mwQuiet) return; if (!xstate && S.account && S.account.via === 'xaman') { mwExpired = S.account.address; mwSessDrop(S.account.address); S.account = null; save(); renderAcct(); if (current === 'sign') enterSign(); mwShow(); } });
+  // No valid Xaman session on this load. Never drop other wallets. If the active wallet has a saved session copy
+  // that was not just tried, put it back once (reload); if it was just tried, it expired: forget that copy only.
+  xp.on('loggedout', () => {
+    if (mwQuiet || xRet || xstate || !S.account || S.account.via !== 'xaman') return;
+    const a = S.account.address, tried = sessionStorage.getItem(MWR) === a;
+    if (!tried && mwRestore(a)) return;
+    try { sessionStorage.removeItem(MWR); } catch {}
+    mwSessDrop(a); mwExpired = a; S.account = null; save(); renderAcct(); if (current === 'sign') enterSign(); mwShow();
+  });
 }
 function signIn(back) {
   errSet('acctErr');
@@ -480,7 +493,9 @@ function signIn(back) {
 }
 /* Sign out: ends the Xaman session and forgets the account on this device.
    Box links / QR keys (xbox.links.v1), box history and an unfinished box are NOT touched. */
-const XAMAN_KEYS = ['XummPkceJwt', 'XummSdkJwt', 'pkce_code_verifier', 'pkce_state'];
+/* only the session. pkce_code_verifier / pkce_state are NOT removed: the SDK keeps them in memory too, and the tab Xaman
+   returns to reads them from storage; removing them made the return fail with "Invalid State" (v20261028m). */
+const XAMAN_KEYS = ['XummPkceJwt', 'XummSdkJwt'];
 let signingOut = false;
 function signOut(keepList) {
   signingOut = true;
@@ -515,7 +530,7 @@ function xamanErrShow(id, e) {
   el.textContent = inf.msg;
   if (inf.relogin) {
     const back = current === 'sign' ? 'sign' : null;
-    el.append(h('div', { class: 'xrelog' }, h('button', { class: 'btn y', type: 'button', onclick: () => { signOut(); afterAccount = back ? () => enterSign() : null; signIn(back); } }, t('xamanReloginBtn'))));
+    el.append(h('div', { class: 'xrelog' }, h('button', { class: 'btn y', type: 'button', onclick: () => { afterAccount = back ? () => enterSign() : null; if (back) { S.back = back; save(); } mwSignIn(S.account && S.account.address); } }, t('xamanReloginBtn'))));
   }
 }
 async function xamanSign(tx, box) {
@@ -1626,7 +1641,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   const sv = $('pageVer').textContent;
   navigator.serviceWorker.register('sw.js?v=' + encodeURIComponent(sv), { scope: './' }).catch(() => {});
 }
-initXaman(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); egify(document.body);
+initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); egify(document.body);
 // test hook for automated checks (read-only helpers, no secrets)
 window.__box = { hkTx, packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr, mintTx, gc: { encrypt: gcEncrypt, decrypt: gcDecrypt, genPw: gcGenPw, max: GC.MAX, iter: GC.ITER } };
 })();
