@@ -1006,18 +1006,18 @@ async function checkPending() {
   }
   if (p.op === 'open') {
     const d = await hookState(p.h, L.boxKey(p.vc)); if (d) return errSet('signErr', t('notYet'));
-    S.pending = null; save(); toast('✓'); return enterBoxes();
+    S.pending = null; save(); stDirty(); toast('✓'); return enterBoxes();
   }
   if (p.op === 'mint') {
     const tok = await uriToken(p.tid).catch(() => null);
     if (!tok || tok.Owner !== p.tx.Account) return errSet('signErr', t('notYet'));
-    const form = p.form; S.pending = null; save();
+    const form = p.form; S.pending = null; save(); stDirty();
     return enterCreate(Object.assign({}, form, { key: p.tid }));
   }
   if (p.op === 'gmint') {
     const tok = await uriToken(p.tid).catch(() => null);
     if (!tok || tok.Owner !== p.tx.Account) return errSet('signErr', t('notYet'));
-    const form = p.form; S.pending = null; save();
+    const form = p.form; S.pending = null; save(); stDirty();
     return enterCreate(Object.assign({}, form, { gift: p.tid, giftNew: true }));
   }
   if (p.op === 'remit') {
@@ -1039,6 +1039,7 @@ async function resumePack() {
 /* ---------- DONE: QR picture ---------- */
 let doneLink = '';
 async function finishPack(only) {
+  stDirty();
   const b = only || S.pending.box;
   let q;
   if (b.kind === 'bearer') q = { v: 14, h: b.h, b: b.priv };
@@ -1177,6 +1178,7 @@ function buildClaim(who, msg) {
   enterSign();
 }
 async function finishClaim() {
+  stDirty();
   const p = S.pending; show('opened');
   const info = $('openedInfo'); info.textContent = '';
   const amt = BigInt('0x' + p.amt); if (amt) info.append(row(t('received'), dropsToXah(amt) + ' XAH', 'yel'));
@@ -1412,7 +1414,9 @@ $('vcOpenBtn').onclick = () => { const v = $('vcInput').value.trim().toUpperCase
 const HX = { PACK: '5041434B', CLAIM: '434C41494D', OPEN: '4F50454E' };
 
 /* ---------- home: box statistics from the hook accounts' public history (read-only, cached) ---------- */
-const STK = 'xbox.stats.v1', ST_TTL = 10 * 60 * 1000;
+const STK = 'xbox.stats.v1', ST_TTL = 60 * 1000;
+/* a box/token tx signed through the page succeeded: drop the cached numbers and count again shortly */
+function stDirty() { try { localStorage.removeItem(STK); } catch {} clearTimeout(stDirty.t); stDirty.t = setTimeout(() => loadStats(true), 2500); }
 let stBusy = '';
 function stPaint(d) {
   const box = $('statsBox'); if (!box) return;
@@ -1466,7 +1470,7 @@ async function loadStats(force) {
   const fresh = c && c.id === id && Date.now() - c.at < ST_TTL;
   if (c && c.id === id) stPaint(Object.assign({}, c.d, { xah: c.d.xah == null ? null : BigInt(c.d.xah) })); else stPaint(null);
   if ((fresh && !force) || stBusy === id) return;
-  stBusy = id;
+  stBusy = id; const rb = $('stRefresh'); if (rb) rb.disabled = true;
   try {
     const all = await Promise.all(hooks.map(stScan));
     const d = all.reduce((a, b) => ({ total: a.total + b.total, opened: a.opened + b.opened, xah: a.xah + b.xah, tok: a.tok + b.tok, key: a.key + b.key, gc: a.gc + b.gc }));
@@ -1475,7 +1479,7 @@ async function loadStats(force) {
     stPaint(d);
   } catch {
     if (!(c && c.id === id)) stPaint({ total: null, opened: null, xah: null, tok: null, key: null, gc: null });
-  } finally { if (stBusy === id) stBusy = ''; }
+  } finally { if (stBusy === id) stBusy = ''; const rb = $('stRefresh'); if (rb) rb.disabled = false; }
 }
 const histCache = { id: '', at: 0, p: null };
 async function boxHistory(me, force) {
@@ -1774,6 +1778,8 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   const sv = $('pageVer').textContent;
   navigator.serviceWorker.register('sw.js?v=' + encodeURIComponent(sv), { scope: './' }).catch(() => {});
 }
+$('stRefresh').onclick = () => { try { localStorage.removeItem(STK); } catch {} loadStats(true); };
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && current === 'home') loadStats(); });
 initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); egify(document.body);
 // test hook for automated checks (read-only helpers, no secrets)
 window.__box = { hkTx, packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr, mintTx, gc: { encrypt: gcEncrypt, decrypt: gcDecrypt, genPw: gcGenPw, max: GC.MAX, iter: GC.ITER } };

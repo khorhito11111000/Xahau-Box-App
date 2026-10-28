@@ -1769,3 +1769,11 @@ Object.assign(window.BOX_I18N.fr, {"stTitle": "Statistiques des boîtes", "stTot
 Object.assign(window.BOX_I18N.de, {"stTitle": "Box-Statistik", "stTotal": "Insgesamt erstellte Xahau Boxen", "stModes": "alle Modi: Link, QR, eine Adresse, Schlüssel-Token", "stOpenOf": "geöffnet von {m}", "stPct": "{p}% der Boxen bereits geöffnet", "stXahL": "XAH durch Boxen gegangen", "stTokL": "Übertragene Token", "stKeyL": "Erstellte Schlüssel-Token", "stGcL": "Token mit Geschenkcode", "stNote": "Daten aus dem Xahau-Netzwerk, gezählt aus der Hook-Historie."});
 Object.assign(window.BOX_I18N.zh, {"stTitle": "盒子统计", "stTotal": "已创建的 Xahau Box 总数", "stModes": "所有模式：链接、二维码、单一地址、钥匙代币", "stOpenOf": "已打开，共 {m}", "stPct": "{p}% 的盒子已打开", "stXahL": "经过盒子的 XAH", "stTokL": "已转移的代币", "stKeyL": "已创建的钥匙代币", "stGcL": "含礼品码的代币", "stNote": "数据来自 Xahau 网络，按 hook 历史统计。"});
 Object.assign(window.BOX_I18N.ja, {"stTitle": "ボックス統計", "stTotal": "作成された Xahau Box の合計", "stModes": "すべてのモード：リンク、QR、単一アドレス、キートークン", "stOpenOf": "件開封 / {m}", "stPct": "{p}% のボックスが開封済み", "stXahL": "ボックスを通った XAH", "stTokL": "転送されたトークン", "stKeyL": "作成されたキートークン", "stGcL": "ギフトコード付きトークン", "stNote": "Xahau ネットワークのデータ。フックの履歴から集計。"});
+/* stats refresh (v20261028q) */
+Object.assign(window.BOX_I18N.en, {"stRefresh": "↻ Refresh"});
+Object.assign(window.BOX_I18N.ru, {"stRefresh": "↻ Обновить"});
+Object.assign(window.BOX_I18N.es, {"stRefresh": "↻ Actualizar"});
+Object.assign(window.BOX_I18N.fr, {"stRefresh": "↻ Actualiser"});
+Object.assign(window.BOX_I18N.de, {"stRefresh": "↻ Aktualisieren"});
+Object.assign(window.BOX_I18N.zh, {"stRefresh": "↻ 刷新"});
+Object.assign(window.BOX_I18N.ja, {"stRefresh": "↻ 更新"});

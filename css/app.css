@@ -431,3 +431,5 @@ html[data-theme=light] .sthn,html[data-theme=light] .stv,html[data-theme=light] 
 html[data-theme=light] .sthn{text-shadow:0 0 14px rgba(248,206,34,.45)}
 html[data-theme=light] .sttile{background:#f7f9fd}html[data-theme=light] .sttile.wide svg{color:var(--ok)}
 html[data-theme=light] .stbar{background:rgba(27,36,96,.1)}html[data-theme=light] .sthd{color:var(--navy)}
+.strf{margin-left:auto;font:700 12px/1 system-ui,sans-serif;padding:7px 10px;border-radius:20px;border:1px solid var(--line);background:rgba(248,206,34,.08);color:var(--y);cursor:pointer;white-space:nowrap}.strf:disabled{opacity:.5;cursor:default}
+html[data-theme=light] .strf{color:var(--gold)}
