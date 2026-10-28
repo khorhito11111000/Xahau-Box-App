@@ -1669,7 +1669,7 @@ Object.assign(window.BOX_I18N.de, {"pjSub": "Mit diesen Projekten nutzt du Xahau
 Object.assign(window.BOX_I18N.zh, {"pjSub": "这些项目能让你更方便、更好地使用 Xahau Box。"});
 Object.assign(window.BOX_I18N.ja, {"pjSub": "これらのプロジェクトを使うと、Xahau Box をもっと便利に、快適に使えます。"});
 
-/* theme picker (v20261028b) */
+/* theme picker (v20261028c) */
 Object.assign(window.BOX_I18N.en, {"setThemeH": "🎨 Theme", "setThemeT": "Choose how the page looks. “System” follows your phone’s light or dark mode.", "themeDark": "Dark", "themeLight": "Light", "themeSys": "System"});
 Object.assign(window.BOX_I18N.es, {"setThemeH": "🎨 Tema", "setThemeT": "Elige cómo se ve la página. «Sistema» sigue el modo claro u oscuro de tu móvil.", "themeDark": "Oscuro", "themeLight": "Claro", "themeSys": "Sistema"});
 Object.assign(window.BOX_I18N.fr, {"setThemeH": "🎨 Thème", "setThemeT": "Choisis l’apparence de la page. « Système » suit le mode clair ou sombre de ton téléphone.", "themeDark": "Sombre", "themeLight": "Clair", "themeSys": "Système"});
@@ -1678,7 +1678,7 @@ Object.assign(window.BOX_I18N.de, {"setThemeH": "🎨 Design", "setThemeT": "Wä
 Object.assign(window.BOX_I18N.zh, {"setThemeH": "🎨 主题", "setThemeT": "选择页面的外观。“跟随系统”会随手机的浅色或深色模式切换。", "themeDark": "深色", "themeLight": "浅色", "themeSys": "跟随系统"});
 Object.assign(window.BOX_I18N.ja, {"setThemeH": "🎨 テーマ", "setThemeT": "ページの見た目を選べます。「システム」はスマホのライト／ダークモードに合わせます。", "themeDark": "ダーク", "themeLight": "ライト", "themeSys": "システム"});
 
-/* Xaman re-login message (v20261028b) */
+/* Xaman re-login message (v20261028c) */
 Object.assign(window.BOX_I18N.en, {"xamanRelogin": "Lost connection to Xaman, or your sign-in has expired. Sign out, sign in with Xaman again, then try once more.", "xamanReloginBtn": "Sign in again"});
 Object.assign(window.BOX_I18N.es, {"xamanRelogin": "Se perdió la conexión con Xaman o tu sesión ha caducado. Cierra sesión, vuelve a entrar con Xaman y prueba otra vez.", "xamanReloginBtn": "Volver a entrar"});
 Object.assign(window.BOX_I18N.fr, {"xamanRelogin": "La connexion à Xaman a été coupée ou ta session a expiré. Déconnecte-toi, reconnecte-toi avec Xaman, puis réessaie.", "xamanReloginBtn": "Se reconnecter"});
@@ -1686,3 +1686,12 @@ Object.assign(window.BOX_I18N.ru, {"xamanRelogin": "Связь с Xaman прер
 Object.assign(window.BOX_I18N.de, {"xamanRelogin": "Die Verbindung zu Xaman ist abgebrochen oder deine Anmeldung ist abgelaufen. Melde dich ab, melde dich erneut mit Xaman an und versuche es noch einmal.", "xamanReloginBtn": "Erneut anmelden"});
 Object.assign(window.BOX_I18N.zh, {"xamanRelogin": "与 Xaman 的连接中断了，或登录已过期。请先退出，再用 Xaman 重新登录，然后再试一次。", "xamanReloginBtn": "重新登录"});
 Object.assign(window.BOX_I18N.ja, {"xamanRelogin": "Xaman との接続が切れたか、ログインの有効期限が切れました。いったんログアウトして Xaman で再ログインし、もう一度お試しください。", "xamanReloginBtn": "再ログイン"});
+
+/* named-box hint (v20261028c) */
+Object.assign(window.BOX_I18N.en, {"namedOnly": "This box was made for one address only: {a}. Only that account can open it. Sign in to Xaman with {a} and try again."});
+Object.assign(window.BOX_I18N.es, {"namedOnly": "Esta caja se creó solo para una dirección: {a}. Solo esa cuenta puede abrirla. Entra en Xaman con {a} y vuelve a intentarlo."});
+Object.assign(window.BOX_I18N.fr, {"namedOnly": "Cette boîte a été créée pour une seule adresse : {a}. Seul ce compte peut l’ouvrir. Connecte-toi à Xaman avec {a} et réessaie."});
+Object.assign(window.BOX_I18N.ru, {"namedOnly": "Этот бокс сделан только для одного адреса: {a}. Открыть его может только этот аккаунт. Войди в Xaman с {a} и попробуй снова."});
+Object.assign(window.BOX_I18N.de, {"namedOnly": "Diese Box wurde nur für eine Adresse erstellt: {a}. Nur dieses Konto kann sie öffnen. Melde dich in Xaman mit {a} an und versuche es erneut."});
+Object.assign(window.BOX_I18N.zh, {"namedOnly": "这个礼盒只为一个地址创建：{a}。只有该账户能打开它。请在 Xaman 中用 {a} 登录后再试。"});
+Object.assign(window.BOX_I18N.ja, {"namedOnly": "このボックスは 1 つのアドレス専用です：{a}。開けるのはこのアカウントだけです。Xaman に {a} でログインして、もう一度お試しください。"});

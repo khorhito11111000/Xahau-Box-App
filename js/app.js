@@ -966,6 +966,7 @@ async function showBox() {
   const ekind = ktid ? 'token' : q.kind;
   card.append(row(t('kind'), t(ekind + 'Kind')));
   if (q.kind === 'named') card.append(row(t('signedFor'), short(q.a)));
+  { const xm = xstate && xstate.me && xstate.me.account; if (q.kind === 'named' && xm && xm !== q.a) card.append(h('div', { class: 'card warn' }, t('namedOnly').replace('{a}', short(q.a)))); }
   if (ktid) card.append(row(t('keyHolder'), short(holder || '?')));
   const expN = parseInt(b.exp, 16);
   card.append(liveRow(), row(t('ledgerExp'), expN ? String(expN) : t('limitNone')));
@@ -974,7 +975,8 @@ async function showBox() {
   renderLive(false);
   // opener
   const opener = h('input', { class: 'inp', id: 'openerAddr', placeholder: 'r...', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
-  opener.value = S.account ? S.account.address : (q.kind === 'named' ? q.a : '');
+  const xme0 = xstate && xstate.me && xstate.me.account;
+  opener.value = xme0 || (S.account ? S.account.address : '') || (q.kind === 'named' ? q.a : '');
   const msg = h('p', { class: 'err-line' });
   rest.append(h('div', { class: 'card' }, h('div', { class: 'lbl' }, t('youOpen')), opener, msg,
     h('button', { class: 'btn y', type: 'button', disabled: b.status !== 0 || null, onclick: () => buildClaim(opener.value.trim(), msg) }, '🎁 ' + t('openNow'))));
@@ -986,10 +988,11 @@ function buildClaim(who, msg) {
   const expN = parseInt(b.exp, 16); if (expN && curLedger(b.cur) > expN) return (msg.textContent = t('expired'));
   let tx;
   if (b.ktid) { if (b.holder !== who) return (msg.textContent = t('notHolder')); tx = claimTokTx(who, q.h, q.vc); }
-  else if (q.kind === 'named') { if (q.a !== who) return (msg.textContent = t('notForYou') + ' (' + short(q.a) + ')'); tx = claimKeyTx(who, q.h, q.p.toUpperCase(), q.s.toUpperCase()); }
+  else if (q.kind === 'named') { if (q.a !== who) return (msg.textContent = t('namedOnly').replace('{a}', short(q.a))); tx = claimKeyTx(who, q.h, q.p.toUpperCase(), q.s.toUpperCase()); }
   else if (q.kind === 'bearer') { const m = L.claimMessage({ opener: who, vc: q.vc, hook: q.h, networkId: NET().networkId, exp: b.exp, tid: b.tid, amt: b.amt, nonce: b.nonce }); tx = claimKeyTx(who, q.h, q.pub, L.signClaim(q.b, m)); }
   else return (msg.textContent = t('notHolder'));
-  if (!S.account || S.account.address !== who) { S.account = { address: who, via: 'json' }; renderAcct(); }
+  const xmeB = xstate && xstate.me && xstate.me.account;
+  if (!xmeB && (!S.account || S.account.address !== who)) { S.account = { address: who, via: 'json' }; renderAcct(); }
   S.pending = { op: 'claim', tx, h: q.h, vc: q.vc, k: q.k || null, t: q.t || null, amt: b.amt, tid: b.tid, from: q.from || null }; save();
   enterSign();
 }
