@@ -1231,7 +1231,7 @@ function exBlock(list) {
 }
 /* ---------- MY BOXES (creator) ---------- */
 const boxOpen = new Set();
-function boxCard(b, kn, lk, pk) {
+function boxCard(b, kn, lk, pk, ks) {
   const amt = BigInt('0x' + b.amt), expN = parseInt(b.exp, 16), hasTok = !isZero(b.tid);
   const gone = expN && acct.cur && acct.cur > expN && b.status === 0;
   const st = h('span', { class: 'bst' + (b.status === 0 ? (gone ? ' bad' : ' ok') : ' yel') }, b.status === 0 ? (gone ? t('stExpired') : t('stClosed')) : t('stClaiming'));
@@ -1260,7 +1260,18 @@ function boxCard(b, kn, lk, pk) {
     row(t('bxNo'), '#' + b.nonce), row(t('boxNumber'), kn ? short(kn.vc) : t('vcUnknown')),
     b.ktid ? row(t('bxKeyTok'), short(b.ktid)) : null);
   if (lk) body.append(h('button', { class: 'btn y', type: 'button', onclick: () => { lk.nonce = b.nonce; finishPack(lk); } }, t('showLink')));
-  if (b.ktid) body.append(keyHandCard(b.ktid));
+  if (b.ktid && ks) {
+    const x = ks.x || {}, ok = ks.st === 'sent';
+    const kb = h('div', { class: 'card ' + (ks.st === 'gone' ? 'warn' : 'ok') + ' kxfer' },
+      h('div', { class: 'row' }, h('b', { class: ks.st === 'sent' ? 'ok' : ks.st === 'gone' ? 'bad' : 'yel' }, ks.st === 'sent' ? '✅ ' + t('kxSent') : ks.st === 'offer' ? '⏳ ' + t('kxOffer') : '⚠️ ' + t('mbKeyGone'))),
+      row(t('kxMode'), x.mode === 'offer' || ks.st === 'offer' ? t('kxModeOffer') : t('kxModeRemit')),
+      ks.to ? row(t('kxTo'), ks.to.slice(0, 6) + '…') : null,
+      x.date ? row(t('mbWhen'), new Date(x.date).toLocaleString(S.lang)) : null,
+      h('p', { class: 'sm' }, ks.st === 'sent' ? t('kxSentNote') : ks.st === 'offer' ? t('kxOfferNote') : ''),
+      exBlock([['kxTx', x.hash]]));
+    body.append(kb);
+    if (ok) head.querySelector('.bst').textContent = t('kxSentShort');
+  } else if (b.ktid) body.append(keyHandCard(b.ktid));
   if (kn) body.append(h('button', { class: 'btn o', type: 'button', onclick: () => startOpen(kn.vc) }, t('takeBack')));
   { const ex = exBlock([['exPack', pk && pk.hash]]); body.append(ex || h('p', { class: 'sm' }, t('exNone'))); }
   const c = h('div', { class: 'card bcard' }, head, body);
@@ -1545,6 +1556,26 @@ function enterMyBoxes(tab) {
 const enterBoxes = () => enterMyBoxes('built');
 const enterInbox = () => enterMyBoxes('recv');
 function mbRefresh() { if (current === 'settings' && $('acc-boxes').open) mbLoad(); }
+/* how each key token left this account: its own Remit / sell offer in the public history (read-only) */
+async function keyXfers(me, ids) {
+  const want = new Set(ids.map(x => String(x).toUpperCase())), out = new Map();
+  if (!want.size) return out;
+  let marker;
+  for (let i = 0; i < 5 && out.size < want.size; i++) {
+    const r = await rpc('account_tx', Object.assign({ account: me, ledger_index_min: -1, ledger_index_max: -1, limit: 200, forward: false }, marker ? { marker } : {}));
+    for (const e of r.transactions || []) {
+      const tx = e.tx || e.tx_json || {}, meta = e.meta || e.metaData || {};
+      if (meta.TransactionResult !== 'tesSUCCESS' || tx.Account !== me) continue;
+      const d = { to: tx.Destination || null, hash: tx.hash || e.hash || '', date: tx.date ? (tx.date + 946684800) * 1000 : 0 };
+      let list = [];
+      if (tx.TransactionType === 'Remit') { list = tx.URITokenIDs || []; d.mode = 'remit'; }
+      else if (tx.TransactionType === 'URITokenCreateSellOffer') { list = [tx.URITokenID]; d.mode = 'offer'; }
+      for (const id of list) { const k = String(id || '').toUpperCase(); if (want.has(k) && !out.has(k)) out.set(k, d); }
+    }
+    marker = r.marker; if (!marker) break;
+  }
+  return out;
+}
 async function mbLoad() {
   const seq = ++mbSeq, list = $('mbList'); errSet('boxesErr'); mbData = null; mbBusy = true; mbTabsUi();
   list.textContent = ''; $('vcCard').classList.add('hide');
@@ -1579,8 +1610,20 @@ async function mbLoad() {
     const built = v.boxes.slice().sort((a, c) => c.nonce - a.nonce);
     // who holds the key token of each live key box now
     const holders = new Map();
-    await Promise.all(built.filter(b => b.ktid).map(b => uriToken(b.ktid).then(x => holders.set(b.key, x ? x.Owner : null)).catch(() => {})));
+    const keyObj = new Map();
+    await Promise.all(built.filter(b => b.ktid).map(b => uriToken(b.ktid).then(x => { holders.set(b.key, x ? x.Owner : null); keyObj.set(b.key, x); }).catch(() => {})));
     if (seq !== mbSeq) return;
+    const moved = built.filter(b => b.ktid && holders.has(b.key) && (holders.get(b.key) !== me || (keyObj.get(b.key) || {}).Amount != null));
+    const xf = await keyXfers(me, moved.map(b => b.ktid)).catch(() => new Map());
+    if (seq !== mbSeq) return;
+    const keySt = b => {
+      if (!b.ktid || !holders.has(b.key)) return null;
+      const ho = holders.get(b.key), o = keyObj.get(b.key) || {}, x = xf.get(String(b.ktid).toUpperCase()) || {};
+      if (!ho) return { st: 'gone', x };
+      if (ho !== me) return { st: 'sent', to: ho, x };
+      if (o.Amount != null) return { st: 'offer', to: o.Destination || x.to || null, x };
+      return null;
+    };
     const sent = [];
     for (const b of built) {
       if (b.status !== 0) continue; // being opened: listed below with its CLAIM
@@ -1600,7 +1643,7 @@ async function mbLoad() {
     const mine = recs.filter(r => r.cmd === 'CLAIM' && r.from === me && r.hk !== me && r.b)
       .map(r => ({ b: r.b, nonce: r.b.nonce, key: !r.link, st: t('mbOpenedYou'), ok: true, who: [t('inboxFrom'), r.hk], date: r.date, hash: r.hash }))
       .sort((a, c) => (c.date || 0) - (a.date || 0));
-    mbData = { me, built, kn, pk: b => packByKey.get(String(b.key).toUpperCase()) || null, links, sent, recvOpen, recvGone, mine, inboxErr: !inbox, histErr: !hist, more: hist && hist.more, n: hist ? hist.n : 0 };
+    mbData = { me, built, keySt, kn, pk: b => packByKey.get(String(b.key).toUpperCase()) || null, links, sent, recvOpen, recvGone, mine, inboxErr: !inbox, histErr: !hist, more: hist && hist.more, n: hist ? hist.n : 0 };
     mbBusy = false; mbRender();
   } catch (e) { if (seq !== mbSeq) return; mbBusy = false; list.textContent = ''; errSet('boxesErr', e.message); }
 }
@@ -1619,7 +1662,7 @@ function mbRender() {
   const note = k => list.append(h('p', { class: 'sm mbnote' }, k));
   if (mbTab === 'built') {
     if (!d.built.length) list.append(h('p', { class: 'sub' }, t('noBoxes')));
-    for (const b of d.built) list.append(boxCard(b, d.kn(b), d.links.get(b.key), d.pk(b)));
+    for (const b of d.built) list.append(boxCard(b, d.kn(b), d.links.get(b.key), d.pk(b), d.keySt(b)));
     $('vcCard').classList.toggle('hide', false);
   } else if (mbTab === 'recv') {
     $('vcCard').classList.add('hide');
