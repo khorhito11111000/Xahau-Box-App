@@ -364,6 +364,7 @@ function show(name) {
   current = name;
   for (const s of SCREENS) $('s-' + s).classList.toggle('on', s === name);
   $('backBar').classList.toggle('hide', name === 'home');
+  if (name === 'home') setTimeout(() => loadStats(), 0);
   if (name === 'home') setTimeout(inboxBadge, 0);
   window.scrollTo(0, 0);
   try {
@@ -1409,6 +1410,73 @@ $('vcOpenBtn').onclick = () => { const v = $('vcInput').value.trim().toUpperCase
               opened (successful CLAIM transactions sent to this account's hook).
    An unopened "for anyone" link box stays in Built only: the page cannot know whether the link was sent. */
 const HX = { PACK: '5041434B', CLAIM: '434C41494D', OPEN: '4F50454E' };
+
+/* ---------- home: box statistics from the hook accounts' public history (read-only, cached) ---------- */
+const STK = 'xbox.stats.v1', ST_TTL = 10 * 60 * 1000;
+let stBusy = '';
+function stPaint(d) {
+  const box = $('statsBox'); if (!box) return;
+  const nf = v => v == null ? '—' : Number(v).toLocaleString(S.lang);
+  box.classList.toggle('load', !d);
+  $('stTotal').textContent = d ? nf(d.total) : '…';
+  $('stOpen').replaceChildren(d ? h('span', null, nf(d.opened) + ' ', h('small', null, t('stOpenOf').replace('{m}', nf(d.total)))) : '…');
+  const pct = d && d.total ? Math.round(d.opened * 100 / d.total) : 0;
+  $('stBar').style.width = (d && d.total != null ? pct : 0) + '%';
+  $('stPct').textContent = d && d.total != null ? t('stPct').replace('{p}', pct) : '';
+  $('stXah').textContent = d ? (d.xah == null ? '—' : Number(dropsToXah(d.xah)).toLocaleString(S.lang, { maximumFractionDigits: 6 })) : '…';
+  $('stTok').textContent = d ? nf(d.tok) : '…';
+  $('stKey').textContent = d ? nf(d.key) : '…';
+  $('stGc').textContent = d ? nf(d.gc) : '…';
+}
+async function stScan(hk) {
+  const r0 = { total: 0, opened: 0, xah: 0n, tok: 0, key: 0, gc: 0 };
+  const GCP = hexStr(GC.PFX), KEYRE = /\/img\/key\.jpg\?k=[0-9a-f]{16}$/;
+  let marker;
+  for (let i = 0; i < 50; i++) {
+    const r = await rpc('account_tx', Object.assign({ account: hk, ledger_index_min: -1, ledger_index_max: -1, limit: 400, forward: false }, marker ? { marker } : {}));
+    if (!r.transactions) throw new Error('no tx');
+    for (const e of r.transactions) {
+      const tx = e.tx || e.tx_json || {}, meta = e.meta || e.metaData || {};
+      if (meta.TransactionResult !== 'tesSUCCESS') continue;
+      if (tx.TransactionType === 'URITokenMint' && tx.Account === hk && tx.URI) {
+        const u = String(tx.URI).toUpperCase();
+        if (u.startsWith(GCP)) r0.gc++;                       // gift-code token: prefix only, never decoded
+        else { const s = hexToText(u); if (s && KEYRE.test(s)) r0.key++; }
+        continue;
+      }
+      if (tx.TransactionType !== 'Invoke' || !tx.HookParameters) continue;
+      const ps = {}; for (const x of tx.HookParameters) ps[hexToText(x.HookParameter.HookParameterName || '')] = String(x.HookParameter.HookParameterValue || '').toUpperCase();
+      if (ps.CMD === HX.PACK && tx.Account === hk) {
+        r0.total++;
+        if (/^[0-9A-F]{16}$/.test(ps.AMT || '')) r0.xah += BigInt('0x' + ps.AMT);
+        if (ps.TID && !isZero(ps.TID)) r0.tok++;
+      } else if (ps.CMD === HX.CLAIM && (tx.Destination || tx.Account) === hk) r0.opened++;
+    }
+    marker = r.marker; if (!marker) break;
+  }
+  return r0;
+}
+async function loadStats(force) {
+  const box = $('statsBox'); if (!box) return;
+  const hooks = ((C.STATS_HOOKS || {})[S.net]) || [];
+  if (!hooks.length) { box.classList.add('hide'); return; }
+  box.classList.remove('hide');
+  const id = S.net + ':' + hooks.join(',');
+  let c = null; try { c = JSON.parse(localStorage.getItem(STK)) || null; } catch {}
+  const fresh = c && c.id === id && Date.now() - c.at < ST_TTL;
+  if (c && c.id === id) stPaint(Object.assign({}, c.d, { xah: c.d.xah == null ? null : BigInt(c.d.xah) })); else stPaint(null);
+  if ((fresh && !force) || stBusy === id) return;
+  stBusy = id;
+  try {
+    const all = await Promise.all(hooks.map(stScan));
+    const d = all.reduce((a, b) => ({ total: a.total + b.total, opened: a.opened + b.opened, xah: a.xah + b.xah, tok: a.tok + b.tok, key: a.key + b.key, gc: a.gc + b.gc }));
+    if (S.net + ':' + hooks.join(',') !== id) return;
+    try { localStorage.setItem(STK, JSON.stringify({ id, at: Date.now(), d: Object.assign({}, d, { xah: d.xah.toString() }) })); } catch {}
+    stPaint(d);
+  } catch {
+    if (!(c && c.id === id)) stPaint({ total: null, opened: null, xah: null, tok: null, key: null, gc: null });
+  } finally { if (stBusy === id) stBusy = ''; }
+}
 const histCache = { id: '', at: 0, p: null };
 async function boxHistory(me, force) {
   const id = S.net + ':' + me;
@@ -1663,7 +1731,7 @@ document.querySelectorAll('#s-settings details.acc').forEach(d => d.addEventList
 }));
 $('langList').onclick = e => {
   const b = e.target.closest('[data-lang]'); if (!b || b.dataset.lang === S.lang) return;
-  S.lang = b.dataset.lang; save(); applyLang(); if (mbData) mbRender(); else mbTabsUi(); if (codesFor) codesLoad();
+  S.lang = b.dataset.lang; save(); applyLang(); loadStats(); if (mbData) mbRender(); else mbTabsUi(); if (codesFor) codesLoad();
 };
 function themeUi() { const cur = window.XBOX_THEME ? XBOX_THEME.get() : 'dark';
   document.querySelectorAll('#themeList [data-theme-opt]').forEach(b => { const on = b.dataset.themeOpt === cur; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }); }

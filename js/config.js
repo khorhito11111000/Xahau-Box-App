@@ -14,6 +14,8 @@ window.BOX_CONFIG = {
   HOOK_NAMESPACE: '7467730000000000000000000000000000000000000000000000000000000000',
   LEDGER_FALLBACK_SECONDS: 3.5, // seconds per ledger until the real average is measured (expiry + countdowns)
   LEDGER_POLL_MS: 4000, // how often the live ledger counter asks the network
+  // Hook accounts whose public history feeds the home-page box statistics (per network; empty = block hidden).
+  STATS_HOOKS: { mainnet: ['rNHBiY7RQhmAviL8cj56maSiHMyYPJvzW6'], testnet: [] },
   // Link put into QR codes. Empty = the address this page is opened from.
   APP_URL: 'https://khorhito11111000.github.io/Xahau-Box-App/'
 };
