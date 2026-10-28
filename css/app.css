@@ -347,4 +347,4 @@ html[data-theme=light] .wal .ic{background:#eef2fa;border:1px solid rgba(27,36,9
 
 #acc-hook .accb>.inp,#acc-hook .btn2 .inp{width:100%;font-size:13px}
 #acc-hook .btn2>div{flex:1;min-width:0}
-#acc-hook #hkFileInfo,#acc-hook #hkOut .mono{overflow-wrap:anywhere}
+#acc-hook #hkOut .mono{overflow-wrap:anywhere}
