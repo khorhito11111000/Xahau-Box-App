@@ -1751,3 +1751,12 @@ de: ["Kaufe oder tausche keine Boxen mit Geschenkcodes, wenn du dir bei der Adre
 zh: ["如果你不确定发送者的地址，或感觉有诈，请不要购买或交换含有礼品码的礼盒。只信任经过验证的地址、亲人和朋友。Hook 和本页面不检查外部礼品码，也不对其负责。", "礼盒创建者", "地址来自链上，无法伪造"],
 ja: ["送信者のアドレスに確信がない場合や、怪しいと感じた場合は、ギフトコード入りのボックスを購入・交換しないでください。確認済みのアドレス、家族や知人だけを信頼してください。フックとこのページは外部コードを確認せず、その責任も負いません。", "ボックスの作成者", "アドレスはネットワークから取得、偽造できません"] };
 for (const [l, v] of Object.entries(W)) Object.assign(window.BOX_I18N[l], { gcWarn: v[0], gcWarnS: '⚠ ' + v[0], r10: '⚠ ' + v[0], boxBy: v[1], boxByNote: v[2] }); })();
+
+/* token details (v20261028o) */
+Object.assign(window.BOX_I18N.en, {"tokInfo": "Token details", "tokClose": "Close", "tokId": "Token ID", "tokIssuer": "Issuer", "tokNoProps": "No properties in this token."});
+Object.assign(window.BOX_I18N.ru, {"tokInfo": "Данные токена", "tokClose": "Закрыть", "tokId": "ID токена", "tokIssuer": "Эмитент", "tokNoProps": "У этого токена нет свойств."});
+Object.assign(window.BOX_I18N.es, {"tokInfo": "Datos del token", "tokClose": "Cerrar", "tokId": "ID del token", "tokIssuer": "Emisor", "tokNoProps": "Este token no tiene propiedades."});
+Object.assign(window.BOX_I18N.fr, {"tokInfo": "Détails du jeton", "tokClose": "Fermer", "tokId": "ID du jeton", "tokIssuer": "Émetteur", "tokNoProps": "Ce jeton n’a pas de propriétés."});
+Object.assign(window.BOX_I18N.de, {"tokInfo": "Token-Details", "tokClose": "Schließen", "tokId": "Token-ID", "tokIssuer": "Aussteller", "tokNoProps": "Dieser Token hat keine Eigenschaften."});
+Object.assign(window.BOX_I18N.zh, {"tokInfo": "代币详情", "tokClose": "关闭", "tokId": "代币 ID", "tokIssuer": "发行方", "tokNoProps": "此代币没有属性。"});
+Object.assign(window.BOX_I18N.ja, {"tokInfo": "トークンの詳細", "tokClose": "閉じる", "tokId": "トークン ID", "tokIssuer": "発行者", "tokNoProps": "このトークンにはプロパティがありません。"});

@@ -210,6 +210,7 @@ function remarkMeta(rm) {
     return { schema, meta: meta && typeof meta === 'object' ? meta : null };
   } catch { return null; }
 }
+const attrFull = a => Array.isArray(a) ? a.filter(x => x && x.trait_type != null && x.value != null).map(x => [clean(String(x.trait_type), 80) || '?', clean(typeof x.value === 'object' ? JSON.stringify(x.value) : String(x.value), 400) || '…']) : [];
 const attrList = a => Array.isArray(a) ? a.filter(x => x && clean(String(x.trait_type ?? ''), 40) && x.value != null).map(x => clean(String(x.trait_type), 40) + ': ' + (clean(String(x.value), 60) || '…')) : [];
 async function onChainWebp(tok, rm, schema) {
   const s = schema && schema.img; const sc = rm.get('schema');
@@ -245,16 +246,17 @@ function tokenView(tok) {
     const v = { name: null, img: null, attrs: [], desc: null, remarks: [] };
     const k = keyTokenId(tok);
     if (k) { v.name = t('tokenKind') + ' · ' + k.slice(0, 6); v.img = 'img/key.jpg'; return v; }
-    if (meta) { v.name = clean(meta.name); v.desc = clean(meta.desc || meta.description, 160); v.attrs = attrList(meta.attributes); }
+    if (meta) { v.name = clean(meta.name); v.desc = clean(meta.desc || meta.description, 160); v.descFull = clean(meta.desc || meta.description, 2000); v.attrs = attrList(meta.attributes); v.full = attrFull(meta.attributes); }
     else v.remarks = [...rm].filter(([, r]) => clean(r.text, 80)).slice(0, 4).map(([n, r]) => (clean(n, 30) + ': ' + clean(r.text, 80)));
     if (tok.Issuer === ISS.CARDS && meta && typeof meta.image === 'string' && CARD_IMG.test(meta.image)) v.img = meta.image;
     else if (tok.Issuer === ISS.RAVEN && rmeta) v.img = await onChainWebp(tok, rm, rmeta.schema).catch(() => null);
     else if (tok.Issuer === ISS.MOEBA && S.net === 'testnet' && /^[0-9A-F]{64}$/.test(id)) {
       const j = await moebaApi(id);
       if (!j) setTimeout(() => viewCache.delete(ck), 30000); // try again later, e.g. after a rate limit
-      if (j) { v.name = clean(j.name) || v.name; v.desc = clean(j.description, 160); v.attrs = attrList(j.attributes); v.remarks = []; v.img = MOEBA_API + id + '.png?size=400'; }
+      if (j) { v.name = clean(j.name) || v.name; v.desc = clean(j.description, 160); v.descFull = clean(j.description, 2000); v.attrs = attrList(j.attributes); v.full = attrFull(j.attributes); v.remarks = []; v.img = MOEBA_API + id + '.png?size=400'; }
     }
     if (!v.name) v.name = uriLabel(tok);
+    if (!v.full) v.full = meta ? [] : [...rm].filter(([, r]) => clean(r.text, 400)).map(([n, r]) => [clean(n, 60), clean(r.text, 400)]);
     return v;
   })();
   viewCache.set(ck, p); return p;
@@ -271,6 +273,7 @@ function tokenCard(tok, opts) {
       h('span', { class: 'sm mono' }, short(tok.index)),
       extra,
       o.disabled ? h('span', { class: 'why' }, o.disabled) : null));
+  if (!gc) card.append(h('button', { type: 'button', class: 'tinfo-btn', title: t('tokInfo'), 'aria-label': t('tokInfo'), onclick: e => { e.stopPropagation(); e.preventDefault(); tokenDetails(tok); } }, 'ⓘ'));
   if (gc) {
     extra.append(h('span', null, t('gcCardSub')));
     if (o.big && !o.reveal) extra.append(h('span', { class: 'desc' }, t('gcAfterOpen')));
@@ -288,6 +291,34 @@ function tokenCard(tok, opts) {
     const im = h('img', { alt: v.name, referrerpolicy: 'no-referrer', decoding: 'async' }); im.onload = () => { img.textContent = ''; img.append(im); img.classList.add('has'); }; im.src = v.img;
   }); }
   return card;
+}
+
+const tokExplorer = id => (S.net === 'testnet' ? 'https://test.xahau.bithomp.com/en/nft/' : 'https://xahau.bithomp.com/en/nft/') + id;
+function tokenDetails(tok) {
+  const id = String(tok.index || '').toUpperCase();
+  const close = () => { ov.remove(); document.removeEventListener('keydown', esc); };
+  const esc = e => { if (e.key === 'Escape') close(); };
+  const pic = h('div', { class: 'tdimg' }, h('span', null, '◆'));
+  const name = h('h3', null, uriLabel(tok)); const body = h('div', { class: 'tdbody' });
+  const kv = (k, v, cp, link) => h('div', { class: 'tdrow' }, h('span', null, k), h('b', { class: 'mono' }, v), cp ? h('button', { type: 'button', class: 'tdcp', onclick: () => copy(cp) }, '⧉') : null, link ? h('a', { class: 'tdcp', href: link, target: '_blank', rel: 'noopener noreferrer', title: t('explorer') }, '↗') : null);
+  const uri = hexToText(tok.URI || '');
+  const sheet = h('div', { class: 'tdsheet', role: 'dialog', 'aria-modal': 'true', onclick: e => e.stopPropagation() },
+    h('button', { type: 'button', class: 'tdx', 'aria-label': t('tokClose'), onclick: close }, '✕'),
+    pic, name, body,
+    h('div', { class: 'tdmeta' },
+      kv(t('tokId'), id, id, tokExplorer(id)),
+      kv(t('tokIssuer'), short(tok.Issuer || ''), tok.Issuer || null, tok.Issuer ? explorerAcc(tok.Issuer) : null),
+      kv('URI', uri && printable(uri) ? uri : (tok.URI || '—'), null, null)),
+    h('a', { class: 'lnk', href: tokExplorer(id), target: '_blank', rel: 'noopener noreferrer' }, t('explorer') + ' ↗'));
+  const ov = h('div', { class: 'tdov', onclick: close }, sheet);
+  document.body.append(ov); document.addEventListener('keydown', esc);
+  tokenView(tok).then(v => {
+    name.textContent = v.name;
+    if (v.descFull) body.append(h('p', { class: 'tddesc' }, v.descFull));
+    if (v.full && v.full.length) body.append(h('div', { class: 'tdattrs' }, v.full.map(([k, x]) => h('div', { class: 'tdattr' }, h('span', null, k), h('b', null, x)))));
+    else body.append(h('p', { class: 'sm' }, t('tokNoProps')));
+    if (v.img) { const im = h('img', { alt: v.name, referrerpolicy: 'no-referrer', decoding: 'async' }); im.onload = () => { pic.textContent = ''; pic.append(im); pic.classList.add('has'); }; im.src = v.img; }
+  });
 }
 
 /* ---------- transactions (same shapes as the manual v14 tests) ---------- */
