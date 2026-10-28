@@ -1777,3 +1777,11 @@ Object.assign(window.BOX_I18N.fr, {"stRefresh": "↻ Actualiser"});
 Object.assign(window.BOX_I18N.de, {"stRefresh": "↻ Aktualisieren"});
 Object.assign(window.BOX_I18N.zh, {"stRefresh": "↻ 刷新"});
 Object.assign(window.BOX_I18N.ja, {"stRefresh": "↻ 更新"});
+/* stats hook accounts (v20261028r) */
+Object.assign(window.BOX_I18N.en, {"stHooksAll": "All accounts with the hook are counted: {k}.", "stHooksPart": "Counted accounts with the hook: {k} of {n} on the network."});
+Object.assign(window.BOX_I18N.ru, {"stHooksAll": "Считаются все аккаунты с хуком: {k}.", "stHooksPart": "Считаются аккаунты с хуком: {k} из {n} в сети."});
+Object.assign(window.BOX_I18N.es, {"stHooksAll": "Se cuentan todas las cuentas con el hook: {k}.", "stHooksPart": "Cuentas con el hook contadas: {k} de {n} en la red."});
+Object.assign(window.BOX_I18N.fr, {"stHooksAll": "Tous les comptes avec le hook sont comptés : {k}.", "stHooksPart": "Comptes avec le hook comptés : {k} sur {n} sur le réseau."});
+Object.assign(window.BOX_I18N.de, {"stHooksAll": "Alle Konten mit dem Hook werden gezählt: {k}.", "stHooksPart": "Gezählte Konten mit dem Hook: {k} von {n} im Netzwerk."});
+Object.assign(window.BOX_I18N.zh, {"stHooksAll": "已统计所有安装该 hook 的账户：{k}。", "stHooksPart": "已统计安装该 hook 的账户：{k} / 网络中共 {n}。"});
+Object.assign(window.BOX_I18N.ja, {"stHooksAll": "フックのあるすべてのアカウントを集計：{k}。", "stHooksPart": "集計したフック付きアカウント：ネットワーク上 {n} 件中 {k} 件。"});

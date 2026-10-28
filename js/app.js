@@ -1460,11 +1460,33 @@ async function stScan(hk) {
   }
   return r0;
 }
+/* How many accounts carry the box hook network-wide: the HookDefinition's ReferenceCount. The hash is read at run time
+   from the known install account's own Hook entry (never written in the page). Listing the other installers is not
+   possible from a static page (it would need a full ledger scan), so only the known accounts are counted. Cached 1 h. */
+const SRK = 'xbox.statsref.v1', SR_TTL = 60 * 60 * 1000;
+async function stRefCount(hooks) {
+  const id = S.net + ':' + hooks[0];
+  try { const c = JSON.parse(localStorage.getItem(SRK)); if (c && c.id === id && Date.now() - c.at < SR_TTL) return c.n; } catch {}
+  const objs = await accountObjects(hooks[0], 'hook');
+  let n = null;
+  for (const o of objs) for (const x of o.Hooks || []) {
+    const hh = x.Hook && x.Hook.HookHash; if (!hh || n != null) continue;
+    const r = await rpc('ledger_entry', { hook_definition: hh, ledger_index: 'validated' });
+    const d = r.node; if (d && String(d.HookNamespace || '').toUpperCase() === C.HOOK_NAMESPACE.toUpperCase()) n = Number(d.ReferenceCount) || null;
+  }
+  try { localStorage.setItem(SRK, JSON.stringify({ id, at: Date.now(), n })); } catch {}
+  return n;
+}
+function stNote(k, n) {
+  const e = $('stHooks'); if (!e) return;
+  e.textContent = n && n > k ? t('stHooksPart').replace('{k}', k).replace('{n}', n) : t('stHooksAll').replace('{k}', k);
+}
 async function loadStats(force) {
   const box = $('statsBox'); if (!box) return;
   const hooks = ((C.STATS_HOOKS || {})[S.net]) || [];
   if (!hooks.length) { box.classList.add('hide'); return; }
   box.classList.remove('hide');
+  stNote(hooks.length, null); stRefCount(hooks).then(n => stNote(hooks.length, n)).catch(() => {});
   const id = S.net + ':' + hooks.join(',');
   let c = null; try { c = JSON.parse(localStorage.getItem(STK)) || null; } catch {}
   const fresh = c && c.id === id && Date.now() - c.at < ST_TTL;
