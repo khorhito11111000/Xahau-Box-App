@@ -70,6 +70,36 @@ async function hookState(a, key) { const r = await rpc('ledger_entry', { hook_st
 async function uriToken(id) { const r = await rpc('ledger_entry', { uri_token: id, ledger_index: 'validated' }); return r.node || null; }
 async function currentLedger() { const r = await rpc('ledger_current', {}); return r.ledger_current_index; }
 async function reserves() { const r = await rpc('server_info', {}); const v = (r.info && r.info.validated_ledger) || {}; return { base: BigInt(Math.round((v.reserve_base_xrp || 1) * 1e6)), inc: BigInt(Math.round((v.reserve_inc_xrp || 0.2) * 1e6)) }; }
+/* Box creator from the ledger: the box entry's PreviousTxnID must be the tx that CREATED this exact HookState key
+   (CreatedNode HookState, same key) on the hook account; its signer is the creator. Otherwise: unknown (null). */
+async function boxCreator(hk, key) {
+  try {
+    const K = String(key).toUpperCase();
+    const r = await rpc('ledger_entry', { hook_state: { account: hk, key, namespace_id: C.HOOK_NAMESPACE }, ledger_index: 'validated' });
+    let id = r.node && r.node.PreviousTxnID;
+    for (let i = 0; id && i < 6; i++) { // follow this box entry's own history back to the tx that created it
+      const tx = await getTx(id); if (!tx || !tx.validated) return null;
+      const m = tx.meta || tx.metaData || {}; let next = null;
+      for (const n of m.AffectedNodes || []) {
+        const c = n.CreatedNode, md = n.ModifiedNode;
+        if (c && c.LedgerEntryType === 'HookState' && String((c.NewFields || {}).HookStateKey || '').toUpperCase() === K)
+          return m.TransactionResult === 'tesSUCCESS' && L.isAddress(tx.Account) ? tx.Account : null;
+        if (md && md.LedgerEntryType === 'HookState' && String((md.FinalFields || {}).HookStateKey || '').toUpperCase() === K) next = md.PreviousTxnID;
+      }
+      id = next;
+    }
+  } catch {}
+  return null;
+}
+const explorerAcc = a => NET().explorerTx.replace(/\/tx\/$/, '/account/') + a;
+function creatorRow(a) {
+  return h('div', { class: 'creator' }, h('div', { class: 'row' }, h('span', null, t('boxBy')),
+    h('span', { class: 'crv' }, h('b', { class: 'mono' }, a.slice(0, 7) + '…' + a.slice(-5)),
+      h('button', { class: 'mwb', type: 'button', title: t('copy'), 'aria-label': t('copy'), onclick: () => copy(a) }, mwCopyIco()),
+      h('a', { class: 'mwb crx', href: explorerAcc(a), target: '_blank', rel: 'noopener noreferrer', title: t('explorer'), 'aria-label': t('explorer') }, '↗'))),
+    h('p', { class: 'sm' }, t('boxByNote')));
+}
+const gcWarn = () => h('div', { class: 'card gcwarn' }, '⚠ ' + t('gcWarn'));
 async function getTx(hash) { return rpc('tx', { transaction: hash }); }
 function hookAnswers(tx) { const m = tx.meta || tx.metaData || {}; return (m.HookExecutions || []).map(x => hexToText((x.HookExecution || {}).HookReturnString || '') || '').filter(Boolean); }
 
@@ -148,7 +178,7 @@ function gcReveal(uriText) {
     finally { go.disabled = false; go.textContent = t('gcDecrypt'); }
   };
   go.onclick = run; pw.onkeydown = e => { if (e.key === 'Enter') run(); };
-  wrap.append(btn, form, out);
+  wrap.append(gcWarn(), btn, form, out);
   return wrap;
 }
 
@@ -1052,11 +1082,11 @@ async function showBox() {
   const q = parseQr($('qrInput').value); if (!q) return errSet('openErr', t('badQr'));
   if (q.n) { const nk = Object.keys(C.NETWORKS).find(k => C.NETWORKS[k].networkId === q.n); if (nk && nk !== S.net) { S.net = nk; save(); applyNet(); renderAcct(); toast(t('netSwitched') + ': ' + NET().label); } }
   openQ = q; v.append(h('div', { class: 'spin sm' }));
-  let b, ktid = null, holder = null, tok = null, cur;
+  let b, ktid = null, holder = null, tok = null, cur, by = null;
   try {
     const bk = L.boxKey(q.vc);
     [b, cur] = [parseBox(await hookState(q.h, bk)), await currentLedger()];
-    if (b) { const m = await hookState(q.h, L.modeKey(bk)); if (m && m.startsWith('01')) { ktid = m.slice(2); const kt = await uriToken(ktid); holder = kt ? kt.Owner : null; } if (!isZero(b.tid)) tok = await uriToken(b.tid); }
+    if (b) { const m = await hookState(q.h, L.modeKey(bk)); if (m && m.startsWith('01')) { ktid = m.slice(2); const kt = await uriToken(ktid); holder = kt ? kt.Owner : null; } if (!isZero(b.tid)) tok = await uriToken(b.tid); by = await boxCreator(q.h, bk); }
   } catch (e) { v.textContent = ''; return errSet('openErr', e.message); }
   openBox = b ? Object.assign(b, { ktid, holder, tok, cur }) : null;
   v.textContent = '';
@@ -1069,6 +1099,8 @@ async function showBox() {
       h('div', { class: 'gicon' }, window.BOX_ICON ? window.BOX_ICON('gift', 'gbig') : '🎁'),
       h('div', { class: 'gtitle' }, t('giftTitle')),
       L.isAddress(q.h) ? h('div', { class: 'gfrom' }, t('giftFrom') + ' ' + short(q.h)) : null,
+      by ? h('div', { class: 'gfrom' }, t('boxBy') + ': ' + by.slice(0, 7) + '…' + by.slice(-5) + ' · ' + t('boxByNote')) : null,
+      tok && gcTok(tok) ? gcWarn() : null,
       gp.length ? h('div', { class: 'ginside' }, t('giftInside') + ': ' + gp.join(' + ')) : null,
       h('button', { class: 'btn navy', type: 'button', onclick: () => { gc.remove(); rest.classList.remove('hide'); } }, t('giftSee')));
     rest.classList.add('hide'); v.prepend(gc);
@@ -1076,6 +1108,8 @@ async function showBox() {
   if (!b) { card.append(row(t('status'), t('stGone'), 'bad'), row(t('boxNumber'), short(q.vc))); return; }
   const amt = BigInt('0x' + b.amt), parts = []; if (amt) parts.push(dropsToXah(amt) + ' XAH'); if (tok) parts.push('1 URIToken');
   card.append(row(t('contents'), parts.join(' + '), 'yel'));
+  if (by) card.append(creatorRow(by));
+  if (tok && gcTok(tok)) card.append(gcWarn());
   if (tok) card.append(tokenCard(tok, { big: true }));
   const ekind = ktid ? 'token' : q.kind;
   card.append(row(t('kind'), t(ekind + 'Kind')));
