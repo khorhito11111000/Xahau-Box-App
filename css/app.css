@@ -433,3 +433,12 @@ html[data-theme=light] .sttile{background:#f7f9fd}html[data-theme=light] .sttile
 html[data-theme=light] .stbar{background:rgba(27,36,96,.1)}html[data-theme=light] .sthd{color:var(--navy)}
 .strf{margin-left:auto;font:700 12px/1 system-ui,sans-serif;padding:7px 10px;border-radius:20px;border:1px solid var(--line);background:rgba(248,206,34,.08);color:var(--y);cursor:pointer;white-space:nowrap}.strf:disabled{opacity:.5;cursor:default}
 html[data-theme=light] .strf{color:var(--gold)}
+.sitefoot{margin-top:28px;padding:20px 4px 4px;border-top:1px solid rgba(255,255,255,.1);color:var(--mut);font-size:13px;text-align:left}
+.sfbrand{display:flex;flex-direction:column;gap:3px;margin-bottom:16px}.sfbrand b{color:#ffd23f;font-size:16px}
+.sfcols{display:grid;grid-template-columns:1fr 1fr;gap:18px 14px}
+.sfcols h4{margin:0 0 8px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#dfe6f5}
+.sfcols a,.sfd summary{display:block;color:var(--mut);text-decoration:none;padding:4px 0;cursor:pointer}
+.sfd summary{list-style:none}.sfd summary::-webkit-details-marker{display:none}.sfd p{margin:2px 0 8px;font-size:12px;line-height:1.45}
+.sfdis{font-size:11.5px;line-height:1.45;margin:16px 0 0;text-align:center}.sfver{text-align:center;font-size:11px;margin:10px 0 0;opacity:.8}
+html[data-theme=light] .sitefoot{border-top-color:rgba(0,0,0,.12)}html[data-theme=light] .sitefoot h4{color:var(--navy)}html[data-theme=light] .sfbrand b{color:var(--navy)}
+.sfcols a:hover,.sfd summary:hover,.sfd[open] summary{color:#ffd23f}
