@@ -7,7 +7,7 @@ const V = new URL(self.location).searchParams.get('v') || '0';
 const CACHE = 'xbox-' + V;
 const Q = '?v=' + V;
 const ASSETS = ['./', 'css/app.css' + Q, 'js/theme.js' + Q, 'js/config.js' + Q, 'vendor/boxlib.js' + Q, 'vendor/xumm-oauth2-pkce-2.8.7.min.js' + Q,
-  'js/icons.js' + Q, 'js/i18n.js' + Q, 'js/app.js' + Q, 'manifest.webmanifest' + Q, 'img/icon-192.png?v=2', 'img/icon-512.png?v=2', 'img/icon-maskable-192.png?v=2', 'img/icon-maskable-512.png?v=2',
+  'js/icons.js' + Q, 'js/i18n.js' + Q, 'js/app.js' + Q, 'manifest.webmanifest' + Q, 'img/icon-192.png?v=3', 'img/icon-512.png?v=3', 'img/icon-maskable-192.png?v=3', 'img/icon-maskable-512.png?v=3',
   'img/hero2.jpg', 'img/net.svg?v=2', 'img/net-light.svg?v=2', 'img/evergram-logo.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
