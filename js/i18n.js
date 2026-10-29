@@ -1883,3 +1883,11 @@ Object.assign(window.BOX_I18N.fr,{opened:"Ouverte !"});
 Object.assign(window.BOX_I18N.de,{opened:"Geöffnet!"});
 Object.assign(window.BOX_I18N.zh,{opened:"已打开！"});
 Object.assign(window.BOX_I18N.ja,{opened:"開けました！"});
+
+Object.assign(window.BOX_I18N.ru,{sfRisk:"Перед использованием прочитай правила и безопасность. Начни с тестнета."});
+Object.assign(window.BOX_I18N.en,{sfRisk:"Before using, read the rules and the security section. Start on testnet."});
+Object.assign(window.BOX_I18N.es,{sfRisk:"Antes de usarla, lee las reglas y la seguridad. Empieza en testnet."});
+Object.assign(window.BOX_I18N.fr,{sfRisk:"Avant d’utiliser, lisez les règles et la sécurité. Commencez sur le testnet."});
+Object.assign(window.BOX_I18N.de,{sfRisk:"Lies vor der Nutzung die Regeln und die Sicherheitshinweise. Starte im Testnet."});
+Object.assign(window.BOX_I18N.zh,{sfRisk:"使用前请阅读规则和安全说明。先从测试网开始。"});
+Object.assign(window.BOX_I18N.ja,{sfRisk:"使う前にルールとセキュリティを読んでください。まずはテストネットから。"});
