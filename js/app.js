@@ -245,7 +245,7 @@ function tokenView(tok) {
     const id = String(tok.index || '').toUpperCase(); const rm = remarkMap(tok); const rmeta = remarkMeta(rm); const meta = rmeta && rmeta.meta;
     const v = { name: null, img: null, attrs: [], desc: null, remarks: [] };
     const k = keyTokenId(tok);
-    if (k) { v.name = t('tokenKind') + ' · ' + k.slice(0, 6); v.img = 'img/key.jpg?v=2'; return v; }
+    if (k) { v.name = t('tokenKind') + ' · ' + k.slice(0, 6); v.img = 'img/key.jpg?v=3'; return v; }
     if (meta) { v.name = clean(meta.name); v.desc = clean(meta.desc || meta.description, 160); v.descFull = clean(meta.desc || meta.description, 2000); v.attrs = attrList(meta.attributes); v.full = attrFull(meta.attributes); }
     else v.remarks = [...rm].filter(([, r]) => clean(r.text, 80)).slice(0, 4).map(([n, r]) => (clean(n, 30) + ': ' + clean(r.text, 80)));
     if (tok.Issuer === ISS.CARDS && meta && typeof meta.image === 'string' && CARD_IMG.test(meta.image)) v.img = meta.image;
@@ -1091,12 +1091,14 @@ function loadImg(src) { return new Promise((res, rej) => { const i = new Image()
 async function drawBox(link) {
   const cv = $('boxCanvas'), ctx = cv.getContext('2d');
   const bg = await loadImg('img/box.jpg?v=2'); cv.width = bg.width; cv.height = bg.height; ctx.drawImage(bg, 0, 0);
-  const qr = await loadImg(await L.qrDataURL(link, { margin: 1, width: 600 }));
+  const qr = await loadImg(await L.qrDataURL(link, { margin: 1, width: 600, errorCorrectionLevel: 'H' }));
+  const ico = await loadImg('img/icon-512.png?v=3').catch(() => null);
   // White rounded card, bottom-right (keeps the X mark visible), "OPEN BOX" under the QR.
   const size = 300, pad = 14, x = cv.width - size - 64, y = cv.height - size - 60;
   const cx = x - pad, cy = y - pad - 10, cw = size + 2 * pad, ch = size + 2 * pad + 44;
   ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(cx, cy, cw, ch, 22); ctx.fill();
   ctx.imageSmoothingEnabled = false; ctx.drawImage(qr, cx + pad, cy + pad, size, size);
+  if (ico) { const s = Math.round(size * 0.22), ix = cx + pad + (size - s) / 2, iy = cy + pad + (size - s) / 2; ctx.fillStyle = '#fff'; ctx.fillRect(ix, iy, s, s); ctx.imageSmoothingEnabled = true; ctx.drawImage(ico, ix + 4, iy + 4, s - 8, s - 8); }
   ctx.fillStyle = '#101C4A'; ctx.font = 'bold 26px "DejaVu Sans",Arial,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
   ctx.fillText('OPEN BOX', cx + cw / 2, cy + size + pad + 6);
 }
