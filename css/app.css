@@ -469,4 +469,4 @@ html[data-theme=light] .sitefoot{border-top-color:rgba(0,0,0,.12)}html[data-them
 .donaddr{font-size:12px;word-break:break-all;margin:4px 0 8px;color:#fff}
 .donbtns{display:flex;gap:8px}.donbtns .btn{min-height:40px;font-size:13px;padding:6px 4px;border-radius:12px}
 html[data-theme=light] .don{background:#fff;border-color:#e2b800;color:#334}html[data-theme=light] .donh b,html[data-theme=light] .donaddr{color:#0c1a3e}html[data-theme=light] .dontab{color:#334;border-color:rgba(0,0,0,.15)}
-.exbtn{margin-top:10px;min-height:44px;font-size:15px}
+.exbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.exbtn{min-height:44px;font-size:14px;padding:6px 8px}
