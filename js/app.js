@@ -729,7 +729,7 @@ async function pollLedger() {
 function startLive() {
   clearInterval(LIVE.timer); LIVE.timer = setInterval(pollLedger, C.LEDGER_POLL_MS || 4000); pollLedger();
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { pollLedger(); resumePack(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { pollLedger(); resumePack(); resumeClaim(); } });
 const liveRow = () => row(t('ledgerNow'), h('span', { class: 'lcur' }, curLedger() ? String(curLedger()) : '…'));
 const leftRow = (exp, cur) => row(t('timeLeft'), h('span', { 'data-exp': String(exp || 0), 'data-cur': String(cur || 0) }, '…'));
 
@@ -1002,7 +1002,8 @@ async function checkPending() {
     p.box.nonce = b.nonce; p.shown = true; save(); return finishPack();
   }
   if (p.op === 'claim') {
-    const d = await hookState(p.h, L.boxKey(p.vc)); const b = parseBox(d);
+    let b = parseBox(await hookState(p.h, L.boxKey(p.vc)));
+    for (let i = 0; i < 6 && b && b.status === 0; i++) { await sleep(2000); if (S.pending !== p) return; b = parseBox(await hookState(p.h, L.boxKey(p.vc))); } // the ledger may lag a few seconds
     if (b && b.status === 0) return errSet('signErr', t('notYet'));
     if (b && b.status === 2) { errSet('signErr', t('stClaiming')); await sleep(4000); return checkPending(); }
     return finishClaim();
@@ -1032,6 +1033,14 @@ async function checkPending() {
 /* After Xaman: the tab may be reloaded, a new tab may open, or the live answer may never arrive.
    If the box being packed is already on the ledger, show its link/QR right away. */
 let resuming = false;
+/* back from Xaman (reload, new tab or tab switch) while opening a box: if the ledger already shows it opened, show that right away */
+let resumingC = false;
+async function resumeClaim() {
+  const p = S.pending; if (resumingC || !p || p.op !== 'claim' || current !== 'sign') return;
+  resumingC = true;
+  try { const b = parseBox(await hookState(p.h, L.boxKey(p.vc))); if (S.pending === p && current === 'sign' && (!b || b.status !== 0)) await checkPending(); }
+  catch {} finally { resumingC = false; }
+}
 async function resumePack() {
   const p = S.pending; if (resuming || !p || p.op !== 'pack' || p.shown || p.box.net !== S.net || ['done', 'open', 'opened'].includes(current)) return;
   resuming = true;
@@ -1903,7 +1912,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 }
 $('stRefresh').onclick = () => { try { localStorage.removeItem(STK); } catch {} loadStats(true); };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && current === 'home') loadStats(); });
-initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); egify(document.body);
+initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); resumeClaim(); egify(document.body);
 // test hook for automated checks (read-only helpers, no secrets)
 window.__box = { hkTx, packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr, mintTx, gc: { encrypt: gcEncrypt, decrypt: gcDecrypt, genPw: gcGenPw, max: GC.MAX, iter: GC.ITER } };
 })();
