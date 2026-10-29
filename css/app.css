@@ -471,3 +471,4 @@ html[data-theme=light] .sitefoot{border-top-color:rgba(0,0,0,.12)}html[data-them
 html[data-theme=light] .don{background:#fff;border-color:#e2b800;color:#334}html[data-theme=light] .donh b,html[data-theme=light] .donaddr{color:#0c1a3e}html[data-theme=light] .dontab{color:#334;border-color:rgba(0,0,0,.15)}
 .exbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.exbtn{min-height:44px;font-size:14px;padding:6px 8px}
 .exico{width:22px;height:22px;border-radius:6px;flex:0 0 22px;object-fit:contain}
+.exitem{margin-top:8px}.exitem .exbtns{margin-top:4px}.exk{opacity:.8}

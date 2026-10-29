@@ -1289,7 +1289,7 @@ function exBlock(list) {
   list = list.filter(x => x && /^[0-9A-F]{64}$/i.test(x[1] || ''));
   if (!list.length) return null;
   return h('div', { class: 'exbox' }, h('div', { class: 'lbl' }, t('exCheck')),
-    h('div', { class: 'exrow' }, list.map(([k, hs]) => h('a', { class: 'chip exl', href: NET().explorerTx + hs.toUpperCase(), target: '_blank', rel: 'noopener noreferrer' }, t(k) + ' ↗'))));
+    list.map(([k, hs]) => h('div', { class: 'exitem' }, h('div', { class: 'sm exk' }, t(k)), exTx(hs.toUpperCase()))));
 }
 /* ---------- MY BOXES (creator) ---------- */
 const boxOpen = new Set();
