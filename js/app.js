@@ -295,8 +295,8 @@ function tokenCard(tok, opts) {
 
 const tokExplorer = id => (S.net === 'testnet' ? 'https://test.xahauexplorer.com/nft/' : 'https://xahauexplorer.com/nft/') + id;
 const winBase = () => S.net === 'testnet' ? 'https://testnet.xahauwin.com/' : 'https://xahauwin.com/';
-const exA = (href, label) => h('a', { class: 'btn o exbtn', href, target: '_blank', rel: 'noopener noreferrer' }, label + ' ↗');
-const exBtns = (a, b) => h('div', { class: 'exbtns' }, exA(a, 'Xahau Explorer'), exA(b, 'XahauWin'));
+const exA = (href, label, ico) => h('a', { class: 'btn o exbtn', href, target: '_blank', rel: 'noopener noreferrer' }, h('img', { class: 'exico', src: ico, alt: '' }), h('span', null, label));
+const exBtns = (a, b) => h('div', { class: 'exbtns' }, exA(a, 'Xahau Explorer', 'img/pj-xahauexplorer.png'), exA(b, 'XahauWin', 'img/pj-xahauwin.png'));
 const exTok = id => exBtns(tokExplorer(id), winBase() + 'nft/' + id);
 const exTx = id => exBtns(NET().explorerTx + id, winBase() + 'tx/' + id);
 function tokenDetails(tok) {
