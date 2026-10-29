@@ -1853,3 +1853,10 @@ Object.assign(window.BOX_I18N.fr,{mbCardT:'Mes boîtes',mbCardSub:'Créées, re�
 Object.assign(window.BOX_I18N.de,{mbCardT:'Meine Boxen',mbCardSub:'Erstellt, erhalten und gesendet'});
 Object.assign(window.BOX_I18N.zh,{mbCardT:'我的盒子',mbCardSub:'已创建、已收到和已发送'});
 Object.assign(window.BOX_I18N.ja,{mbCardT:'マイボックス',mbCardSub:'作成・受取・送信したボックス'});
+Object.assign(window.BOX_I18N.ru,{setSub:"Подарочные коды, язык, безопасность, о проекте, как всё работает и правила. Нажми на раздел, чтобы открыть его."});
+Object.assign(window.BOX_I18N.en,{setSub:"Gift codes, language, security, about the project, how it works and the rules. Tap a section to open it."});
+Object.assign(window.BOX_I18N.es,{setSub:"Códigos regalo, idioma, seguridad, sobre el proyecto, cómo funciona y las reglas. Toca una sección para abrirla."});
+Object.assign(window.BOX_I18N.fr,{setSub:"Codes cadeaux, langue, sécurité, à propos du projet, fonctionnement et règles. Touchez une section pour l’ouvrir."});
+Object.assign(window.BOX_I18N.de,{setSub:"Geschenkcodes, Sprache, Sicherheit, über das Projekt, so funktioniert’s und Nutzungsregeln. Tipp auf einen Bereich, um ihn zu öffnen."});
+Object.assign(window.BOX_I18N.zh,{setSub:"礼品码、语言、安全、关于项目、使用说明和使用规则。点击某一项即可展开。"});
+Object.assign(window.BOX_I18N.ja,{setSub:"ギフトコード、言語、セキュリティ、プロジェクトについて、使い方、利用規約。項目をタップすると開きます。"});

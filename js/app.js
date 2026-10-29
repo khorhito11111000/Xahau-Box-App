@@ -350,7 +350,7 @@ const appUrl = () => C.APP_URL || (location.origin + location.pathname);
 const qrLink = q => appUrl() + '#' + q;
 
 /* ---------- screens ---------- */
-const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'settings'];
+const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'settings', 'mybx'];
 let current = 'home', afterAccount = null;
 /* Back: the in-page "Back" button and the phone's / browser's Back do the same thing (goBack).
    History holds at most one extra entry above "#home" ({xb:1}): leaving home adds it, moving between
@@ -1572,11 +1572,11 @@ let mbTab = 'built', mbSeq = 0, mbData = null, mbBusy = false;
 function enterMyBoxes(tab) {
   if (tab) mbTab = tab;
   if (!needAccount(() => enterMyBoxes(tab), 'mybx')) return;
-  enterSettings('boxes'); mbLoad();
+  show('mybx'); mbLoad();
 }
 const enterBoxes = () => enterMyBoxes('built');
 const enterInbox = () => enterMyBoxes('recv');
-function mbRefresh() { if (current === 'settings' && $('acc-boxes').open) mbLoad(); }
+function mbRefresh() { if (current === 'mybx') mbLoad(); }
 /* how each key token left this account: its own Remit / sell offer in the public history (read-only) */
 async function keyXfers(me, ids) {
   const want = new Set(ids.map(x => String(x).toUpperCase())), out = new Map();
@@ -1750,7 +1750,6 @@ function mbRender() {
   renderLive(false);
 }
 $('mbTabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (!b || b.dataset.tab === mbTab) return; mbTab = b.dataset.tab; if (mbData) mbRender(); else mbTabsUi(); };
-$('acc-boxes').addEventListener('toggle', () => { if ($('acc-boxes').open && !mbData && !mbBusy && current === 'settings') mbLoad(); });
 /* a box that is no longer (or not only) in this account's hook state: read-only card from the ledger */
 const histOpen = new Set();
 function histCard(x) {
