@@ -765,7 +765,7 @@ async function enterCreate(preset) {
     if (preset.giftNew && sel.gift) newIds.add(sel.gift);
     syncKindUi();
   }
-  if (preset && preset.key && sel.key) wStep = 3;
+  if (preset && preset.key && sel.key) wStep = 5;
   renderTokens(); updateSummary(); wShow();
   if (preset && preset.giftNew && sel.gift) { toast(t('gcMinted')); const el = document.querySelector('#giftTokens .tok.sel'); if (el) el.scrollIntoView({ block: 'center' }); }
   else if (preset && sel.key) { toast(t('minted')); const el = document.querySelector('#keyTokens .tok.sel'); if (el) el.scrollIntoView({ block: 'center' }); }
@@ -816,10 +816,16 @@ const kind = () => { const top = document.querySelector('input[name=kind]:checke
 function syncKindUi(quiet) {
   if (acct && giftIsGc() && kind() !== 'token') { document.querySelector('input[name=kind][value=token]').checked = true; if (!quiet) toast(t('gcNeedsKey')); }
   if (!quiet && acct && kind() === 'token' && !sel.key) { keyDefaults(); if (sel.key) return renderTokens(); }
-  const k = kind(); $('linkWrap').classList.toggle('hide', k === 'token'); $('namedWrap').classList.toggle('hide', k !== 'named'); $('keyWrap').classList.toggle('hide', k !== 'token'); updateSummary(); wProgress(); }
+  const k = kind(); keyNote(); $('linkWrap').classList.toggle('hide', k === 'token'); $('namedWrap').classList.toggle('hide', k !== 'named'); $('keyWrap').classList.toggle('hide', k !== 'token'); updateSummary(); wProgress(); }
+/* key-token mode: say whether a key made earlier is waiting for a box (it goes into this one) or a new key is made when the box is built */
+function keyNote() {
+  const e = $('keyWaitNote'); if (!e) return;
+  if (!acct || kind() !== 'token') { e.classList.add('hide'); return; }
+  e.textContent = sel.key ? t('keyWait').replace('{id}', short(sel.key)) : t('keyNewHint'); e.classList.remove('hide');
+}
 /* create wizard: one step at a time (1 what, 2 how, 3 key - key-token mode only, 4 time limit, 5 check and sign) */
 let wStep = 1;
-const wSteps = () => kind() === 'token' ? [1, 2, 3, 4, 5] : [1, 2, 4, 5];
+const wSteps = () => [1, 2, 4, 5]; // key step removed: a key token is made only together with its box
 function wProgress() {
   const st = wSteps(); if (!st.includes(wStep)) wStep = st.find(x => x > wStep) || 5;
   const i = st.indexOf(wStep);
@@ -842,7 +848,6 @@ function wCheck(n) {
     if (giftIsGc() && kind() !== 'token') return t('gcNeedsKey');
     if (kind() === 'named' && !L.isAddress($('namedAddr').value.trim())) return t('needNamed');
   }
-  if (n === 3 && kind() === 'token' && !sel.key) return t(freeKeys().length ? 'needKey' : 'noKeyYet');
   return null;
 }
 function sumMore() {
@@ -850,7 +855,7 @@ function sumMore() {
   const g = sel.gift && acct.tokens.find(x => x.index === sel.gift);
   if (g) m.append(row('URIToken', (gcTok(g) ? t('gcTag') + ' · ' : '') + short(g.index)));
   m.append(row(t('kind'), k === 'token' ? t('kToken') : k === 'named' ? t('kNamed') + ' ' + short($('namedAddr').value.trim()) : t('kBearer')));
-  if (k === 'token') m.append(row(t('sumKey'), sel.key ? short(sel.key) : '—', sel.key ? null : 'bad'));
+  if (k === 'token') m.append(row(t('sumKey'), sel.key ? t('keyWaitSum') + ' ' + short(sel.key) : t('keyNewSum'), 'yel'), h('p', { class: 'sm' }, t(sel.key ? 'keyWaitHint' : 'keyNewHint')));
   m.append(row(t('timeLimit'), $('expSel').selectedOptions[0].textContent), row('Network', NET().label));
 }
 $('wNext').onclick = () => { const e = wCheck(wStep); if (e) return errSet('createErr', e); const st = wSteps(); wShow(st[st.indexOf(wStep) + 1] || 5); window.scrollTo(0, 0); };
@@ -937,7 +942,12 @@ $('packBtn').onclick = () => {
   let named = null;
   if (k === 'named') { named = $('namedAddr').value.trim(); if (!L.isAddress(named)) return errSet('createErr', t('needNamed')); }
   if (giftIsGc() && k !== 'token') return errSet('createErr', t('gcNeedsKey'));
-  if (k === 'token' && !sel.key) return errSet('createErr', t(freeKeys().length ? 'needKey' : 'noKeyYet'));
+  if (k === 'token' && !sel.key) {
+    if (!canMint(acct)) return errSet('createErr', t('mintNoFunds'));
+    const tx = mintTx(acct.address, keyUri()); const tid = L.uriTokenId(acct.address, tx.URI);
+    S.pending = { op: 'mint', tx, tid, auto: true, form: { amt: $('amtInput').value, gift: sel.gift, expDays: Number($('expSel').value) } }; save();
+    return enterSign();
+  }
   if (k === 'token' && (sel.key === sel.gift || !isKeyTok(acct.tokens.find(x => x.index === sel.key)))) return errSet('createErr', t('needKey'));
   const exp = expLedger();
   const b = { kind: k, h: acct.address, net: S.net, tid: sel.gift || Z64, amt: L.hex.u64(amt), exp: exp ? L.hex.u32(exp) : '00000000', named, created: Date.now() };
@@ -951,7 +961,7 @@ $('packBtn').onclick = () => {
 function signTxs() {
   const p = S.pending; if (!p) return [];
   if (p.op === 'pack') { const out = []; if (p.audit) out.push({ label: t('stepAudit'), tx: auditTx(p.box.h) }); out.push({ label: p.audit ? t('stepPack') : t('stepOnly'), tx: packTx(p.box.h, p.box), main: true }); return out; }
-  return [{ label: t('stepOnly'), tx: p.tx, main: true }];
+  return [{ label: p.op === 'mint' ? t('stepMintKey') : t('stepOnly'), tx: p.tx, main: true }];
 }
 function jsonBlock(item) {
   const txt = JSON.stringify(item.tx, null, 2);
@@ -1023,7 +1033,7 @@ async function checkPending() {
     const tok = await uriToken(p.tid).catch(() => null);
     if (!tok || tok.Owner !== p.tx.Account) return errSet('signErr', t('notYet'));
     const form = p.form; S.pending = null; save(); stDirty();
-    return enterCreate(Object.assign({}, form, { key: p.tid }));
+    await enterCreate(Object.assign({}, form, { key: p.tid })); return autoPack(p);
   }
   if (p.op === 'gmint') {
     const tok = await uriToken(p.tid).catch(() => null);
@@ -1044,6 +1054,8 @@ let resuming = false;
 let resumingC = false;
 /* back from Xaman after minting a key/gift token: if the token is already on the ledger, go on to the next step with it selected */
 let resumingM = false;
+/* the key was made by «Build box»: go on to packing with it (second signature) */
+function autoPack(p) { if (p.auto && current === 'create' && sel.key === p.tid && kind() === 'token') $('packBtn').onclick(); }
 async function resumeMint(any) {
   const p = S.pending; if (resumingM || !p || (p.op !== 'mint' && p.op !== 'gmint')) return false;
   if (!any && !['sign', 'create'].includes(current)) return false;
@@ -1053,6 +1065,7 @@ async function resumeMint(any) {
     if (!tok || tok.Owner !== p.tx.Account || S.pending !== p) return false;
     const form = p.form; S.pending = null; save(); stDirty();
     await enterCreate(Object.assign({}, form, p.op === 'mint' ? { key: p.tid } : { gift: p.tid, giftNew: true }));
+    if (p.op === 'mint') autoPack(p);
     return true;
   } catch { return false; } finally { resumingM = false; }
 }
