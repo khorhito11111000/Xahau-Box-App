@@ -293,7 +293,7 @@ function tokenCard(tok, opts) {
   return card;
 }
 
-const tokExplorer = id => (S.net === 'testnet' ? 'https://test.xahau.bithomp.com/en/nft/' : 'https://xahau.bithomp.com/en/nft/') + id;
+const tokExplorer = id => (S.net === 'testnet' ? 'https://test.xahauexplorer.com/nft/' : 'https://xahauexplorer.com/nft/') + id;
 function tokenDetails(tok) {
   const id = String(tok.index || '').toUpperCase();
   const close = () => { ov.remove(); document.removeEventListener('keydown', esc); };
