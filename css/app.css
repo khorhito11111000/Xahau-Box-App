@@ -455,6 +455,4 @@ html[data-theme=light] .sitefoot{border-top-color:rgba(0,0,0,.12)}html[data-them
 
 .btn.b{background:linear-gradient(180deg,#3d8bff,#1f5fd6);color:#fff;box-shadow:0 8px 24px rgba(61,139,255,.28)}
 
-.fwwrap{position:relative}
-#fwCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .okchk{display:inline-flex;align-items:center;justify-content:center;width:1.15em;height:1.15em;border-radius:50%;background:#22c55e;color:#fff;font-size:.8em;font-weight:800;vertical-align:.08em;box-shadow:0 0 16px rgba(34,197,94,.45)}
