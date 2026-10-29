@@ -1126,7 +1126,7 @@ async function showBox() {
   openBox = b ? Object.assign(b, { ktid, holder, tok, cur }) : null;
   v.textContent = '';
   const card = h('div', { class: 'card' });
-  const rest = h('div', { class: 'giftrest' }, h('div', { class: 'hero sm' }, h('img', { src: 'img/hero.jpg', alt: '' })), card);
+  const rest = h('div', { class: 'giftrest' }, h('div', { class: 'hero sm' }, h('img', { src: 'img/hero2.jpg', alt: '' })), card);
   v.append(rest);
   if (b && b.status === 0) {
     const a0 = BigInt('0x' + b.amt), gp = []; if (a0) gp.push(dropsToXah(a0) + ' XAH'); if (tok) gp.push(gcTok(tok) ? t('gcTag') : '1 URIToken');
