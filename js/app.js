@@ -666,7 +666,8 @@ function freeToLock(v, hasTok, hasKey) {
   const rv = v.res.base + BigInt(v.info.OwnerCount || 0) * v.res.inc;
   const extra = 1n + (hasTok ? 1n : 0n) + (hasKey ? 1n : 0n) + (v.nck ? 0n : 1n);
   const f = v.balance - (v.held + v.ock + 100000n + 2000n + rv + extra * v.res.inc + 1000000n);
-  return f > 0n ? f : 0n;
+  const m = f - 1000000n; // safety margin: the hook keeps 0.1 XAH more per box and refuses near the limit (testnet: free-0.2 refused, free-1 accepted)
+  return m > 0n ? m : 0n;
 }
 
 /* ---------- live ledger counter (read-only polling, paused when the tab is hidden) ---------- */
@@ -864,6 +865,7 @@ function updateSummary() {
   const e = expLedger(), box = $('expNote'); box.textContent = '';
   box.append(liveRow(), row(t('ledgerExp'), e ? String(e) : t('limitNone')));
   if (e) box.append(leftRow(e, acct.cur), row(t('approx'), new Date(Date.now() + Number($('expSel').value) * 86400000).toLocaleDateString(S.lang)));
+  else box.append(h('div', { class: 'card warn' }, '⚠️ ' + t(kind() === 'token' ? 'noLimitWarnKey' : 'noLimitWarn')));
   renderLive(false);
 }
 /* key token mint: Flags 0 (not burnable: v14 rejects burnable keys), unique URI pointing at the page's own key image */
@@ -1272,7 +1274,11 @@ function boxCard(b, kn, lk, pk, ks) {
     body.append(kb);
     if (ok) head.querySelector('.bst').textContent = t('kxSentShort');
   } else if (b.ktid) body.append(keyHandCard(b.ktid));
-  if (kn) body.append(h('button', { class: 'btn o', type: 'button', onclick: () => startOpen(kn.vc) }, t('takeBack')));
+  if (kn) {
+    const keyGone = !!(b.ktid && ks && ks.st === 'gone'), expGone = !!(expN && curLedger(acct.cur) > expN);
+    if (expGone || keyGone) body.append(h('button', { class: 'btn o', type: 'button', onclick: () => startOpen(kn.vc) }, t('takeBack')));
+    else body.append(h('p', { class: 'sm' }, t(expN ? 'takeBackWait' : 'takeBackNever')));
+  }
   { const ex = exBlock([['exPack', pk && pk.hash]]); body.append(ex || h('p', { class: 'sm' }, t('exNone'))); }
   const c = h('div', { class: 'card bcard' }, head, body);
   const set = on => { body.classList.toggle('hide', !on); c.classList.toggle('open', on); head.setAttribute('aria-expanded', String(on)); };
@@ -1474,7 +1480,7 @@ async function stScan(hk) {
 /* How many accounts carry the box hook network-wide: the HookDefinition's ReferenceCount. The hash is read at run time
    from the known install account's own Hook entry (never written in the page). Listing the other installers is not
    possible from a static page (it would need a full ledger scan), so only the known accounts are counted. Cached 1 h. */
-const SRK = 'xbox.statsref.v1', SR_TTL = 60 * 60 * 1000;
+const SRK = 'xbox.statsref.v2', SR_TTL = 60 * 60 * 1000;
 async function stRefCount(hooks) {
   const id = S.net + ':' + hooks[0];
   try { const c = JSON.parse(localStorage.getItem(SRK)); if (c && c.id === id && Date.now() - c.at < SR_TTL) return c.n; } catch {}
@@ -1483,7 +1489,7 @@ async function stRefCount(hooks) {
   for (const o of objs) for (const x of o.Hooks || []) {
     const hh = x.Hook && x.Hook.HookHash; if (!hh || n != null) continue;
     const r = await rpc('ledger_entry', { hook_definition: hh, ledger_index: 'validated' });
-    const d = r.node; if (d && String(d.HookNamespace || '').toUpperCase() === C.HOOK_NAMESPACE.toUpperCase()) n = Number(d.ReferenceCount) || null;
+    const d = r.node; if (d && d.ReferenceCount != null) { const v = parseInt(String(d.ReferenceCount), 16); n = Number.isFinite(v) && v > 0 ? v : null; }
   }
   try { localStorage.setItem(SRK, JSON.stringify({ id, at: Date.now(), n })); } catch {}
   return n;
@@ -1741,7 +1747,7 @@ function hkTx(who) {
   if (!/^\d{1,3}$/.test(api) || !/^\d{1,10}$/.test(fl)) throw new Error('HookApiVersion / Flags');
   const hs = $('hkHash').value.trim().toUpperCase(); if (!isHex(hs, 64)) throw new Error('HookHash: 64 hex');
   const hk = { HookHash: hs };
-  Object.assign(hk, { HookOn: on, HookNamespace: ns, HookApiVersion: Number(api), Flags: Number(fl) });
+  Object.assign(hk, { HookOn: on, HookNamespace: ns, Flags: Number(fl) }); // by hash: no HookApiVersion (temMALFORMED), it comes from the definition
   return { TransactionType: 'SetHook', Account: who || S.account.address, NetworkID: NET().networkId, Hooks: [{ Hook: hk }] };
 }
 $('hkGo').onclick = async () => {
