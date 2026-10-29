@@ -390,7 +390,8 @@ function goBack() {
       return show('home');
     }
     case 'sign':
-      if (p && (p.op === 'pack' || p.op === 'mint' || p.op === 'gmint')) { const who = p.op === 'pack' ? p.box.h : p.tx.Account; return acct && acct.address === who ? show('create') : enterCreate(); }
+      if (p && (p.op === 'mint' || p.op === 'gmint')) { resumeMint(true).then(ok => { if (!ok) enterCreate(); }); return; }
+      if (p && p.op === 'pack') { const who = p.box.h; return acct && acct.address === who ? show('create') : enterCreate(); }
       if (p && p.op === 'claim' && p.from === 'inbox') { S.pending = null; save(); return enterInbox(); }
       if (p && p.op === 'claim') return $('boxView').childElementCount ? show('open') : enterOpen();
       if (p && p.op === 'open') return enterBoxes();
@@ -732,7 +733,7 @@ async function pollLedger() {
 function startLive() {
   clearInterval(LIVE.timer); LIVE.timer = setInterval(pollLedger, C.LEDGER_POLL_MS || 4000); pollLedger();
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { pollLedger(); resumePack(); resumeClaim(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { pollLedger(); resumePack(); resumeClaim(); resumeMint(); } });
 const liveRow = () => row(t('ledgerNow'), h('span', { class: 'lcur' }, curLedger() ? String(curLedger()) : '…'));
 const leftRow = (exp, cur) => row(t('timeLeft'), h('span', { 'data-exp': String(exp || 0), 'data-cur': String(cur || 0) }, '…'));
 
@@ -1041,6 +1042,20 @@ async function checkPending() {
 let resuming = false;
 /* back from Xaman (reload, new tab or tab switch) while opening a box: if the ledger already shows it opened, show that right away */
 let resumingC = false;
+/* back from Xaman after minting a key/gift token: if the token is already on the ledger, go on to the next step with it selected */
+let resumingM = false;
+async function resumeMint(any) {
+  const p = S.pending; if (resumingM || !p || (p.op !== 'mint' && p.op !== 'gmint')) return false;
+  if (!any && !['sign', 'create'].includes(current)) return false;
+  resumingM = true;
+  try {
+    const tok = await uriToken(p.tid).catch(() => null);
+    if (!tok || tok.Owner !== p.tx.Account || S.pending !== p) return false;
+    const form = p.form; S.pending = null; save(); stDirty();
+    await enterCreate(Object.assign({}, form, p.op === 'mint' ? { key: p.tid } : { gift: p.tid, giftNew: true }));
+    return true;
+  } catch { return false; } finally { resumingM = false; }
+}
 async function resumeClaim() {
   const p = S.pending; if (resumingC || !p || p.op !== 'claim' || current !== 'sign') return;
   resumingC = true;
@@ -1927,7 +1942,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 }
 $('stRefresh').onclick = () => { try { localStorage.removeItem(STK); } catch {} loadStats(true); };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && current === 'home') loadStats(); });
-initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); resumeClaim(); egify(document.body);
+initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); resumeClaim(); resumeMint(); egify(document.body);
 // test hook for automated checks (read-only helpers, no secrets)
 window.__box = { hkTx, packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr, mintTx, gc: { encrypt: gcEncrypt, decrypt: gcDecrypt, genPw: gcGenPw, max: GC.MAX, iter: GC.ITER } };
 })();
