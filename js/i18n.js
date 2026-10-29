@@ -1845,3 +1845,11 @@ Object.assign(window.BOX_I18N.fr, {"kFromWho": "Reçu de", "kToWho": "Envoyé à
 Object.assign(window.BOX_I18N.de, {"kFromWho": "Erhalten von", "kToWho": "Gesendet an"});
 Object.assign(window.BOX_I18N.zh, {"kFromWho": "收到自", "kToWho": "发送给"});
 Object.assign(window.BOX_I18N.ja, {"kFromWho": "受け取り元", "kToWho": "送り先"});
+
+Object.assign(window.BOX_I18N.ru,{mbCardT:'Мои боксы',mbCardSub:'Собранные, полученные и отправленные'});
+Object.assign(window.BOX_I18N.en,{mbCardT:'My boxes',mbCardSub:'Built, received and sent'});
+Object.assign(window.BOX_I18N.es,{mbCardT:'Mis cajas',mbCardSub:'Creadas, recibidas y enviadas'});
+Object.assign(window.BOX_I18N.fr,{mbCardT:'Mes boîtes',mbCardSub:'Créées, reçues et envoyées'});
+Object.assign(window.BOX_I18N.de,{mbCardT:'Meine Boxen',mbCardSub:'Erstellt, erhalten und gesendet'});
+Object.assign(window.BOX_I18N.zh,{mbCardT:'我的盒子',mbCardSub:'已创建、已收到和已发送'});
+Object.assign(window.BOX_I18N.ja,{mbCardT:'マイボックス',mbCardSub:'作成・受取・送信したボックス'});

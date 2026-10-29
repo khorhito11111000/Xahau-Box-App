@@ -452,3 +452,5 @@ html[data-theme=light] .sitefoot{border-top-color:rgba(0,0,0,.12)}html[data-them
 .sfroad>summary{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#dfe6f5}.sfroad[open] ol{margin-top:8px}
 .sfcols{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}.sfcols .sfr5{margin:4px 0 0}
 .oldkeys{margin:10px 0}.oldkeys>summary{cursor:pointer;padding:10px 0;color:var(--mut);font-size:14px}
+
+.btn.b{background:linear-gradient(180deg,#3d8bff,#1f5fd6);color:#fff;box-shadow:0 8px 24px rgba(61,139,255,.28)}

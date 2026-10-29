@@ -397,6 +397,7 @@ function goBack() {
       if (p && p.op === 'remit' && p.from === 'inbox') { S.pending = null; save(); return enterInbox(); }
       return show('home');
     case 'done': return doneFrom === 'boxes' ? enterBoxes() : show('home');
+    case 'create': { const st = wSteps(), i = st.indexOf(wStep); if (i > 0) { wShow(st[i - 1]); window.scrollTo(0, 0); return; } return show('home'); }
     default: return show('home');
   }
 }
@@ -1851,6 +1852,7 @@ function route(name) {
   show('home');
 }
 $('goCreate').onclick = () => enterCreate();
+$('goMyBoxes').onclick = () => enterMyBoxes();
 $('goOpen').onclick = () => enterOpen();
 $('goInbox').onclick = () => enterInbox();
 /* Settings and info: one screen, sections as an accordion (one open at a time) */
