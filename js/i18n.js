@@ -1830,3 +1830,10 @@ Object.assign(window.BOX_I18N.fr, {"sfR5N": "(Serveur dédié, peut-être sur Ev
 Object.assign(window.BOX_I18N.de, {"sfR5N": "(Eigener Server, möglicherweise auf Evernode)"});
 Object.assign(window.BOX_I18N.zh, {"sfR5N": "（自有服务器，可能部署在 Evernode 上）"});
 Object.assign(window.BOX_I18N.ja, {"sfR5N": "（専用サーバー、Evernode 上の可能性あり）"});
+Object.assign(window.BOX_I18N.ru, {"sfR0": "Поддержка", "sfR0T": "Служба поддержки: поможем, если что-то не получается с боксом."});
+Object.assign(window.BOX_I18N.en, {"sfR0": "Support", "sfR0T": "A support service to help if something goes wrong with a box."});
+Object.assign(window.BOX_I18N.es, {"sfR0": "Soporte", "sfR0T": "Un servicio de soporte para ayudar si algo falla con una caja."});
+Object.assign(window.BOX_I18N.fr, {"sfR0": "Support", "sfR0T": "Un service d’assistance pour aider si quelque chose ne va pas avec une boîte."});
+Object.assign(window.BOX_I18N.de, {"sfR0": "Support", "sfR0T": "Ein Support-Service, der hilft, wenn mit einer Box etwas nicht klappt."});
+Object.assign(window.BOX_I18N.zh, {"sfR0": "支持服务", "sfR0T": "支持服务：盒子遇到问题时为你提供帮助。"});
+Object.assign(window.BOX_I18N.ja, {"sfR0": "サポート", "sfR0T": "ボックスで困ったときに助けるサポート窓口。"});
