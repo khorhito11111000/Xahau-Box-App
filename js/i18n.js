@@ -1891,3 +1891,11 @@ Object.assign(window.BOX_I18N.fr,{sfRisk:"Avant d’utiliser, lisez les règles 
 Object.assign(window.BOX_I18N.de,{sfRisk:"Lies vor der Nutzung die Regeln und die Sicherheitshinweise. Starte im Testnet."});
 Object.assign(window.BOX_I18N.zh,{sfRisk:"使用前请阅读规则和安全说明。先从测试网开始。"});
 Object.assign(window.BOX_I18N.ja,{sfRisk:"使う前にルールとセキュリティを読んでください。まずはテストネットから。"});
+
+Object.assign(window.BOX_I18N.ru, {"pjXhw": "Обозреватель сети Xahau"});
+Object.assign(window.BOX_I18N.en, {"pjXhw": "Xahau Network explorer"});
+Object.assign(window.BOX_I18N.es, {"pjXhw": "Explorador de la red Xahau"});
+Object.assign(window.BOX_I18N.fr, {"pjXhw": "Explorateur du réseau Xahau"});
+Object.assign(window.BOX_I18N.de, {"pjXhw": "Xahau-Netzwerk-Explorer"});
+Object.assign(window.BOX_I18N.zh, {"pjXhw": "Xahau 网络浏览器"});
+Object.assign(window.BOX_I18N.ja, {"pjXhw": "Xahau ネットワーク エクスプローラー"});
