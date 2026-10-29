@@ -1585,6 +1585,35 @@ async function keyXfers(me, ids) {
   }
   return out;
 }
+/* key tokens this account received and then passed on (its own Remit of someone else's key token): shown under "Sent" */
+async function passedKeys(me) {
+  const ids = new Map(); let marker;
+  for (let i = 0; i < 3; i++) {
+    const r = await rpc('account_tx', Object.assign({ account: me, ledger_index_min: -1, ledger_index_max: -1, limit: 200, forward: false }, marker ? { marker } : {}));
+    for (const e of r.transactions || []) {
+      const tx = e.tx || e.tx_json || {}, meta = e.meta || e.metaData || {};
+      if (tx.TransactionType !== 'Remit' || tx.Account !== me || meta.TransactionResult !== 'tesSUCCESS') continue;
+      for (const id of tx.URITokenIDs || []) { const k = String(id).toUpperCase(); if (!ids.has(k)) ids.set(k, { to: tx.Destination, date: tx.date ? (tx.date + 946684800) * 1000 : 0 }); }
+    }
+    marker = r.marker; if (!marker) break;
+  }
+  const toks = [];
+  await Promise.all([...ids.keys()].map(id => uriToken(id).then(x => { if (x && x.Issuer !== me && x.Owner !== me && keyTokenId(x)) toks.push(x); }).catch(() => {})));
+  const byIss = new Map(); for (const x of toks) { if (!byIss.has(x.Issuer)) byIss.set(x.Issuer, []); byIss.get(x.Issuer).push(x); }
+  const out = [];
+  for (const [iss, ks] of byIss) {
+    let st = new Map(); try { st = new Map((await nsEntries(iss)).map(e => [e.HookStateKey, e.HookStateData])); } catch { continue; }
+    const want = new Map(ks.map(k => [k.index.toUpperCase(), k]));
+    for (const [k, d] of st) {
+      if (d.length !== 170) continue; const m = st.get(L.modeKey(k));
+      if (!m || m.length !== 66 || !m.startsWith('01')) continue; const kt = m.slice(2).toUpperCase();
+      const tok = want.get(kt); if (!tok) continue; const b = parseBox(d); if (!b) continue;
+      const x = ids.get(kt) || {};
+      out.push({ b: Object.assign(b, { key: k, h: iss, ktid: kt }), nonce: b.nonce, key: true, st: t('mbNotOpened'), who: [t('mbKeyAt'), tok.Owner], date: x.date });
+    }
+  }
+  return out;
+}
 async function mbLoad() {
   const seq = ++mbSeq, list = $('mbList'); errSet('boxesErr'); mbData = null; mbBusy = true; mbTabsUi();
   list.textContent = ''; $('vcCard').classList.add('hide');
@@ -1596,7 +1625,7 @@ async function mbLoad() {
   list.append(h('div', { class: 'spin sm' }));
   const me = S.account.address;
   try {
-    const [v, inbox, hist] = await Promise.all([loadAccountView(me), findInbox(true).catch(() => null), boxHistory(me, true).catch(() => null)]);
+    const [v, inbox, hist, passed] = await Promise.all([loadAccountView(me), findInbox(true).catch(() => null), boxHistory(me, true).catch(() => null), passedKeys(me).catch(() => [])]);
     if (seq !== mbSeq) return;
     acct = v;
     const recs = hist ? hist.recs : [];
@@ -1647,6 +1676,7 @@ async function mbLoad() {
       const b = lb || r.b; if (!b) continue;
       sent.push({ b, pack: pk && pk.hash, nonce: b.nonce, key: pk ? !!pk.ktid : !r.link, st: lb && lb.status !== 0 ? t('stClaiming') : t('mbOpenedSt'), ok: true, who: [t('mbOpenedBy'), r.from], date: r.date, hash: r.hash });
     }
+    for (const x of passed) sent.push(x);
     sent.sort((a, c) => (c.nonce || 0) - (a.nonce || 0));
     const recvOpen = (inbox || []).filter(b => !b.gone), recvGone = (inbox || []).filter(b => b.gone);
     const mine = recs.filter(r => r.cmd === 'CLAIM' && r.from === me && r.hk !== me && r.b)
