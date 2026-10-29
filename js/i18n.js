@@ -1837,3 +1837,4 @@ Object.assign(window.BOX_I18N.fr, {"sfR0": "Support", "sfR0T": "Un service d’a
 Object.assign(window.BOX_I18N.de, {"sfR0": "Support", "sfR0T": "Ein Support-Service, der hilft, wenn mit einer Box etwas nicht klappt."});
 Object.assign(window.BOX_I18N.zh, {"sfR0": "支持服务", "sfR0T": "支持服务：盒子遇到问题时为你提供帮助。"});
 Object.assign(window.BOX_I18N.ja, {"sfR0": "サポート", "sfR0T": "ボックスで困ったときに助けるサポート窓口。"});
+Object.assign(window.BOX_I18N.ru, {"finish": "На главную"}); Object.assign(window.BOX_I18N.en, {"finish": "Back to home"});

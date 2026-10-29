@@ -1056,6 +1056,7 @@ async function finishPack(only) {
   save();
   doneLink = qrLink(makeQr(q));
   doneFrom = only ? 'boxes' : 'home';
+  if (!only) { createFor = null; wStep = 1; sel.gift = null; sel.key = null; $('amtInput').value = ''; $('expSel').value = '0'; } // box made: next "Create" starts from step 1
   show('done');
   await drawBox(doneLink);
   $('bearerWarn').classList.toggle('hide', b.kind !== 'bearer');
