@@ -1838,3 +1838,10 @@ Object.assign(window.BOX_I18N.de, {"sfR0": "Support", "sfR0T": "Ein Support-Serv
 Object.assign(window.BOX_I18N.zh, {"sfR0": "支持服务", "sfR0T": "支持服务：盒子遇到问题时为你提供帮助。"});
 Object.assign(window.BOX_I18N.ja, {"sfR0": "サポート", "sfR0T": "ボックスで困ったときに助けるサポート窓口。"});
 Object.assign(window.BOX_I18N.ru, {"finish": "На главную"}); Object.assign(window.BOX_I18N.en, {"finish": "Back to home"});
+Object.assign(window.BOX_I18N.ru, {"kFromWho": "Получил от", "kToWho": "Отправил кому"});
+Object.assign(window.BOX_I18N.en, {"kFromWho": "Received from", "kToWho": "Sent to"});
+Object.assign(window.BOX_I18N.es, {"kFromWho": "Recibido de", "kToWho": "Enviado a"});
+Object.assign(window.BOX_I18N.fr, {"kFromWho": "Reçu de", "kToWho": "Envoyé à"});
+Object.assign(window.BOX_I18N.de, {"kFromWho": "Erhalten von", "kToWho": "Gesendet an"});
+Object.assign(window.BOX_I18N.zh, {"kFromWho": "收到自", "kToWho": "发送给"});
+Object.assign(window.BOX_I18N.ja, {"kFromWho": "受け取り元", "kToWho": "送り先"});

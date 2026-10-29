@@ -1363,6 +1363,7 @@ function inboxCard(b) {
   c.append(ins, row(t('ledgerExp'), expN ? String(expN) : t('limitNone')));
   if (expN) c.append(leftRow(expN, b.cur));
   c.append(row(t('bxKeyTok'), short(b.ktid)));
+  { const fr = row(t('kFromWho'), short(b.h)); c.append(fr); keyMoves(me).then(m => { const x = m.inn.get(String(b.ktid).toUpperCase()); if (x) fr.lastChild.textContent = short(x.from); }).catch(() => {}); }
   const msg = h('p', { class: 'err-line' });
   const go = h('button', { class: 'btn y big', type: 'button', disabled: inboxOpenable(b) ? null : true, onclick: async () => {
     msg.textContent = ''; go.disabled = true;
@@ -1586,17 +1587,33 @@ async function keyXfers(me, ids) {
   return out;
 }
 /* key tokens this account received and then passed on (its own Remit of someone else's key token): shown under "Sent" */
-async function passedKeys(me) {
-  const ids = new Map(); let marker;
-  for (let i = 0; i < 3; i++) {
-    const r = await rpc('account_tx', Object.assign({ account: me, ledger_index_min: -1, ledger_index_max: -1, limit: 200, forward: false }, marker ? { marker } : {}));
-    for (const e of r.transactions || []) {
-      const tx = e.tx || e.tx_json || {}, meta = e.meta || e.metaData || {};
-      if (tx.TransactionType !== 'Remit' || tx.Account !== me || meta.TransactionResult !== 'tesSUCCESS') continue;
-      for (const id of tx.URITokenIDs || []) { const k = String(id).toUpperCase(); if (!ids.has(k)) ids.set(k, { to: tx.Destination, date: tx.date ? (tx.date + 946684800) * 1000 : 0 }); }
+/* this account's Remits of URITokens: out = sent by it (id -> to), in = received by it (id -> from); cached for a minute */
+const kmCache = { id: '', at: 0, p: null };
+function keyMoves(me) {
+  if (kmCache.id === S.net + ':' + me && kmCache.p && Date.now() - kmCache.at < 60000) return kmCache.p;
+  kmCache.id = S.net + ':' + me; kmCache.at = Date.now();
+  kmCache.p = (async () => {
+    const out = new Map(), inn = new Map(); let marker;
+    for (let i = 0; i < 3; i++) {
+      const r = await rpc('account_tx', Object.assign({ account: me, ledger_index_min: -1, ledger_index_max: -1, limit: 200, forward: false }, marker ? { marker } : {}));
+      for (const e of r.transactions || []) {
+        const tx = e.tx || e.tx_json || {}, meta = e.meta || e.metaData || {};
+        if (tx.TransactionType !== 'Remit' || meta.TransactionResult !== 'tesSUCCESS') continue;
+        const d = tx.date ? (tx.date + 946684800) * 1000 : 0;
+        for (const id of tx.URITokenIDs || []) {
+          const k = String(id).toUpperCase();
+          if (tx.Account === me && !out.has(k)) out.set(k, { to: tx.Destination, date: d });
+          if (tx.Destination === me && tx.Account !== me && !inn.has(k)) inn.set(k, { from: tx.Account, date: d });
+        }
+      }
+      marker = r.marker; if (!marker) break;
     }
-    marker = r.marker; if (!marker) break;
-  }
+    return { out, inn };
+  })().catch(e => { kmCache.at = 0; throw e; });
+  return kmCache.p;
+}
+async function passedKeys(me) {
+  const mv = await keyMoves(me), ids = mv.out;
   const toks = [];
   await Promise.all([...ids.keys()].map(id => uriToken(id).then(x => { if (x && x.Issuer !== me && x.Owner !== me && keyTokenId(x)) toks.push(x); }).catch(() => {})));
   const byIss = new Map(); for (const x of toks) { if (!byIss.has(x.Issuer)) byIss.set(x.Issuer, []); byIss.get(x.Issuer).push(x); }
@@ -1608,8 +1625,8 @@ async function passedKeys(me) {
       if (d.length !== 170) continue; const m = st.get(L.modeKey(k));
       if (!m || m.length !== 66 || !m.startsWith('01')) continue; const kt = m.slice(2).toUpperCase();
       const tok = want.get(kt); if (!tok) continue; const b = parseBox(d); if (!b) continue;
-      const x = ids.get(kt) || {};
-      out.push({ b: Object.assign(b, { key: k, h: iss, ktid: kt }), nonce: b.nonce, key: true, st: t('mbNotOpened'), who: [t('mbKeyAt'), tok.Owner], date: x.date });
+      const x = ids.get(kt) || {}, fr = mv.inn.get(kt);
+      out.push({ b: Object.assign(b, { key: k, h: iss, ktid: kt }), nonce: b.nonce, key: true, st: t('mbNotOpened'), who: [t('mbKeyAt'), tok.Owner], from: fr ? fr.from : iss, to: x.to, date: x.date });
     }
   }
   return out;
@@ -1667,7 +1684,7 @@ async function mbLoad() {
       if (b.status !== 0) continue; // being opened: listed below with its CLAIM
       const ho = holders.get(b.key), lk = links.get(b.key) || known.get(b.key);
       const pkh = (packByKey.get(String(b.key).toUpperCase()) || {}).hash;
-      if (b.ktid && ho && ho !== me) sent.push({ b, pack: pkh, nonce: b.nonce, live: true, key: true, st: t('mbNotOpened'), who: [t('mbKeyAt'), ho] });
+      if (b.ktid && ho && ho !== me) sent.push({ b, pack: pkh, nonce: b.nonce, live: true, key: true, st: t('mbNotOpened'), to: (xf.get(String(b.ktid).toUpperCase()) || {}).to, who: [t('mbKeyAt'), ho] });
       else if (b.ktid && holders.has(b.key) && !ho) sent.push({ b, pack: pkh, nonce: b.nonce, live: true, key: true, st: t('mbKeyGone'), bad: true });
       else if (!b.ktid && lk && lk.kind === 'named') sent.push({ b, pack: pkh, nonce: b.nonce, live: true, key: false, st: t('mbNotOpened'), who: lk.named ? [t('mbFor'), lk.named] : null, local: true });
     }
@@ -1741,6 +1758,8 @@ function histCard(x) {
   }
   if (!amt && !hasTok) inside.append(h('p', { class: 'sm' }, t('bxEmpty')));
   const body = h('div', { class: 'bbody hide' }, inside,
+    x.from ? row(t('kFromWho'), short(x.from)) : null,
+    x.to ? row(t('kToWho'), short(x.to)) : null,
     x.who ? row(x.who[0], short(x.who[1])) : null,
     x.date ? row(t('mbWhen'), new Date(x.date).toLocaleString(S.lang)) : null,
     row(t('bxNo'), '#' + b.nonce),
