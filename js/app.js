@@ -394,6 +394,7 @@ function goBack() {
       if (p && p.op === 'open') return enterBoxes();
       if (p && p.op === 'remit' && p.back && p.back.box) { S.pending = p.back; save(); return finishPack(); }
       if (p && p.op === 'remit' && p.from === 'boxes') { S.pending = null; save(); return enterBoxes(); }
+      if (p && p.op === 'remit' && p.from === 'inbox') { S.pending = null; save(); return enterInbox(); }
       return show('home');
     case 'done': return doneFrom === 'boxes' ? enterBoxes() : show('home');
     default: return show('home');
@@ -1024,7 +1025,7 @@ async function checkPending() {
   }
   if (p.op === 'remit') {
     const tok = await uriToken(p.tx.URITokenIDs[0]); if (!tok || tok.Owner !== p.tx.Destination) return errSet('signErr', t('notYet'));
-    const back = p.back; S.pending = back || null; save(); toast('✓'); return back ? finishPack() : p.from === 'boxes' ? enterBoxes() : show('home');
+    const back = p.back; S.pending = back || null; save(); toast('✓'); return back ? finishPack() : p.from === 'boxes' ? enterBoxes() : p.from === 'inbox' ? enterInbox() : show('home');
   }
 }
 
@@ -1376,6 +1377,7 @@ function inboxCard(b) {
     } catch (e) { go.disabled = false; msg.textContent = e.message; }
   } }, '🎁 ' + t('inboxOpen'));
   c.append(msg, go);
+  if (inboxOpenable(b)) c.append(keyHandCard(b.ktid, 'inbox')); // the holder can pass the key on from the page
   if (!inboxOpenable(b)) c.append(h('p', { class: 'sm' }, b.status === 0 ? t('expired') : t('stClaiming')));
   return c;
 }
@@ -1398,7 +1400,7 @@ async function codesLoad() {
 }
 $('acc-codes').addEventListener('toggle', () => { if ($('acc-codes').open && current === 'settings' && codesFor !== (S.account ? S.account.address + S.net : null)) codesLoad(); });
 /* hand a box's key token to someone later, from the boxes list (a plain Remit, the hook does not take part) */
-function keyHandCard(ktid) {
+function keyHandCard(ktid, from = 'boxes') {
   const inp = h('input', { class: 'inp', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: t('recipientPh') });
   const out = h('div');
   const go = h('button', { class: 'btn w', type: 'button', onclick: async () => {
@@ -1411,7 +1413,7 @@ function keyHandCard(ktid) {
     out.textContent = ''; go.disabled = false;
     if (!tok) return out.append(h('p', { class: 'err-line' }, t('keyGone')));
     if (tok.Owner !== me) return out.append(h('p', { class: 'err-line' }, t('keyNotYours') + ' ' + short(tok.Owner)));
-    S.pending = { op: 'remit', tx: remitTx(me, to, ktid), from: 'boxes' }; save();
+    S.pending = { op: 'remit', tx: remitTx(me, to, ktid), from }; save();
     enterSign();
   } }, t('buildRemit'));
   const wrap = h('div', { class: 'hide' }, h('div', { class: 'lbl' }, t('handKey')), inp, go, out);
