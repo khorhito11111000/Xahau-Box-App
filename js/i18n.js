@@ -1816,3 +1816,10 @@ Object.assign(window.BOX_I18N.fr, {"sfRoad": "Feuille de route", "sfR1": "App da
 Object.assign(window.BOX_I18N.de, {"sfRoad": "Roadmap", "sfR1": "App in Xaman", "sfR1T": "Xahau Box direkt in Xaman: eine Box mit wenigen Taps erstellen, senden und öffnen.", "sfR2": "Xyra-Wallet", "sfR2T": "Ein zweiter Anmeldeweg für alle ohne Xaman.", "sfR3": "Hook-Update", "sfR3T": "Neue Hook-Version: neue Funktionen und noch mehr Schutz.", "sfR4": "Neue Coins", "sfR4T": "Boxen mit weiteren Xahau-Coins, nicht nur XAH."});
 Object.assign(window.BOX_I18N.zh, {"sfRoad": "路线图", "sfR1": "Xaman 应用", "sfR1T": "在 Xaman 内直接使用 Xahau Box：轻点几下即可创建、发送和打开盒子。", "sfR2": "Xyra 钱包", "sfR2T": "第二种登录方式，适合没有 Xaman 的用户。", "sfR3": "Hook 更新", "sfR3T": "新版 hook：更多功能，更强保护。", "sfR4": "新币种", "sfR4T": "盒子不仅支持 XAH，也支持 Xahau 上的其他币种。"});
 Object.assign(window.BOX_I18N.ja, {"sfRoad": "ロードマップ", "sfR1": "Xaman アプリ", "sfR1T": "Xaman の中で Xahau Box：数タップでボックスを作成・送信・開封。", "sfR2": "Xyra ウォレット", "sfR2T": "Xaman を持っていない人のための2つ目のログイン方法。", "sfR3": "フックの更新", "sfR3T": "新しいフック：新機能とさらに強い保護。", "sfR4": "新しいコイン", "sfR4T": "XAH だけでなく、Xahau の他のコインも入れられるボックス。"});
+Object.assign(window.BOX_I18N.ru, {"sfR5": "Свой сервер", "sfR5T": "Собственный сервер для проекта, возможно на Evernode."});
+Object.assign(window.BOX_I18N.en, {"sfR5": "Own server", "sfR5T": "A dedicated server for the project, possibly on Evernode."});
+Object.assign(window.BOX_I18N.es, {"sfR5": "Servidor propio", "sfR5T": "Un servidor propio para el proyecto, posiblemente en Evernode."});
+Object.assign(window.BOX_I18N.fr, {"sfR5": "Serveur dédié", "sfR5T": "Un serveur dédié au projet, peut-être sur Evernode."});
+Object.assign(window.BOX_I18N.de, {"sfR5": "Eigener Server", "sfR5T": "Ein eigener Server für das Projekt, möglicherweise auf Evernode."});
+Object.assign(window.BOX_I18N.zh, {"sfR5": "自有服务器", "sfR5T": "为项目搭建专属服务器，可能部署在 Evernode 上。"});
+Object.assign(window.BOX_I18N.ja, {"sfR5": "専用サーバー", "sfR5T": "プロジェクト専用のサーバー。Evernode 上になる可能性があります。"});
