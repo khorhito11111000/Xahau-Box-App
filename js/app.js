@@ -1735,7 +1735,7 @@ function mbRender() {
     if (!d.recvOpen.length && !d.mine.length && !d.recvGone.length) list.append(h('p', { class: 'sub' }, t('mbNone')));
     for (const b of d.recvOpen) list.append(inboxCard(b));
     for (const x of d.mine) list.append(histCard(x));
-    if (d.recvGone.length) { list.append(h('div', { class: 'lbl' }, t('mbOldKeys'))); for (const b of d.recvGone) list.append(inboxCard(b)); }
+    if (d.recvGone.length) { const det = h('details', { class: 'sfd oldkeys' }, h('summary', null, t('mbOldKeys') + ' (' + d.recvGone.length + ')')); for (const b of d.recvGone) det.append(inboxCard(b)); list.append(det); }
     note(t('mbRecvNote'));
   } else {
     $('vcCard').classList.add('hide');
