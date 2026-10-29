@@ -1868,3 +1868,10 @@ Object.assign(window.BOX_I18N.fr,{inboxOnlySub:'Boîtes reçues qui ne sont pas 
 Object.assign(window.BOX_I18N.de,{inboxOnlySub:'Boxen, die du bekommen hast und die noch nicht geöffnet sind.'});
 Object.assign(window.BOX_I18N.zh,{inboxOnlySub:'发给你但尚未打开的盒子。'});
 Object.assign(window.BOX_I18N.ja,{inboxOnlySub:'あなたに届いた、まだ開けていないボックス。'});
+Object.assign(window.BOX_I18N.ru,{homeSub:"Положи внутрь XAH и/или URIToken, закрой и отдай по ссылке, по QR-коду или токеном-ключом."});
+Object.assign(window.BOX_I18N.en,{homeSub:"Put XAH and/or a URIToken inside, lock it, and hand it over by link, QR code or key token."});
+Object.assign(window.BOX_I18N.es,{homeSub:"Mete XAH y/o un URIToken, ciérrala y entrégala con un enlace, un código QR o un token llave."});
+Object.assign(window.BOX_I18N.fr,{homeSub:"Mettez des XAH et/ou un URIToken dedans, verrouillez-la et remettez-la par lien, QR code ou jeton clé."});
+Object.assign(window.BOX_I18N.de,{homeSub:"Leg XAH und/oder ein URIToken hinein, verschließ die Box und gib sie per Link, QR-Code oder Schlüssel-Token weiter."});
+Object.assign(window.BOX_I18N.zh,{homeSub:"放入 XAH 和/或 URIToken，锁好后通过链接、二维码或钥匙代币送出。"});
+Object.assign(window.BOX_I18N.ja,{homeSub:"XAH や URIToken を入れてボックスを閉じ、リンク・QR コード・キートークンで渡せます。"});
