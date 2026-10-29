@@ -365,7 +365,7 @@ function show(name) {
   current = name;
   for (const s of SCREENS) $('s-' + s).classList.toggle('on', s === name);
   $('backBar').classList.toggle('hide', name === 'home');
-  $('sfCols').classList.toggle('hide', name !== 'home');
+  $('sfCols').classList.toggle('hide', name !== 'home'); if ($('donBox')) { $('donBox').classList.toggle('hide', name !== 'home'); if (name === 'home') donPaint(); }
   if (name === 'home') setTimeout(() => loadStats(), 0);
   if (name === 'home') setTimeout(inboxBadge, 0);
   window.scrollTo(0, 0);
@@ -410,6 +410,7 @@ window.addEventListener('popstate', e => {
   if (current !== 'home') goBack();
 });
 function applyLang() {
+  setTimeout(() => { try { if (current === 'home') donPaint(); } catch {} }, 0);
   document.documentElement.lang = S.lang;
   document.querySelectorAll('[data-t]').forEach(e => { e.textContent = t(e.dataset.t); });
   document.querySelectorAll('[data-tp]').forEach(e => { e.placeholder = t(e.dataset.tp); });
@@ -1962,6 +1963,25 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 }
 $('stRefresh').onclick = () => { try { localStorage.removeItem(STK); } catch {} loadStats(true); };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && current === 'home') loadStats(); });
+
+/* ---------- donations (footer, home only): one address for XAH and XRP, QR with the coin logo in the center ---------- */
+const DON_ADDR = 'rP3xBUHaYUqHKcrXLJiTadex9SFZRpoBbw';
+let donCoin = 'xah';
+async function donPaint() {
+  const cv = $('donQr'); if (!cv) return;
+  document.querySelectorAll('.dontab').forEach(b => b.classList.toggle('on', b.dataset.c === donCoin));
+  $('donAddr').textContent = DON_ADDR; $('donLbl').textContent = t(donCoin === 'xah' ? 'donLblXah' : 'donLblXrp');
+  $('donXaman').href = 'https://xumm.app/detect/request:' + DON_ADDR;
+  try {
+    const ctx = cv.getContext('2d'), S0 = cv.width;
+    const qr = await loadImg(await L.qrDataURL(DON_ADDR, { margin: 1, width: S0, errorCorrectionLevel: 'H', color: { dark: '#0c1a3e', light: '#FFFFFF' } }));
+    ctx.imageSmoothingEnabled = false; ctx.clearRect(0, 0, S0, S0); ctx.drawImage(qr, 0, 0, S0, S0);
+    const ico = await loadImg('img/don-' + donCoin + '.png?v=1').catch(() => null);
+    if (ico) { const s = Math.round(S0 * 0.24), o = (S0 - s) / 2; ctx.fillStyle = '#fff'; ctx.fillRect(o - 4, o - 4, s + 8, s + 8); ctx.imageSmoothingEnabled = true; ctx.drawImage(ico, o, o, s, s); }
+  } catch {}
+}
+document.querySelectorAll('.dontab').forEach(b => b.onclick = () => { donCoin = b.dataset.c; donPaint(); });
+if ($('donCopy')) $('donCopy').onclick = () => copy(DON_ADDR);
 initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); resumeClaim(); resumeMint(); resumeRemit(); egify(document.body);
 // test hook for automated checks (read-only helpers, no secrets)
 window.__box = { hkTx, packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr, mintTx, gc: { encrypt: gcEncrypt, decrypt: gcDecrypt, genPw: gcGenPw, max: GC.MAX, iter: GC.ITER } };
