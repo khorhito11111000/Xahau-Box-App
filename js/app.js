@@ -95,8 +95,7 @@ const explorerAcc = a => NET().explorerTx.replace(/\/tx\/$/, '/account/') + a;
 function creatorRow(a) {
   return h('div', { class: 'creator' }, h('div', { class: 'row' }, h('span', null, t('boxBy')),
     h('span', { class: 'crv' }, h('b', { class: 'mono' }, a.slice(0, 7) + '…' + a.slice(-5)),
-      h('button', { class: 'mwb', type: 'button', title: t('copy'), 'aria-label': t('copy'), onclick: () => copy(a) }, mwCopyIco()),
-      h('a', { class: 'mwb crx', href: explorerAcc(a), target: '_blank', rel: 'noopener noreferrer', title: t('explorer'), 'aria-label': t('explorer') }, '↗'))),
+      h('button', { class: 'mwb', type: 'button', title: t('copy'), 'aria-label': t('copy'), onclick: () => copy(a) }, mwCopyIco()))),
     h('p', { class: 'sm' }, t('boxByNote')));
 }
 const gcWarn = () => h('div', { class: 'card gcwarn' }, '⚠ ' + t('gcWarn'));
@@ -305,7 +304,7 @@ function tokenDetails(tok) {
   const esc = e => { if (e.key === 'Escape') close(); };
   const pic = h('div', { class: 'tdimg' }, h('span', null, '◆'));
   const name = h('h3', null, uriLabel(tok)); const body = h('div', { class: 'tdbody' });
-  const kv = (k, v, cp, link) => h('div', { class: 'tdrow' }, h('span', null, k), h('b', { class: 'mono' }, v), cp ? h('button', { type: 'button', class: 'tdcp', onclick: () => copy(cp) }, '⧉') : null, link ? h('a', { class: 'tdcp', href: link, target: '_blank', rel: 'noopener noreferrer', title: t('explorer') }, '↗') : null);
+  const kv = (k, v, cp, link) => h('div', { class: 'tdrow' }, h('span', null, k), h('b', { class: 'mono' }, v), cp ? h('button', { type: 'button', class: 'tdcp', onclick: () => copy(cp) }, '⧉') : null);
   const uri = hexToText(tok.URI || '');
   const sheet = h('div', { class: 'tdsheet', role: 'dialog', 'aria-modal': 'true', onclick: e => e.stopPropagation() },
     h('button', { type: 'button', class: 'tdx', 'aria-label': t('tokClose'), onclick: close }, '✕'),
