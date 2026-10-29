@@ -1823,3 +1823,10 @@ Object.assign(window.BOX_I18N.fr, {"sfR5": "Serveur dédié", "sfR5T": "Un serve
 Object.assign(window.BOX_I18N.de, {"sfR5": "Eigener Server", "sfR5T": "Ein eigener Server für das Projekt, möglicherweise auf Evernode."});
 Object.assign(window.BOX_I18N.zh, {"sfR5": "自有服务器", "sfR5T": "为项目搭建专属服务器，可能部署在 Evernode 上。"});
 Object.assign(window.BOX_I18N.ja, {"sfR5": "専用サーバー", "sfR5T": "プロジェクト専用のサーバー。Evernode 上になる可能性があります。"});
+Object.assign(window.BOX_I18N.ru, {"sfR5N": "(Свой сервер, возможно на Evernode)"});
+Object.assign(window.BOX_I18N.en, {"sfR5N": "(Own server, possibly on Evernode)"});
+Object.assign(window.BOX_I18N.es, {"sfR5N": "(Servidor propio, posiblemente en Evernode)"});
+Object.assign(window.BOX_I18N.fr, {"sfR5N": "(Serveur dédié, peut-être sur Evernode)"});
+Object.assign(window.BOX_I18N.de, {"sfR5N": "(Eigener Server, möglicherweise auf Evernode)"});
+Object.assign(window.BOX_I18N.zh, {"sfR5N": "（自有服务器，可能部署在 Evernode 上）"});
+Object.assign(window.BOX_I18N.ja, {"sfR5N": "（専用サーバー、Evernode 上の可能性あり）"});
