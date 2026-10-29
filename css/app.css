@@ -450,3 +450,4 @@ html[data-theme=light] .sitefoot{border-top-color:rgba(0,0,0,.12)}html[data-them
 .sfroad{margin-top:18px}.sfroad h4{margin:0 0 8px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#dfe6f5}.sfroad ol{margin:0;padding-left:20px;color:var(--mut);font-size:13px}.sfroad li{margin:0 0 8px}.sfroad li::marker{color:var(--y);font-weight:700}.sfroad b{display:block;color:var(--y)}html[data-theme=light] .sfroad h4{color:#14204a}html[data-theme=light] .sfroad b{color:var(--gold)}
 .sfr5{margin:2px 0 0 20px;color:var(--mut);font-size:13px;font-style:italic}
 .sfroad>summary{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#dfe6f5}.sfroad[open] ol{margin-top:8px}
+.sfcols{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}.sfcols .sfr5{margin:4px 0 0}
