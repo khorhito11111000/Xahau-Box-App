@@ -395,7 +395,7 @@ function goBack() {
       if (p && p.op === 'claim' && p.from === 'inbox') { S.pending = null; save(); return enterInbox(); }
       if (p && p.op === 'claim') return $('boxView').childElementCount ? show('open') : enterOpen();
       if (p && p.op === 'open') return enterBoxes();
-      if (p && p.op === 'remit' && p.back && p.back.box) { S.pending = p.back; save(); return finishPack(); }
+      if (p && p.op === 'remit' && p.back && p.back.box) { uriToken(p.tx.URITokenIDs[0]).catch(() => null).then(tok => { if (tok && tok.Owner === p.tx.Destination) p.back.box.sentTo = p.tx.Destination; S.pending = p.back; save(); finishPack(); }); return; }
       if (p && p.op === 'remit' && p.from === 'boxes') { S.pending = null; save(); return enterBoxes(); }
       if (p && p.op === 'remit' && p.from === 'inbox') { S.pending = null; save(); return enterInbox(); }
       return show('home');
@@ -733,7 +733,7 @@ async function pollLedger() {
 function startLive() {
   clearInterval(LIVE.timer); LIVE.timer = setInterval(pollLedger, C.LEDGER_POLL_MS || 4000); pollLedger();
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { pollLedger(); resumePack(); resumeClaim(); resumeMint(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { pollLedger(); resumePack(); resumeClaim(); resumeMint(); resumeRemit(); } });
 const liveRow = () => row(t('ledgerNow'), h('span', { class: 'lcur' }, curLedger() ? String(curLedger()) : '…'));
 const leftRow = (exp, cur) => row(t('timeLeft'), h('span', { 'data-exp': String(exp || 0), 'data-cur': String(cur || 0) }, '…'));
 
@@ -1043,7 +1043,7 @@ async function checkPending() {
   }
   if (p.op === 'remit') {
     const tok = await uriToken(p.tx.URITokenIDs[0]); if (!tok || tok.Owner !== p.tx.Destination) return errSet('signErr', t('notYet'));
-    const back = p.back; S.pending = back || null; save(); toast('✓'); return back ? finishPack() : p.from === 'boxes' ? enterBoxes() : p.from === 'inbox' ? enterInbox() : show('home');
+    const back = p.back; if (back && back.box) back.box.sentTo = p.tx.Destination; S.pending = back || null; save(); toast(t('keySentTo') + ' ' + short(p.tx.Destination)); return back ? finishPack() : p.from === 'boxes' ? enterBoxes() : p.from === 'inbox' ? enterInbox() : show('home');
   }
 }
 
@@ -1056,6 +1056,12 @@ let resumingC = false;
 let resumingM = false;
 /* the key was made by «Build box»: go on to packing with it (second signature) */
 function autoPack(p) { if (p.auto && current === 'create' && sel.key === p.tid && kind() === 'token') $('packBtn').onclick(); }
+async function resumeRemit() {
+  const p = S.pending; if (resumingM || !p || p.op !== 'remit' || current !== 'sign') return false;
+  resumingM = true;
+  try { const tok = await uriToken(p.tx.URITokenIDs[0]).catch(() => null); if (tok && tok.Owner === p.tx.Destination && S.pending === p) { await checkPending(); return true; } return false; }
+  catch { return false; } finally { resumingM = false; }
+}
 async function resumeMint(any) {
   const p = S.pending; if (resumingM || !p || (p.op !== 'mint' && p.op !== 'gmint')) return false;
   if (!any && !['sign', 'create'].includes(current)) return false;
@@ -1104,11 +1110,12 @@ async function finishPack(only) {
   show('done');
   await drawBox(doneLink);
   $('bearerWarn').classList.toggle('hide', b.kind !== 'bearer');
-  $('handKey').classList.toggle('hide', b.kind !== 'token');
+  $('handKey').classList.toggle('hide', b.kind !== 'token' || !!b.sentTo);
   const gtok = !isZero(b.tid) && acct && acct.tokens ? acct.tokens.find(x => x.index === b.tid) : null;
   $('gcPwRemind').classList.toggle('hide', !(gtok && gcTok(gtok)));
   $('doneNext').textContent = t(b.kind === 'token' ? 'doneNextKey' : 'doneNextLink');
   const info = $('doneInfo'); info.textContent = '';
+  if (b.sentTo) info.append(h('div', { class: 'ok' }, '✓ ' + t('keySentTo') + ' ' + short(b.sentTo)));
   const parts = []; if (BigInt('0x' + b.amt)) parts.push(dropsToXah(BigInt('0x' + b.amt)) + ' XAH'); if (!isZero(b.tid)) parts.push('1 URIToken');
   info.append(row(t('contents'), parts.join(' + '), 'yel'), row(t('kind'), t(b.kind + 'Kind')));
   if (b.kind === 'named') info.append(row(t('signedFor'), short(b.named)));
@@ -1955,7 +1962,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 }
 $('stRefresh').onclick = () => { try { localStorage.removeItem(STK); } catch {} loadStats(true); };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && current === 'home') loadStats(); });
-initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); resumeClaim(); resumeMint(); egify(document.body);
+initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); resumeClaim(); resumeMint(); resumeRemit(); egify(document.body);
 // test hook for automated checks (read-only helpers, no secrets)
 window.__box = { hkTx, packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr, mintTx, gc: { encrypt: gcEncrypt, decrypt: gcDecrypt, genPw: gcGenPw, max: GC.MAX, iter: GC.ITER } };
 })();

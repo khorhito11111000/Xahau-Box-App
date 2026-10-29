@@ -1906,3 +1906,11 @@ Object.assign(window.BOX_I18N.fr,{keyWait:"Vous avez un jeton clé {id} qui atte
 Object.assign(window.BOX_I18N.de,{keyWait:"Du hast einen Schlüssel-Token {id}, der auf eine Box wartet. Er kommt in diese Box.",keyWaitSum:"bereit",keyNewSum:"neu, wird beim Packen erstellt",keyNewHint:"Ein Schlüssel wird nur zusammen mit seiner Box erstellt: erst signierst du den Schlüssel, dann gleich die Box.",keyWaitHint:"Dieser Schlüssel ist schon erstellt und wartet auf eine Box. Eine Signatur: die Box.",stepMintKey:"Schritt 1 von 2 · Schlüssel für die Box (dann die Box)"});
 Object.assign(window.BOX_I18N.zh,{keyWait:"你有一个已创建的钥匙代币 {id}，正在等待盒子。它将用于这个盒子。",keyWaitSum:"已就绪",keyNewSum:"新的，打包时创建",keyNewHint:"钥匙只会和盒子一起创建：先签名创建钥匙，然后立即签名盒子。",keyWaitHint:"这把钥匙已创建，正在等待盒子。只需一次签名：盒子本身。",stepMintKey:"第 1 步（共 2 步）· 盒子的钥匙（然后是盒子）"});
 Object.assign(window.BOX_I18N.ja,{keyWait:"作成済みのキートークン {id} がボックスを待っています。このボックスに使われます。",keyWaitSum:"作成済み",keyNewSum:"新規・作成時に発行",keyNewHint:"キーはボックスと一緒にだけ作られます。まずキーに署名し、続けてボックスに署名します。",keyWaitHint:"このキーは作成済みでボックスを待っています。署名は1回、ボックスだけです。",stepMintKey:"ステップ 1/2 · ボックスのキー（続けてボックス）"});
+
+Object.assign(window.BOX_I18N.ru,{keySentTo:"Ключ передан:"});
+Object.assign(window.BOX_I18N.en,{keySentTo:"Key sent to"});
+Object.assign(window.BOX_I18N.es,{keySentTo:"Llave enviada a"});
+Object.assign(window.BOX_I18N.fr,{keySentTo:"Clé envoyée à"});
+Object.assign(window.BOX_I18N.de,{keySentTo:"Schlüssel gesendet an"});
+Object.assign(window.BOX_I18N.zh,{keySentTo:"钥匙已发送给"});
+Object.assign(window.BOX_I18N.ja,{keySentTo:"キーの送付先:"});
