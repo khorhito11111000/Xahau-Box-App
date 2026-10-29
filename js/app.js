@@ -365,6 +365,7 @@ function show(name) {
   current = name;
   for (const s of SCREENS) $('s-' + s).classList.toggle('on', s === name);
   $('backBar').classList.toggle('hide', name === 'home');
+  $('sfCols').classList.toggle('hide', name !== 'home');
   if (name === 'home') setTimeout(() => loadStats(), 0);
   if (name === 'home') setTimeout(inboxBadge, 0);
   window.scrollTo(0, 0);
@@ -968,6 +969,7 @@ function enterSign() {
   if (xp && !xme) {
     body.append(h('div', { class: 'card xin' }, h('p', { class: 'sm' }, t('signInToSign')), h('button', { class: 'btn y', type: 'button', onclick: () => { afterAccount = () => enterSign(); signIn('sign'); } }, t('signIn'))));
   } else if (xme && xme !== signer) body.append(h('div', { class: 'card warn' }, t('otherAcct') + ' ' + short(signer) + '.'));
+  $('checkBtn').classList.toggle('hide', !!(xme && xme === signer));
   if (xme && xme === signer) {
     for (const it of items) {
       const out = h('div', { class: 'xout' });
@@ -1194,9 +1196,36 @@ function buildClaim(who, msg) {
   S.pending = { op: 'claim', tx, h: q.h, vc: q.vc, k: q.k || null, t: q.t || null, amt: b.amt, tid: b.tid, from: q.from || null }; save();
   enterSign();
 }
+/* fireworks over the opened box (a few seconds, then stops) */
+let fwRun = 0;
+function fireworks(ms = 4500) {
+  const cv = $('fwCanvas'); if (!cv || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const run = ++fwRun, r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  cv.width = r.width * dpr; cv.height = r.height * dpr; const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+  const W = r.width, H = r.height, cols = ['#F8CE22', '#FFE27A', '#3d8bff', '#9cc2ff', '#ffffff', '#ff9f43'], parts = [], t0 = performance.now();
+  let next = 0;
+  const burst = () => {
+    const x = W * (0.15 + Math.random() * 0.7), y = H * (0.08 + Math.random() * 0.35), c = cols[Math.random() * cols.length | 0], n = 64;
+    for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + Math.random() * 0.1, v = 2.4 + Math.random() * 2.6; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, l: 1, c }); }
+  };
+  const step = now => {
+    if (run !== fwRun) return;
+    const el = now - t0;
+    if (el < ms && el >= next) { burst(); if (!next) burst(); next = el + 300 + Math.random() * 300; }
+    ctx.clearRect(0, 0, W, H);
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.035; p.vx *= 0.985; p.vy *= 0.985; p.l -= 0.011;
+      if (p.l <= 0) { parts.splice(i, 1); continue; }
+      ctx.globalAlpha = p.l; ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, 2.6, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (el < ms || parts.length) requestAnimationFrame(step); else ctx.clearRect(0, 0, W, H);
+  };
+  requestAnimationFrame(step);
+}
 async function finishClaim() {
   stDirty();
-  const p = S.pending; show('opened');
+  const p = S.pending; show('opened'); setTimeout(() => fireworks(), 50);
   const info = $('openedInfo'); info.textContent = '';
   const amt = BigInt('0x' + p.amt); if (amt) info.append(row(t('received'), dropsToXah(amt) + ' XAH', 'yel'));
   if (!isZero(p.tid)) { const tok = await uriToken(p.tid).catch(() => null); if (tok) info.append(tokenCard(tok, { big: true, reveal: true })); if (tok && p.k) { const code = await giftCode(tok.URI, p.k); if (code) info.append(row(t('giftCode'), code, 'yel')); }

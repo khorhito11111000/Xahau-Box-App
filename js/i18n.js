@@ -1875,3 +1875,11 @@ Object.assign(window.BOX_I18N.fr,{homeSub:"Mettez des XAH et/ou un URIToken deda
 Object.assign(window.BOX_I18N.de,{homeSub:"Leg XAH und/oder ein URIToken hinein, verschließ die Box und gib sie per Link, QR-Code oder Schlüssel-Token weiter."});
 Object.assign(window.BOX_I18N.zh,{homeSub:"放入 XAH 和/或 URIToken，锁好后通过链接、二维码或钥匙代币送出。"});
 Object.assign(window.BOX_I18N.ja,{homeSub:"XAH や URIToken を入れてボックスを閉じ、リンク・QR コード・キートークンで渡せます。"});
+
+Object.assign(window.BOX_I18N.ru,{opened:"Открыто!"});
+Object.assign(window.BOX_I18N.en,{opened:"Opened!"});
+Object.assign(window.BOX_I18N.es,{opened:"¡Abierta!"});
+Object.assign(window.BOX_I18N.fr,{opened:"Ouverte !"});
+Object.assign(window.BOX_I18N.de,{opened:"Geöffnet!"});
+Object.assign(window.BOX_I18N.zh,{opened:"已打开！"});
+Object.assign(window.BOX_I18N.ja,{opened:"開けました！"});
