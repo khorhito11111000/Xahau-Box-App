@@ -360,6 +360,7 @@ let current = 'home', afterAccount = null;
 let accountFrom = 'home', doneFrom = 'home', popQuiet = false;
 const armed = () => !!(history.state && history.state.xb);
 function show(name) {
+  if (current && current !== name) { const o = $('s-' + current); if (o) o.querySelectorAll('details[open]').forEach(d => { d.open = false; }); }
   if (name === 'account' && current !== 'account') accountFrom = current;
   current = name;
   for (const s of SCREENS) $('s-' + s).classList.toggle('on', s === name);
