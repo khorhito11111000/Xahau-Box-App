@@ -978,12 +978,14 @@ function enterSign() {
       } }, t('xamanSign')), out));
     }
   } else items.forEach(it => body.append(jsonBlock(it)));
+  if (!(xme && xme === signer)) {
   const hashIn = h('input', { class: 'inp', placeholder: 'Hash', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
   const hashOut = h('div');
   body.append(h('div', { class: 'card' }, h('div', { class: 'lbl' }, t('checkHash')), hashIn, h('button', { class: 'btn o', type: 'button', onclick: async () => {
     const v = hashIn.value.trim(); if (!/^[0-9A-Fa-f]{64}$/.test(v)) return;
     hashOut.textContent = t('waiting'); const r = await getTx(v).catch(() => null); hashOut.textContent = ''; hashOut.append(txResult(v, r && r.validated ? r : null));
   } }, t('checkHashBtn')), hashOut));
+  }
 }
 function txResult(id, r) {
   const d = h('div', { class: 'txres' });
