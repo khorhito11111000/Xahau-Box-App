@@ -245,7 +245,7 @@ function tokenView(tok) {
     const id = String(tok.index || '').toUpperCase(); const rm = remarkMap(tok); const rmeta = remarkMeta(rm); const meta = rmeta && rmeta.meta;
     const v = { name: null, img: null, attrs: [], desc: null, remarks: [] };
     const k = keyTokenId(tok);
-    if (k) { v.name = t('tokenKind') + ' · ' + k.slice(0, 6); v.img = 'img/key.jpg'; return v; }
+    if (k) { v.name = t('tokenKind') + ' · ' + k.slice(0, 6); v.img = 'img/key.jpg?v=2'; return v; }
     if (meta) { v.name = clean(meta.name); v.desc = clean(meta.desc || meta.description, 160); v.descFull = clean(meta.desc || meta.description, 2000); v.attrs = attrList(meta.attributes); v.full = attrFull(meta.attributes); }
     else v.remarks = [...rm].filter(([, r]) => clean(r.text, 80)).slice(0, 4).map(([n, r]) => (clean(n, 30) + ': ' + clean(r.text, 80)));
     if (tok.Issuer === ISS.CARDS && meta && typeof meta.image === 'string' && CARD_IMG.test(meta.image)) v.img = meta.image;
@@ -866,7 +866,7 @@ function updateSummary() {
   $('gcModeHint').classList.toggle('hide', !(gt && gcTok(gt)));
   $('sumText').textContent = parts.join(' + ') || '—';
   const e = expLedger(), box = $('expNote'); box.textContent = '';
-  box.append(liveRow(), row(t('ledgerExp'), e ? String(e) : t('limitNone')));
+  if (e) box.append(liveRow()); box.append(row(t('ledgerExp'), e ? String(e) : t('limitNone')));
   if (e) box.append(leftRow(e, acct.cur), row(t('approx'), new Date(Date.now() + Number($('expSel').value) * 86400000).toLocaleDateString(S.lang)));
   else box.append(h('div', { class: 'card warn' }, '⚠️ ' + t(kind() === 'token' ? 'noLimitWarnKey' : 'noLimitWarn')));
   renderLive(false);
@@ -1088,10 +1088,10 @@ async function finishPack(only) {
 function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
 async function drawBox(link) {
   const cv = $('boxCanvas'), ctx = cv.getContext('2d');
-  const bg = await loadImg('img/box.jpg'); cv.width = bg.width; cv.height = bg.height; ctx.drawImage(bg, 0, 0);
+  const bg = await loadImg('img/box.jpg?v=2'); cv.width = bg.width; cv.height = bg.height; ctx.drawImage(bg, 0, 0);
   const qr = await loadImg(await L.qrDataURL(link, { margin: 1, width: 600 }));
-  // Same placement as key_token_qr_left.jpg: white rounded card, bottom-left, "OPEN BOX" under the QR.
-  const size = 300, pad = 14, x = 64, y = cv.height - size - 60;
+  // White rounded card, bottom-right (keeps the X mark visible), "OPEN BOX" under the QR.
+  const size = 300, pad = 14, x = cv.width - size - 64, y = cv.height - size - 60;
   const cx = x - pad, cy = y - pad - 10, cw = size + 2 * pad, ch = size + 2 * pad + 44;
   ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(cx, cy, cw, ch, 22); ctx.fill();
   ctx.imageSmoothingEnabled = false; ctx.drawImage(qr, cx + pad, cy + pad, size, size);
@@ -1167,7 +1167,7 @@ async function showBox() {
   { const xm = xstate && xstate.me && xstate.me.account; if (q.kind === 'named' && xm && xm !== q.a) card.append(h('div', { class: 'card warn' }, t('namedOnly').replace('{a}', short(q.a)))); }
   if (ktid) card.append(row(t('keyHolder'), short(holder || '?')));
   const expN = parseInt(b.exp, 16);
-  card.append(liveRow(), row(t('ledgerExp'), expN ? String(expN) : t('limitNone')));
+  if (expN) card.append(liveRow()); card.append(row(t('ledgerExp'), expN ? String(expN) : t('limitNone')));
   if (expN) card.append(leftRow(expN, cur));
   card.append(stRow(b, expN, b.status === 0 ? 'ok' : 'yel'), row(t('boxNumber'), short(q.vc)));
   renderLive(false);
@@ -1727,7 +1727,6 @@ function mbTabsUi() {
 function mbRender() {
   const d = mbData, list = $('mbList'); if (!d) return;
   mbTabsUi(); list.textContent = ''; errSet('boxesErr');
-  list.append(h('div', { class: 'card' }, liveRow()));
   const note = k => list.append(h('p', { class: 'sm mbnote' }, k));
   if (mbTab === 'built') {
     if (!d.built.length) list.append(h('p', { class: 'sub' }, t('noBoxes')));
