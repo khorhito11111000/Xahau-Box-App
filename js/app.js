@@ -309,7 +309,7 @@ function tokenDetails(tok) {
       kv(t('tokId'), id, id, tokExplorer(id)),
       kv(t('tokIssuer'), short(tok.Issuer || ''), tok.Issuer || null, tok.Issuer ? explorerAcc(tok.Issuer) : null),
       kv('URI', uri && printable(uri) ? uri : (tok.URI || '—'), null, null)),
-    h('a', { class: 'lnk', href: tokExplorer(id), target: '_blank', rel: 'noopener noreferrer' }, t('explorer') + ' ↗'));
+    h('a', { class: 'btn o exbtn', href: tokExplorer(id), target: '_blank', rel: 'noopener noreferrer' }, t('explorer') + ' ↗'));
   const ov = h('div', { class: 'tdov', onclick: close }, sheet);
   document.body.append(ov); document.addEventListener('keydown', esc);
   tokenView(tok).then(v => {
@@ -1007,7 +1007,7 @@ function txResult(id, r) {
   const res = (r.meta || {}).TransactionResult; const ans = hookAnswers(r);
   d.append(row(t('txHash'), short(id)), row('Result', res, res === 'tesSUCCESS' ? 'ok' : 'bad'));
   if (ans.length) d.append(row(t('hookSays'), ans.join(' · ')));
-  d.append(h('a', { class: 'lnk', href: NET().explorerTx + id, target: '_blank', rel: 'noopener noreferrer' }, t('explorer') + ' ↗'));
+  d.append(h('a', { class: 'btn o exbtn', href: NET().explorerTx + id, target: '_blank', rel: 'noopener noreferrer' }, t('explorer') + ' ↗'));
   return d;
 }
 $('checkBtn').onclick = () => checkPending().catch(e => errSet('signErr', e.message));
@@ -1877,7 +1877,7 @@ $('hkGo').onclick = async () => {
     const box = h('div'); out.append(box);
     const id = await xamanSign(tx, box);
     box.textContent = ''; box.append(h('p', { class: 'sub' }, t('hkSent')), h('p', { class: 'mono sm' }, id),
-      h('a', { class: 'lnk', href: NET().explorerTx + id, target: '_blank', rel: 'noopener noreferrer' }, t('explorer') + ' ↗'));
+      h('a', { class: 'btn o exbtn', href: NET().explorerTx + id, target: '_blank', rel: 'noopener noreferrer' }, t('explorer') + ' ↗'));
     const r = await waitTx(id);
     const res = r && r.meta ? r.meta.TransactionResult : null;
     box.append(h('p', { class: res === 'tesSUCCESS' ? 'sub yel' : 'err-line' }, res ? (res === 'tesSUCCESS' ? t('hkOk') : t('hkFail') + ' ' + res) : t('hkPendingTx')));
