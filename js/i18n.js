@@ -1860,3 +1860,11 @@ Object.assign(window.BOX_I18N.fr,{setSub:"Codes cadeaux, langue, sécurité, à 
 Object.assign(window.BOX_I18N.de,{setSub:"Geschenkcodes, Sprache, Sicherheit, über das Projekt, so funktioniert’s und Nutzungsregeln. Tipp auf einen Bereich, um ihn zu öffnen."});
 Object.assign(window.BOX_I18N.zh,{setSub:"礼品码、语言、安全、关于项目、使用说明和使用规则。点击某一项即可展开。"});
 Object.assign(window.BOX_I18N.ja,{setSub:"ギフトコード、言語、セキュリティ、プロジェクトについて、使い方、利用規約。項目をタップすると開きます。"});
+
+Object.assign(window.BOX_I18N.ru,{inboxOnlySub:'Боксы, которые пришли тебе и ещё не открыты.'});
+Object.assign(window.BOX_I18N.en,{inboxOnlySub:'Boxes sent to you that are not opened yet.'});
+Object.assign(window.BOX_I18N.es,{inboxOnlySub:'Cajas que te enviaron y aún no se han abierto.'});
+Object.assign(window.BOX_I18N.fr,{inboxOnlySub:'Boîtes reçues qui ne sont pas encore ouvertes.'});
+Object.assign(window.BOX_I18N.de,{inboxOnlySub:'Boxen, die du bekommen hast und die noch nicht geöffnet sind.'});
+Object.assign(window.BOX_I18N.zh,{inboxOnlySub:'发给你但尚未打开的盒子。'});
+Object.assign(window.BOX_I18N.ja,{inboxOnlySub:'あなたに届いた、まだ開けていないボックス。'});

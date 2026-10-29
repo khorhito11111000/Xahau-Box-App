@@ -1571,13 +1571,14 @@ async function boxHistory(me, force) {
   return histCache.p;
 }
 let mbTab = 'built', mbSeq = 0, mbData = null, mbBusy = false;
-function enterMyBoxes(tab) {
-  if (tab) mbTab = tab;
-  if (!needAccount(() => enterMyBoxes(tab), 'mybx')) return;
+let mbOnly = false;
+function enterMyBoxes(tab, only = false) {
+  if (tab) mbTab = tab; mbOnly = only;
+  if (!needAccount(() => enterMyBoxes(tab, only), only ? 'inbox' : 'mybx')) return;
   show('mybx'); mbLoad();
 }
 const enterBoxes = () => enterMyBoxes('built');
-const enterInbox = () => enterMyBoxes('recv');
+const enterInbox = () => enterMyBoxes('recv', true);
 function mbRefresh() { if (current === 'mybx') mbLoad(); }
 /* how each key token left this account: its own Remit / sell offer in the public history (read-only) */
 async function keyXfers(me, ids) {
@@ -1722,7 +1723,8 @@ function mbTabsUi() {
     const on = b.dataset.tab === mbTab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on));
     const n = cnt[b.dataset.tab]; b.querySelector('.tn').textContent = n ? String(n) : ''; b.querySelector('.tn').classList.toggle('hide', !n);
   });
-  $('mbSub').textContent = t(mbTab === 'built' ? 'mbBuiltSub' : mbTab === 'recv' ? 'mbRecvSub' : 'mbSentSub');
+  $('mbSub').textContent = t(mbOnly ? 'inboxOnlySub' : mbTab === 'built' ? 'mbBuiltSub' : mbTab === 'recv' ? 'mbRecvSub' : 'mbSentSub');
+  $('mbTabs').classList.toggle('hide', mbOnly); $('mbTitle').textContent = t(mbOnly ? 'inboxT' : 'mbH');
 }
 function mbRender() {
   const d = mbData, list = $('mbList'); if (!d) return;
@@ -1732,6 +1734,12 @@ function mbRender() {
     if (!d.built.length) list.append(h('p', { class: 'sub' }, t('noBoxes')));
     for (const b of d.built) list.append(boxCard(b, d.kn(b), d.links.get(b.key), d.pk(b), d.keySt(b)));
     $('vcCard').classList.toggle('hide', false);
+  } else if (mbOnly) {
+    $('vcCard').classList.add('hide');
+    const live = d.recvOpen.filter(inboxOpenable);
+    if (d.inboxErr) note(t('mbPartErr'));
+    if (!live.length) list.append(h('p', { class: 'sub' }, t('mbNone')));
+    for (const b of live) list.append(inboxCard(b));
   } else if (mbTab === 'recv') {
     $('vcCard').classList.add('hide');
     if (d.inboxErr) note(t('mbPartErr'));
