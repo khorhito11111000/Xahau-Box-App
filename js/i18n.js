@@ -2006,3 +2006,11 @@ Object.assign(window.BOX_I18N.fr,{doneGcPw:"La boîte contient un code cadeau. E
 Object.assign(window.BOX_I18N.de,{doneGcPw:"In der Box ist ein Geschenkcode. Schick das Passwort dem Empfänger privat per Direktnachricht. Nie in einen Link, einen QR oder einen öffentlichen Post."});
 Object.assign(window.BOX_I18N.zh,{doneGcPw:"盒子里有礼品码。请通过私信把密码单独发给收件人。不要把密码放在链接、二维码或公开帖子里。"});
 Object.assign(window.BOX_I18N.ja,{doneGcPw:"ボックスにはギフトコードが入っています。パスワードは受取人にダイレクトメッセージで個別に送ってください。リンク、QR、公開投稿には絶対に書かないでください。"});
+
+Object.assign(window.BOX_I18N.ru,{gcTokName:"Токен с подарочным кодом",tokNum:"Номер токена"});
+Object.assign(window.BOX_I18N.en,{gcTokName:"Gift code token",tokNum:"Token number"});
+Object.assign(window.BOX_I18N.es,{gcTokName:"Token con código de regalo",tokNum:"Número del token"});
+Object.assign(window.BOX_I18N.fr,{gcTokName:"Jeton avec code cadeau",tokNum:"Numéro du jeton"});
+Object.assign(window.BOX_I18N.de,{gcTokName:"Token mit Geschenkcode",tokNum:"Token-Nummer"});
+Object.assign(window.BOX_I18N.zh,{gcTokName:"礼品码代币",tokNum:"代币编号"});
+Object.assign(window.BOX_I18N.ja,{gcTokName:"ギフトコード付きトークン",tokNum:"トークン番号"});

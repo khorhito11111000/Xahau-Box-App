@@ -874,7 +874,7 @@ function updateSummary() {
   if (!acct) return;
   const d = xahToDrops($('amtInput').value);
   $('amtNote').textContent = d === null ? t('amtBad') : '≈ ' + t('available').toLowerCase() + ': ' + dropsToXah(freeToLock(acct, !!sel.gift, kind() === 'token')) + ' XAH';
-  const parts = []; if (d) parts.push(dropsToXah(d) + ' XAH'); if (sel.gift) parts.push('1 URIToken');
+  const parts = []; if (d) parts.push(dropsToXah(d) + ' XAH'); if (sel.gift) { const gt0 = acct.tokens.find(x => x.index === sel.gift); parts.push(gt0 && gcTok(gt0) ? '🔒 ' + t('gcTokName') : '1 URIToken'); }
   const gt = sel.gift && acct.tokens.find(x => x.index === sel.gift);
   $('gcModeHint').classList.toggle('hide', !(gt && gcTok(gt)));
   $('sumText').textContent = parts.join(' + ') || '—';
@@ -1230,8 +1230,8 @@ async function finishPack(only) {
   $('doneNext').textContent = t(b.kind === 'token' ? 'doneNextKey' : 'doneNextLink'); $('doneNext').classList.toggle('hide', b.kind === 'token');
   const info = $('doneInfo'); info.textContent = '';
   if (b.sentTo) info.append(h('div', { class: 'ok' }, '✓ ' + t('keySentTo') + ' ' + short(b.sentTo)));
-  const parts = []; if (BigInt('0x' + b.amt)) parts.push(dropsToXah(BigInt('0x' + b.amt)) + ' XAH'); if (!isZero(b.tid)) parts.push('1 URIToken');
-  info.append(row(t('contents'), parts.join(' + '), 'yel'), row(t('kind'), t(b.kind + 'Kind')));
+  const parts = []; if (BigInt('0x' + b.amt)) parts.push(dropsToXah(BigInt('0x' + b.amt)) + ' XAH'); if (!isZero(b.tid)) parts.push(gtok && gcTok(gtok) ? '🔒 ' + t('gcTokName') : '1 URIToken');
+  info.append(row(t('contents'), parts.join(' + '), 'yel')); if (!isZero(b.tid)) info.append(row(t('tokNum'), short(b.tid))); info.append(row(t('kind'), t(b.kind + 'Kind')));
   if (b.kind === 'named') info.append(row(t('signedFor'), short(b.named)));
   if (b.kind === 'token') { info.append(h('p', { class: 'sm' }, t('kdStays').replace('{a}', shortL(b.h)))); const ki = $('keyInfo'); ki.textContent = ''; ki.append(row(t('kdKeyNo'), short(b.ktid), 'yel')); }
   info.append(row(t('expires'), b.exp !== '00000000' ? t('expAt') + ' ' + parseInt(b.exp, 16) : t('limitNone')), row(t('boxNumber'), short(b.vc)), row('Network', C.NETWORKS[b.net].label));
@@ -1310,7 +1310,7 @@ async function showBox() {
     rest.classList.add('hide'); v.prepend(gc);
   }
   if (!b) { card.append(row(t('status'), t('stGone'), 'bad'), row(t('boxNumber'), short(q.vc))); return; }
-  const amt = BigInt('0x' + b.amt), parts = []; if (amt) parts.push(dropsToXah(amt) + ' XAH'); if (tok) parts.push('1 URIToken');
+  const amt = BigInt('0x' + b.amt), parts = []; if (amt) parts.push(dropsToXah(amt) + ' XAH'); if (tok) parts.push(gcTok(tok) ? '🔒 ' + t('gcTokName') : '1 URIToken');
   card.append(row(t('contents'), parts.join(' + '), 'yel'));
   if (by) card.append(creatorRow(by));
   if (tok && gcTok(tok)) card.append(gcWarn());
