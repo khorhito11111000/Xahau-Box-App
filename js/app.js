@@ -834,7 +834,6 @@ function renderTokens() {
   for (const tok of keys) {
     const why = tokenReason(tok);
     k.append(tokenCard(tok, { disabled: why || (sel.gift === tok.index ? t('keyIsGift') : null), selected: sel.key === tok.index, onclick: () => {} }));
-    if (!why && tok.Owner === acct.address && !S.history.some(x => x.ktid === tok.index)) k.append(burnCard(acct.address, tok.index, true, 'create')); // a spare key that opens no box
   }
 }
 const kind = () => { const top = document.querySelector('input[name=kind]:checked').value; return top === 'token' ? 'token' : document.querySelector('input[name=linkFor]:checked').value; };
@@ -1535,6 +1534,23 @@ async function inboxBadge() {
   btn.classList.remove('hide'); n.textContent = '';
   try { const l = await findInbox(); const c = l.filter(inboxOpenable).length; n.textContent = c ? String(c) : ''; n.classList.toggle('hide', !c); } catch { n.classList.add('hide'); }
 }
+/* the key token of an opened key box: the issuer's own PACK with this box number (VC) names it (KTID) */
+const kovCache = new Map();
+async function keyOfVc(iss, vc) {
+  const V = String(vc).toUpperCase(), id = iss + ':' + V; if (kovCache.has(id)) return kovCache.get(id);
+  const nm = x => hexToText(x || ''); let marker, out = null;
+  for (let i = 0; i < 10 && !out; i++) {
+    const r = await rpc('account_tx', Object.assign({ account: iss, ledger_index_min: -1, ledger_index_max: -1, limit: 200, forward: false }, marker ? { marker } : {}));
+    for (const e of r.transactions || []) {
+      const tx = e.tx || e.tx_json || {}; if (tx.TransactionType !== 'Invoke' || tx.Account !== iss || !tx.HookParameters) continue;
+      if (e.meta && e.meta.TransactionResult !== 'tesSUCCESS') continue;
+      const ps = {}; for (const x of tx.HookParameters) ps[nm(x.HookParameter.HookParameterName)] = String(x.HookParameter.HookParameterValue || '').toUpperCase();
+      if (ps.CMD === '5041434B' && ps.VC === V && /^[0-9A-F]{64}$/.test(ps.KTID || '')) { out = ps.KTID; break; }
+    }
+    marker = r.marker; if (!marker) break;
+  }
+  kovCache.set(id, out); return out;
+}
 /* the box number (VC) from the issuer's own PACK for this key token; checked against the box's state key */
 async function packVc(iss, ktid, bk) {
   const nm = x => hexToText(x || '');
@@ -1556,7 +1572,7 @@ function inboxCard(b) {
   const me = S.account.address;
   const c = h('div', { class: 'card' + (inboxOpenable(b) ? ' inbox' : '') });
   if (b.gone) {
-    c.append(row(t('tokenKind'), short(b.ktid)), row(t('inboxFrom'), short(b.h)), row(t('status'), t('stGone'), 'bad'), h('p', { class: 'sm' }, t('inboxGone')), burnCard(me, b.ktid, true, 'inbox'));
+    c.append(row(t('tokenKind'), short(b.ktid)), row(t('inboxFrom'), short(b.h)), row(t('status'), t('stGone'), 'bad'), h('p', { class: 'sm' }, t('inboxGone')));
     return c;
   }
   const amt = BigInt('0x' + b.amt), hasTok = !isZero(b.tid), expN = parseInt(b.exp, 16);
@@ -1609,7 +1625,7 @@ async function codesLoad() {
   list.append(h('div', { class: 'card gcmine' }, gcs.map(tok => h('div', {}, tokenCard(tok, { big: true, reveal: true }), v.locked.has(tok.index) ? null : burnCard(me, tok.index)))));
 }
 /* burn a gift code token you own (URITokenBurn, signed by you in Xaman; the token and its code are gone for good) */
-function burnBack(p) { return p.from === 'inbox' ? enterInbox() : p.from === 'create' ? enterCreate() : enterCodes(); }
+function burnBack(p) { return p.from === 'boxes' ? enterMyBoxes() : enterCodes(); }
 function burnCard(me, id, key, from = 'codes') {
   const wrap = h('div', { class: 'hide' }, h('div', { class: 'card warn' }, h('p', { class: 'sm' }, t(key ? 'burnKeyWarn' : 'burnWarn'))),
     h('button', { class: 'btn burn', type: 'button', onclick: () => { S.pending = { op: 'burn', key: !!key, tx: { TransactionType: 'URITokenBurn', Account: me, URITokenID: id, NetworkID: NET().networkId }, from }; save(); enterSign(); } }, t('burnYes')));
@@ -1950,7 +1966,7 @@ async function mbLoad() {
     sent.sort((a, c) => (c.nonce || 0) - (a.nonce || 0));
     const recvOpen = (inbox || []).filter(b => !b.gone), recvGone = (inbox || []).filter(b => b.gone);
     const mine = recs.filter(r => r.cmd === 'CLAIM' && r.from === me && r.hk !== me && r.b)
-      .map(r => ({ b: r.b, nonce: r.b.nonce, key: !r.link, st: t('mbOpenedYou'), ok: true, who: [t('inboxFrom'), r.hk], date: r.date, hash: r.hash }))
+      .map(r => ({ b: r.b, nonce: r.b.nonce, key: !r.link, st: t('mbOpenedYou'), ok: true, who: [t('inboxFrom'), r.hk], date: r.date, hash: r.hash, burnKey: !r.link ? { iss: r.hk, vc: r.vc } : null }))
       .sort((a, c) => (c.date || 0) - (a.date || 0));
     mbData = { me, built, keySt, kn, pk: b => packByKey.get(String(b.key).toUpperCase()) || null, links, sent, recvOpen, recvGone, mine, inboxErr: !inbox, histErr: !hist, more: hist && hist.more, n: hist ? hist.n : 0 };
     mbBusy = false; mbRender();
@@ -2024,6 +2040,8 @@ function histCard(x) {
     x.local ? h('p', { class: 'sm' }, t('mbLocal')) : null,
     x.live ? h('p', { class: 'sm' }, t('mbSeeBuilt')) : null,
     exBlock([['exPack', x.pack], ['exClaim', x.hash]]) || h('p', { class: 'sm' }, t('exNone')));
+  if (x.burnKey && S.account) { const me = S.account.address, slot = h('div'); body.append(slot);
+    keyOfVc(x.burnKey.iss, x.burnKey.vc).then(kt => kt && uriToken(kt).then(tok => { if (tok && tok.Owner === me && S.account && S.account.address === me) slot.append(burnCard(me, kt, true, 'boxes')); })).catch(() => {}); }
   const c = h('div', { class: 'card bcard' }, head, body);
   const set = on => { body.classList.toggle('hide', !on); c.classList.toggle('open', on); head.setAttribute('aria-expanded', String(on)); };
   head.onclick = () => { const on = !histOpen.has(id); if (on) histOpen.add(id); else histOpen.delete(id); set(on); };
