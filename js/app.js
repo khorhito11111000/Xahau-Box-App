@@ -1231,7 +1231,8 @@ async function finishPack(only) {
   const info = $('doneInfo'); info.textContent = '';
   if (b.sentTo) info.append(h('div', { class: 'ok' }, '✓ ' + t('keySentTo') + ' ' + short(b.sentTo)));
   const parts = []; if (BigInt('0x' + b.amt)) parts.push(dropsToXah(BigInt('0x' + b.amt)) + ' XAH'); if (!isZero(b.tid)) parts.push(gtok && gcTok(gtok) ? '🔒 ' + t('gcTokName') : '1 URIToken');
-  info.append(row(t('contents'), parts.join(' + '), 'yel')); if (!isZero(b.tid)) info.append(row(t('tokNum'), short(b.tid))); info.append(row(t('kind'), t(b.kind + 'Kind')));
+  const cRow = row(t('contents'), parts.join(' + '), 'yel'); info.append(cRow); if (!isZero(b.tid)) info.append(row(t('tokNum'), short(b.tid))); info.append(row(t('kind'), t(b.kind + 'Kind')));
+  if (!isZero(b.tid) && !gtok) uriToken(b.tid).then(n => { if (n && gcTok(n) && cRow.isConnected) { cRow.querySelector('b').textContent = parts.join(' + ').replace('1 URIToken', '🔒 ' + t('gcTokName')); $('gcPwRemind').classList.remove('hide'); } }).catch(() => {});
   if (b.kind === 'named') info.append(row(t('signedFor'), short(b.named)));
   if (b.kind === 'token') { info.append(h('p', { class: 'sm' }, t('kdStays').replace('{a}', shortL(b.h)))); const ki = $('keyInfo'); ki.textContent = ''; ki.append(row(t('kdKeyNo'), short(b.ktid), 'yel')); }
   info.append(row(t('expires'), b.exp !== '00000000' ? t('expAt') + ' ' + parseInt(b.exp, 16) : t('limitNone')), row(t('boxNumber'), short(b.vc)), row('Network', C.NETWORKS[b.net].label));
