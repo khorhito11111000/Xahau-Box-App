@@ -394,6 +394,7 @@ function goBack() {
       return show('home');
     }
     case 'sign':
+      if (p && p.st && p.st.main && ['signed', 'ok'].includes(p.st.main.st)) { if (p.st.main.st === 'ok') { stepAdvance(p); return; } return enterSign(); }
       if (p && (p.op === 'mint' || p.op === 'gmint')) { resumeMint(true).then(ok => { if (!ok) enterCreate(); }); return; }
       if (p && p.op === 'pack' && p.shown) return finishPack();
       if (p && p.op === 'pack') { const who = p.box.h; return acct && acct.address === who ? show('create') : enterCreate(); }
@@ -606,12 +607,13 @@ function xamanErrShow(id, e) {
     el.append(h('div', { class: 'xrelog' }, h('button', { class: 'btn y', type: 'button', onclick: () => { afterAccount = back ? () => enterSign() : null; if (back) { S.back = back; save(); } mwSignIn(S.account && S.account.address); } }, t('xamanReloginBtn'))));
   }
 }
-async function xamanSign(tx, box) {
+async function xamanSign(tx, box, onCreated) {
   const sdk = xstate.sdk;
   let sub;
   try { sub = await sdk.payload.createAndSubscribe({ txjson: tx }, ev => { if (typeof ev.data.signed !== 'undefined') return ev.data; }); }
   catch (e) { e.xaman = true; throw e; }
   if (!sub || !sub.created) { const e = new Error('Unexpected response from XUMM API [POST:payload]'); e.xaman = true; throw e; }
+  if (onCreated) try { onCreated(sub.created); } catch {}
   box.textContent = '';
   box.append(h('p', { class: 'sub' }, t('xamanWait')), h('a', { class: 'btn w', href: sub.created.next.always, target: '_blank', rel: 'noopener noreferrer' }, t('xamanOpen')));
   if (sub.created.refs && sub.created.refs.qr_png) box.append(h('img', { class: 'xqr', src: sub.created.refs.qr_png, alt: '' }));
@@ -739,7 +741,7 @@ async function pollLedger() {
 function startLive() {
   clearInterval(LIVE.timer); LIVE.timer = setInterval(pollLedger, C.LEDGER_POLL_MS || 4000); pollLedger();
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { pollLedger(); resumePack(); resumeClaim(); resumeMint(); resumeRemit(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { pollLedger(); resumePack(); resumeClaim(); resumeMint(); resumeRemit(); resumeOpen(); stepPoll(); } });
 const liveRow = () => row(t('ledgerNow'), h('span', { class: 'lcur' }, curLedger() ? String(curLedger()) : '…'));
 const leftRow = (exp, cur) => row(t('timeLeft'), h('span', { 'data-exp': String(exp || 0), 'data-cur': String(cur || 0) }, '…'));
 
@@ -1026,14 +1028,34 @@ function enterSign() {
   } else if (xme && xme !== signer) body.append(h('div', { class: 'card warn' }, t('otherAcct') + ' ' + short(signer) + '.'));
   $('checkBtn').classList.toggle('hide', !!(xme && xme === signer));
   if (xme && xme === signer) {
+    p.st = p.st || {};
+    let blocked = false;
     for (const it of items) {
+      const key = it.main ? 'main' : 'audit', st = p.st[key] || {};
+      const card = h('div', { class: 'card' }, h('div', { class: 'lbl' }, (st.st === 'ok' ? '✓ ' : '') + it.label)); body.append(card);
+      if (st.st === 'ok') { card.classList.add('stepok'); card.append(h('p', { class: 'sm' }, t('stDone')), exTx(st.txid)); continue; }
+      if (blocked) { card.append(h('p', { class: 'sm yel' }, t('stAuditFirst'))); continue; }
+      blocked = true; // a later step waits until this one is done
+      if (st.st === 'signed') { card.append(h('p', { class: 'sub yel' }, t('stWaitNet')), exTx(st.txid)); continue; }
+      if (st.st === 'open' && liveStep !== p) {
+        card.append(h('p', { class: 'sub yel' }, t('stOpenX')));
+        if (st.next) card.append(h('a', { class: 'btn w', href: st.next, target: '_blank', rel: 'noopener noreferrer' }, t('xamanOpen')));
+        card.append(h('button', { class: 'btn o', type: 'button', onclick: async ev => { ev.target.disabled = true; try { if (xstate && xstate.sdk && st.uuid) await xstate.sdk.payload.cancel(st.uuid); } catch {} if (p.st[key] === st) { delete p.st[key]; save(); } enterSign(); } }, t('stCancel')));
+        continue;
+      }
+      if (st.st === 'fail') card.append(h('p', { class: 'err-line' }, t('stFail').replace('{r}', st.res || '?')));
       const out = h('div', { class: 'xout' });
-      body.append(h('div', { class: 'card' }, h('div', { class: 'lbl' }, it.label), h('button', { class: 'btn y', type: 'button', onclick: async ev => {
-        ev.target.disabled = true; errSet('signErr');
-        try { const id = await xamanSign(it.tx, out); if (it.main && p.op === 'pack') { p.box.tx = id; save(); } out.textContent = t('waiting'); const r = await waitTx(id); out.textContent = ''; out.append(txResult(id, r)); if (it.main) await checkPending(); }
-        catch (e) { if (e && e.xaman) xamanErrShow('signErr', e); else errSet('signErr', e.message); } finally { ev.target.disabled = false; }
-      } }, t('xamanSign')), out));
+      card.append(h('button', { class: 'btn y', type: 'button', disabled: liveStep === p ? true : null, onclick: async ev => {
+        if (liveStep) return; ev.target.disabled = true; errSet('signErr');
+        const ns = p.st[key] = { st: 'open' }; save(); liveStep = p;
+        try {
+          const id = await xamanSign(it.tx, out, c => { ns.uuid = c.uuid; ns.next = c.next && c.next.always; save(); });
+          ns.st = 'signed'; ns.txid = id; if (it.main && p.op === 'pack') p.box.tx = id; save();
+        } catch (e) { if (p.st[key] === ns) delete p.st[key]; save(); liveStep = null; if (S.pending === p && current === 'sign') enterSign(); if (e && e.xaman) xamanErrShow('signErr', e); else errSet('signErr', e.message); return; }
+        liveStep = null; if (S.pending === p && current === 'sign') enterSign();
+      } }, t('xamanSign')), out);
     }
+    setTimeout(stepPoll, 0);
   } else items.forEach(it => body.append(jsonBlock(it)));
   if (!(xme && xme === signer)) {
   const hashIn = h('input', { class: 'inp', placeholder: 'Hash', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
@@ -1055,6 +1077,43 @@ function txResult(id, r) {
 }
 $('checkBtn').onclick = () => checkPending().catch(e => errSet('signErr', e.message));
 $('signBack').onclick = () => goBack();
+/* signed steps: wait for the network, never offer the same signature again */
+let liveStep = null, stepPolling = false;
+async function stepPoll() {
+  const p = S.pending; if (stepPolling || !p || !p.st) return;
+  stepPolling = true;
+  try {
+    for (let round = 0; round < 60 && S.pending === p; round++) {
+      let changed = false, waiting = false;
+      for (const key of ['audit', 'main']) {
+        const st = p.st[key]; if (!st) continue;
+        if (st.st === 'open' && liveStep !== p && st.uuid && xstate && xstate.sdk) {
+          const r = await xstate.sdk.payload.get(st.uuid).catch(() => null);
+          if (r && r.meta && r.meta.signed && r.response && r.response.txid) { st.st = 'signed'; st.txid = r.response.txid; if (key === 'main' && p.op === 'pack') p.box.tx = st.txid; changed = true; }
+          else if (r && r.meta && (r.meta.resolved || r.meta.expired || r.meta.cancelled)) { delete p.st[key]; changed = true; }
+          else waiting = true;
+        }
+        if (st.st === 'signed') {
+          const r = await getTx(st.txid).catch(() => null);
+          if (r && r.validated) { const res = (r.meta || {}).TransactionResult; if (res === 'tesSUCCESS') st.st = 'ok'; else { st.st = 'fail'; st.res = res; } changed = true; }
+          else waiting = true;
+        }
+      }
+      if (changed) { save(); if (S.pending === p && current === 'sign') enterSign(); }
+      if (p.st.main && p.st.main.st === 'ok') { await stepAdvance(p); break; }
+      if (!waiting) break;
+      await sleep(2500);
+    }
+  } finally { stepPolling = false; }
+}
+/* the main transaction is in: go on to the next step / result (the ledger may lag a few seconds) */
+async function stepAdvance(p) {
+  for (let i = 0; i < 8 && S.pending === p; i++) {
+    try { await checkPending(); } catch {}
+    if (S.pending !== p || current !== 'sign') return;
+    await sleep(2500);
+  }
+}
 async function checkPending() {
   const p = S.pending; if (!p) return; errSet('signErr');
   if (p.op === 'pack') {
@@ -1119,6 +1178,12 @@ async function resumeMint(any) {
     if (p.op === 'mint') autoPack(p);
     return true;
   } catch { return false; } finally { resumingM = false; }
+}
+let resumingO = false;
+async function resumeOpen() {
+  const p = S.pending; if (resumingO || !p || p.op !== 'open' || current !== 'sign') return;
+  resumingO = true;
+  try { const d = await hookState(p.h, L.boxKey(p.vc)); if (!d && S.pending === p) await checkPending(); } catch {} finally { resumingO = false; }
 }
 async function resumeClaim() {
   const p = S.pending; if (resumingC || !p || p.op !== 'claim' || current !== 'sign') return;
@@ -1921,6 +1986,8 @@ $('hkGo').onclick = async () => {
       let ok; try { ok = await hkDefExists(tx.Hooks[0].Hook.HookHash); } catch (x) { out.textContent = ''; return errSet('hkErr', t('hkCheckFail') + ' ' + x.message); }
       out.textContent = '';
       if (!ok) return errSet('hkErr', t('hkNoDef'));
+      const objs = await accountObjects(tx.Account).catch(() => []);
+      if (objs.some(o => o.LedgerEntryType === 'Hook' && (o.Hooks || []).some(x => x.Hook && String(x.Hook.HookHash || '').toUpperCase() === tx.Hooks[0].Hook.HookHash))) { out.append(h('p', { class: 'sub yel' }, '✓ ' + t('hkAlready'))); return; }
     }
     out.append(h('div', { class: 'card' + (S.net === 'mainnet' ? ' warn' : '') }, row(t('hkAcct'), short(tx.Account), 'mono'), row(t('hkNet'), NET().label + ' · ' + tx.NetworkID)), h('p', { class: 'sm' }, t('hkFeeNote')));
     const box = h('div'); out.append(box);
@@ -2031,7 +2098,7 @@ async function donPaint() {
 }
 document.querySelectorAll('.dontab').forEach(b => b.onclick = () => { donCoin = b.dataset.c; donPaint(); });
 if ($('donCopy')) $('donCopy').onclick = () => copy(DON_ADDR);
-initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); resumeClaim(); resumeMint(); resumeRemit(); egify(document.body);
+initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); resumeClaim(); resumeMint(); resumeRemit(); resumeOpen(); setTimeout(stepPoll, 1500); egify(document.body);
 // test hook for automated checks (read-only helpers, no secrets)
 window.__box = { hkTx, packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr, mintTx, gc: { encrypt: gcEncrypt, decrypt: gcDecrypt, genPw: gcGenPw, max: GC.MAX, iter: GC.ITER } };
 })();
