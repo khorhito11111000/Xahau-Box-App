@@ -1982,3 +1982,11 @@ Object.assign(window.BOX_I18N.fr,{w4H:"Facultatif. Le créateur d’une boîte a
 Object.assign(window.BOX_I18N.de,{w4H:"Optional. Eine Box mit Frist kann der Ersteller erst nach Ablauf der Frist zurückholen.",noLimitWarnKey:"Eine Box ohne Frist kann der Ersteller unter keinen Umständen zurückholen.",noLimitWarn:"Eine Box ohne Frist kann der Ersteller unter keinen Umständen zurückholen. Gehen Link oder QR verloren, bleibt sie für immer verschlossen."});
 Object.assign(window.BOX_I18N.zh,{w4H:"可选。设有期限的盒子，创建者只能在期限过后取回。",noLimitWarnKey:"不设期限的盒子，创建者在任何情况下都无法取回。",noLimitWarn:"不设期限的盒子，创建者在任何情况下都无法取回。如果链接或二维码丢失，盒子将永远锁定。"});
 Object.assign(window.BOX_I18N.ja,{w4H:"任意です。期限付きのボックスは、期限が過ぎてからでないと作成者は取り戻せません。",noLimitWarnKey:"期限なしのボックスは、作成者がどんな場合でも取り戻せません。",noLimitWarn:"期限なしのボックスは、作成者がどんな場合でも取り戻せません。リンクやQRを失うと、永久にロックされたままです。"});
+
+Object.assign(window.BOX_I18N.ru,{w4H:"⚠️ Внимание: бокс со сроком создатель может вернуть себе только после того, как срок истечёт. Бокс без срока вернуть нельзя никогда."});
+Object.assign(window.BOX_I18N.en,{w4H:"⚠️ Warning: the creator can take back a box with a time limit only after the time limit has passed. A box without a time limit can never be taken back."});
+Object.assign(window.BOX_I18N.es,{w4H:"⚠️ Atención: quien crea una caja con plazo solo puede recuperarla después de que venza el plazo. Una caja sin plazo no se puede recuperar nunca."});
+Object.assign(window.BOX_I18N.fr,{w4H:"⚠️ Attention : le créateur d’une boîte avec délai ne peut la reprendre qu’une fois le délai expiré. Une boîte sans délai ne peut jamais être reprise."});
+Object.assign(window.BOX_I18N.de,{w4H:"⚠️ Achtung: Eine Box mit Frist kann der Ersteller erst nach Ablauf der Frist zurückholen. Eine Box ohne Frist kann nie zurückgeholt werden."});
+Object.assign(window.BOX_I18N.zh,{w4H:"⚠️ 注意：设有期限的盒子，创建者只能在期限过后取回。不设期限的盒子永远无法取回。"});
+Object.assign(window.BOX_I18N.ja,{w4H:"⚠️ 注意：期限付きのボックスは、期限が過ぎてからでないと作成者は取り戻せません。期限なしのボックスは決して取り戻せません。"});
