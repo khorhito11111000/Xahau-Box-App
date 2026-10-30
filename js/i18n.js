@@ -1951,3 +1951,11 @@ Object.assign(window.BOX_I18N.fr,{"signsAcct": "Compte signataire", "kdBoxT": "B
 Object.assign(window.BOX_I18N.de,{"signsAcct": "Es signiert das Konto", "kdBoxT": "Box gepackt", "kdStays": "Die Box bleibt auf deinem Konto {a}, im Hook. Sie wandert nicht.", "kdKeyT": "Schlüssel-Token dieser Box", "kdKeyNo": "Schlüsselnummer", "kdKeyNote": "Wer diesen Schlüssel hat, kann die Box öffnen. Die Box bleibt bei dir, du gibst nur den Schlüssel weiter."});
 Object.assign(window.BOX_I18N.zh,{"signsAcct": "签名账户", "kdBoxT": "盒子已生成", "kdStays": "盒子留在你的账户 {a} 的钩子里，不会转移。", "kdKeyT": "这个盒子的钥匙代币", "kdKeyNo": "钥匙编号", "kdKeyNote": "谁持有这把钥匙，谁就能打开盒子。盒子留在你这里，你只交出钥匙。"});
 Object.assign(window.BOX_I18N.ja,{"signsAcct": "署名アカウント", "kdBoxT": "ボックス作成完了", "kdStays": "ボックスはあなたのアカウント {a} のフック内に残り、移動しません。", "kdKeyT": "このボックスのキートークン", "kdKeyNo": "キー番号", "kdKeyNote": "このキーを持つ人がボックスを開けられます。ボックスはあなたの元に残り、渡すのはキーだけです。"});
+
+Object.assign(window.BOX_I18N.ru,{doneStepKey:"Шаг 6: передай ключ от бокса получателю"});
+Object.assign(window.BOX_I18N.en,{doneStepKey:"Step 6: hand the box key to the recipient"});
+Object.assign(window.BOX_I18N.es,{doneStepKey:"Paso 6: entrega la llave de la caja al destinatario"});
+Object.assign(window.BOX_I18N.fr,{doneStepKey:"Étape 6 : remettez la clé de la boîte au destinataire"});
+Object.assign(window.BOX_I18N.de,{doneStepKey:"Schritt 6: Gib den Schlüssel der Box an den Empfänger"});
+Object.assign(window.BOX_I18N.zh,{doneStepKey:"第 6 步：把盒子的钥匙交给收件人"});
+Object.assign(window.BOX_I18N.ja,{doneStepKey:"ステップ 6：ボックスのキーを受取人に渡す"});
