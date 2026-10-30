@@ -2014,3 +2014,18 @@ Object.assign(window.BOX_I18N.fr,{gcTokName:"Jeton avec code cadeau",tokNum:"Num
 Object.assign(window.BOX_I18N.de,{gcTokName:"Token mit Geschenkcode",tokNum:"Token-Nummer"});
 Object.assign(window.BOX_I18N.zh,{gcTokName:"礼品码代币",tokNum:"代币编号"});
 Object.assign(window.BOX_I18N.ja,{gcTokName:"ギフトコード付きトークン",tokNum:"トークン番号"});
+
+Object.assign(window.BOX_I18N.ru,{sentT:"Токен-ключ передан",sentTo:"Кому",sentKeyNo:"Токен-ключ",sentBox:"Открывает бокс",sentNext:"Теперь открыть бокс может только получатель. Он войдёт на сайт через Xaman, найдёт бокс в «Мне пришли боксы» и откроет его. Ты сам этот бокс открыть уже не можешь."});
+Object.assign(window.BOX_I18N.en,{sentT:"Key token sent",sentTo:"To",sentKeyNo:"Key token",sentBox:"Opens box",sentNext:"Now only the recipient can open the box. They sign in on the site with Xaman, find the box in «Boxes for me» and open it. You can no longer open this box yourself."});
+Object.assign(window.BOX_I18N.es,{sentT:"Token llave enviado",sentTo:"Para",sentKeyNo:"Token llave",sentBox:"Abre la caja",sentNext:"Ahora solo el destinatario puede abrir la caja. Entra en el sitio con Xaman, encuentra la caja en «Cajas para mí» y la abre. Tú ya no puedes abrir esta caja."});
+Object.assign(window.BOX_I18N.fr,{sentT:"Jeton clé envoyé",sentTo:"À",sentKeyNo:"Jeton clé",sentBox:"Ouvre la boîte",sentNext:"Désormais, seul le destinataire peut ouvrir la boîte. Il se connecte au site avec Xaman, trouve la boîte dans «Boîtes pour moi» et l’ouvre. Tu ne peux plus ouvrir cette boîte toi-même."});
+Object.assign(window.BOX_I18N.de,{sentT:"Schlüssel-Token gesendet",sentTo:"An",sentKeyNo:"Schlüssel-Token",sentBox:"Öffnet Box",sentNext:"Jetzt kann nur der Empfänger die Box öffnen. Er meldet sich mit Xaman auf der Seite an, findet die Box unter «Boxen für mich» und öffnet sie. Du selbst kannst diese Box nicht mehr öffnen."});
+Object.assign(window.BOX_I18N.zh,{sentT:"钥匙代币已发送",sentTo:"接收方",sentKeyNo:"钥匙代币",sentBox:"可打开礼盒",sentNext:"现在只有接收方能打开礼盒。对方用 Xaman 登录网站，在「我收到的礼盒」里找到并打开它。你自己已无法再打开这个礼盒。"});
+Object.assign(window.BOX_I18N.ja,{sentT:"鍵トークンを送りました",sentTo:"送り先",sentKeyNo:"鍵トークン",sentBox:"開けられるボックス",sentNext:"これでボックスを開けられるのは受取人だけです。受取人は Xaman でサイトにログインし、「届いたボックス」から開けます。あなた自身はもうこのボックスを開けられません。"});
+Object.assign(window.BOX_I18N.ru,{askPwEg:"Попросить пароль у отправителя лично, в защищённом мессенджере:"});
+Object.assign(window.BOX_I18N.en,{askPwEg:"Ask the sender for the password privately, in a secure messenger:"});
+Object.assign(window.BOX_I18N.es,{askPwEg:"Pide la contraseña al remitente en privado, en un mensajero seguro:"});
+Object.assign(window.BOX_I18N.fr,{askPwEg:"Demande le mot de passe à l’expéditeur en privé, dans une messagerie sécurisée :"});
+Object.assign(window.BOX_I18N.de,{askPwEg:"Frag den Absender privat nach dem Passwort, in einem sicheren Messenger:"});
+Object.assign(window.BOX_I18N.zh,{askPwEg:"请在安全的通讯软件中私下向发送方索取密码："});
+Object.assign(window.BOX_I18N.ja,{askPwEg:"安全なメッセンジャーで、送り主に個別にパスワードを聞いてください："});

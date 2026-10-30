@@ -354,7 +354,7 @@ const appUrl = () => C.APP_URL || (location.origin + location.pathname);
 const qrLink = q => appUrl() + '#' + q;
 
 /* ---------- screens ---------- */
-const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'settings', 'mybx'];
+const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'sent', 'settings', 'mybx'];
 let current = 'home', afterAccount = null;
 /* Back: the in-page "Back" button and the phone's / browser's Back do the same thing (goBack).
    History holds at most one extra entry above "#home" ({xb:1}): leaving home adds it, moving between
@@ -406,6 +406,7 @@ function goBack() {
       if (p && p.op === 'remit' && p.from === 'inbox') { S.pending = null; save(); return enterInbox(); }
       return show('home');
     case 'done': return doneFrom === 'boxes' ? enterBoxes() : show('home');
+    case 'sent': return sentFrom === 'inbox' ? enterInbox() : enterBoxes();
     case 'create': { const st = wSteps(), i = st.indexOf(wStep); if (i > 0) { wShow(st[i - 1]); window.scrollTo(0, 0); return; } return show('home'); }
     default: return show('home');
   }
@@ -1146,7 +1147,7 @@ async function checkPending() {
   }
   if (p.op === 'remit') {
     const tok = await uriToken(p.tx.URITokenIDs[0]); if (!tok || tok.Owner !== p.tx.Destination) return errSet('signErr', t('notYet'));
-    const back = p.back; if (back && back.box) back.box.sentTo = p.tx.Destination; if (acct && acct.tokens) acct.tokens = acct.tokens.filter(x => x.index !== p.tx.URITokenIDs[0]); if (sel.key === p.tx.URITokenIDs[0]) { sel.key = null; sel.fresh = null; } S.pending = back || null; save(); toast(t('keySentTo') + ' ' + short(p.tx.Destination)); return back ? finishPack() : p.from === 'boxes' ? enterBoxes() : p.from === 'inbox' ? enterInbox() : show('home');
+    const back = p.back; if (back && back.box) back.box.sentTo = p.tx.Destination; if (acct && acct.tokens) acct.tokens = acct.tokens.filter(x => x.index !== p.tx.URITokenIDs[0]); if (sel.key === p.tx.URITokenIDs[0]) { sel.key = null; sel.fresh = null; } S.pending = back || null; save(); return showSent(p);
   }
 }
 
@@ -1355,7 +1356,7 @@ async function finishClaim() {
   const info = $('openedInfo'); info.textContent = '';
   const amt = BigInt('0x' + p.amt); if (amt) info.append(row(t('received'), dropsToXah(amt) + ' XAH', 'yel'));
   if (!isZero(p.tid)) { const tok = await uriToken(p.tid).catch(() => null); if (tok) info.append(tokenCard(tok, { big: true, reveal: true })); if (tok && p.k) { const code = await giftCode(tok.URI, p.k); if (code) info.append(row(t('giftCode'), code, 'yel')); }
-    if (tok && gcTok(tok)) info.append(h('div', { class: 'card warn' }, h('p', null, t('gcGotHint')), h('button', { class: 'btn y', type: 'button', onclick: () => enterCodes() }, t('myCodes')))); }
+    if (tok && gcTok(tok)) info.append(h('div', { class: 'card warn' }, h('p', null, t('gcGotHint')), h('button', { class: 'btn y', type: 'button', onclick: () => enterCodes() }, t('myCodes')), h('p', { class: 'sm' }, t('askPwEg')), h('a', { class: 'btn o', href: C.EVERGRAM_URL, target: '_blank', rel: 'noopener noreferrer' }, h('img', { class: 'evi', src: 'img/evergram-logo.png', alt: '' }), 'Evergram'))); }
   S.pending = null; save();
 }
 // Optional gift code: token URI "tgsE1:" + base64url(1 | iv12 | tag16 | ciphertext), AES-256-GCM key "k" from the QR.
@@ -1371,6 +1372,21 @@ async function giftCode(uriHex, kHex) {
   } catch { return null; }
 }
 $('openedHome').onclick = () => show('home');
+/* key token handed over: its own result screen, like after packing or opening */
+let sentFrom = 'boxes';
+function showSent(p) {
+  const back = p.back, to = p.tx.Destination, nonce = back && back.box ? back.box.nonce : p.nonce;
+  sentFrom = p.from === 'inbox' ? 'inbox' : 'boxes';
+  show('sent');
+  const info = $('sentInfo'); info.textContent = '';
+  info.append(row(t('sentTo'), short(to), 'yel'), row(t('sentKeyNo'), short(p.tx.URITokenIDs[0])));
+  if (nonce !== undefined && nonce !== null) info.append(row(t('sentBox'), '#' + nonce));
+  if (back && back.box && back.box.vc) info.append(row(t('boxNumber'), short(back.box.vc)));
+  if (p.tx.Account) info.append(row('Network', C.NETWORKS[S.net].label));
+  window.scrollTo(0, 0);
+}
+$('sentBoxes').onclick = () => enterBoxes();
+$('sentHome').onclick = () => show('home');
 
 /* QR scanning: camera (getUserMedia) or a photo; decoded locally with jsQR */
 let scanStream = null;
@@ -1443,7 +1459,7 @@ function boxCard(b, kn, lk, pk, ks) {
       exBlock([['kxTx', x.hash]]));
     body.append(kb);
     if (ok) head.querySelector('.bst').textContent = t('kxSentShort');
-  } else if (b.ktid) body.append(keyHandCard(b.ktid));
+  } else if (b.ktid) body.append(keyHandCard(b.ktid, 'boxes', b.nonce));
   if (kn) {
     const keyGone = !!(b.ktid && ks && ks.st === 'gone'), expGone = !!(expN && curLedger(acct.cur) > expN);
     if (expGone || keyGone) body.append(h('button', { class: 'btn o', type: 'button', onclick: () => startOpen(kn.vc) }, t('takeBack')));
@@ -1546,7 +1562,7 @@ function inboxCard(b) {
     } catch (e) { go.disabled = false; msg.textContent = e.message; }
   } }, '🎁 ' + t('inboxOpen'));
   c.append(msg, go);
-  if (inboxOpenable(b)) c.append(keyHandCard(b.ktid, 'inbox')); // the holder can pass the key on from the page
+  if (inboxOpenable(b)) c.append(keyHandCard(b.ktid, 'inbox', b.nonce)); // the holder can pass the key on from the page
   if (!inboxOpenable(b)) c.append(h('p', { class: 'sm' }, b.status === 0 ? t('expired') : t('stClaiming')));
   return c;
 }
@@ -1569,7 +1585,7 @@ async function codesLoad() {
 }
 $('acc-codes').addEventListener('toggle', () => { if ($('acc-codes').open && current === 'settings' && codesFor !== (S.account ? S.account.address + S.net : null)) codesLoad(); });
 /* hand a box's key token to someone later, from the boxes list (a plain Remit, the hook does not take part) */
-function keyHandCard(ktid, from = 'boxes') {
+function keyHandCard(ktid, from = 'boxes', nonce) {
   const inp = h('input', { class: 'inp', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: t('recipientPh') });
   const out = h('div');
   const go = h('button', { class: 'btn w', type: 'button', onclick: async () => {
@@ -1582,7 +1598,7 @@ function keyHandCard(ktid, from = 'boxes') {
     out.textContent = ''; go.disabled = false;
     if (!tok) return out.append(h('p', { class: 'err-line' }, t('keyGone')));
     if (tok.Owner !== me) return out.append(h('p', { class: 'err-line' }, t('keyNotYours') + ' ' + short(tok.Owner)));
-    S.pending = { op: 'remit', tx: remitTx(me, to, ktid), from }; save();
+    S.pending = { op: 'remit', tx: remitTx(me, to, ktid), from, nonce }; save();
     enterSign();
   } }, t('buildRemit'));
   const wrap = h('div', { class: 'hide' }, h('div', { class: 'lbl' }, t('handKey')), inp, go, out);
