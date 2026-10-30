@@ -8,9 +8,10 @@ const KEY = 'xbox.v1';
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
 const LANGS = ['en', 'es', 'fr', 'ru', 'de', 'zh', 'ja'];
 function browserLang() { for (const l of (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''])) { const c = String(l).slice(0, 2).toLowerCase(); if (LANGS.includes(c)) return c; } return 'en'; }
-const S = Object.assign({ net: C.DEFAULT_NETWORK, lang: browserLang(), account: null, history: [], pending: null, back: null }, load());
+const S = Object.assign({ net: C.DEFAULT_NETWORK, lang: browserLang(), account: null, history: [], pending: null, back: null, parked: {} }, load());
+if (!S.parked || typeof S.parked !== 'object') S.parked = {};
 if (!C.NETWORKS[S.net]) S.net = C.DEFAULT_NETWORK;
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ net: S.net, lang: S.lang, account: S.account, history: S.history.slice(-200), pending: S.pending, back: S.back || null })); } catch {} };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ net: S.net, lang: S.lang, account: S.account, history: S.history.slice(-200), pending: S.pending, back: S.back || null, parked: S.parked })); } catch {} };
 if (!LANGS.includes(S.lang)) S.lang = 'en';
 /* Box links saved on this device (localStorage, never sent anywhere). Written BEFORE the signature is requested,
    so a reload, a new tab or a lost Xaman return can always show the link/QR again. Key: network:hook:VC. */
@@ -363,9 +364,23 @@ let current = 'home', afterAccount = null;
    typed values stay in the form, box links (xbox.links.v1) and the unfinished box stay in localStorage. */
 let accountFrom = 'home', doneFrom = 'home', popQuiet = false;
 const armed = () => !!(history.state && history.state.xb);
+/* A box being made / just made / opened belongs to the wallet that signs it. Switching wallets (or signing out) must never
+   leave the previous wallet's box, link or QR on screen: its unfinished step is parked under its own address and comes
+   back only when that wallet is active again. */
+const OWN_SCREENS = ['create', 'sign', 'done', 'sent', 'opened'];
+let screenOwner = null;
+function pOwner(p) { if (!p) return null; if (p.op === 'pack') return p.box && p.box.h || null; if (p.op === 'open') return p.h || null; return p.tx && p.tx.Account || null; }
+function acctSwap() {
+  const me = S.account ? S.account.address : null, p = S.pending, o = pOwner(p);
+  if (p && o && o !== me) { S.parked[o] = p; S.pending = null; }
+  if (!S.pending && me && S.parked[me]) { S.pending = S.parked[me]; delete S.parked[me]; }
+  save();
+  if (OWN_SCREENS.includes(current) && screenOwner && screenOwner !== me) { doneLink = ''; screenOwner = null; createFor = null; show('home'); }
+}
 function show(name) {
   if (current && current !== name) { const o = $('s-' + current); if (o) o.querySelectorAll('details[open]').forEach(d => { d.open = false; }); }
   if (name === 'account' && current !== 'account') accountFrom = current;
+  if (OWN_SCREENS.includes(name)) screenOwner = S.account ? S.account.address : null;
   current = name;
   for (const s of SCREENS) $('s-' + s).classList.toggle('on', s === name);
   $('backBar').classList.toggle('hide', name === 'home');
@@ -575,7 +590,7 @@ let signingOut = false;
 function signOut(keepList) {
   signingOut = true;
   if (!keepList) { mwSave([]); try { localStorage.removeItem(MWS); } catch {} }
-  xstate = null; acct = null; afterAccount = null; S.account = null; S.back = null; gcReset(); sel.gift = null; sel.key = null;
+  xstate = null; acct = null; afterAccount = null; S.account = null; S.back = null; gcReset(); sel.gift = null; sel.key = null; acctSwap();
   if (xp) try { xp.logout(); } catch {}
   for (const st of [localStorage, sessionStorage]) for (const k of XAMAN_KEYS) try { st.removeItem(k); } catch {}
   save(); renderAcct();
@@ -590,7 +605,7 @@ window.addEventListener('storage', e => {
   if (e.key === 'XummPkceJwt' && e.newValue && !xstate) return location.reload();
   if (e.key === 'XummPkceJwt' && !e.newValue && xstate) { xstate = null; }
   const a = load().account || null;
-  if (JSON.stringify(a) !== JSON.stringify(S.account)) { S.account = a; if (!a) xstate = null; acct = null; renderAcct(); if (!a && ['create', 'sign'].includes(current)) show('home'); mbRefresh(); }
+  if (JSON.stringify(a) !== JSON.stringify(S.account)) { S.account = a; if (!a) xstate = null; acct = null; S.pending = load().pending || null; S.parked = load().parked || {}; acctSwap(); renderAcct(); if (!a && ['create', 'sign'].includes(current)) show('home'); mbRefresh(); }
 });
 /* Xaman SDK failures: the SDK hides network / non-JSON failures behind a generic text, and an expired sign-in comes
    back as "Error code 401". Both get a plain "sign in again" message with a button; other Xaman errors keep their own text. */
@@ -630,7 +645,7 @@ async function waitTx(hash) {
 /* ---------- account ---------- */
 let acct = null; // cached ledger view of the connected account
 async function setAccount(address, via) {
-  const back = S.back; S.account = { address, via }; S.back = null; save(); mwAddW(address, via); renderAcct(); if (!$('mw').classList.contains('hide')) mwRender();
+  const back = S.back; S.account = { address, via }; S.back = null; acctSwap(); mwAddW(address, via); renderAcct(); if (!$('mw').classList.contains('hide')) mwRender();
   const next = afterAccount; afterAccount = null;
   if (next) next(); else if (back) route(back); else if (current === 'account') show('home');
 }
@@ -2150,7 +2165,7 @@ async function donPaint() {
 }
 document.querySelectorAll('.dontab').forEach(b => b.onclick = () => { donCoin = b.dataset.c; donPaint(); });
 if ($('donCopy')) $('donCopy').onclick = () => copy(DON_ADDR);
-initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); resumeClaim(); resumeMint(); resumeRemit(); resumeOpen(); setTimeout(stepPoll, 1500); egify(document.body);
+acctSwap(); initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); resumeClaim(); resumeMint(); resumeRemit(); resumeOpen(); setTimeout(stepPoll, 1500); egify(document.body);
 // test hook for automated checks (read-only helpers, no secrets)
 window.__box = { hkTx, packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr, mintTx, gc: { encrypt: gcEncrypt, decrypt: gcDecrypt, genPw: gcGenPw, max: GC.MAX, iter: GC.ITER } };
 })();
