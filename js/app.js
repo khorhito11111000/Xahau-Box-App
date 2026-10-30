@@ -419,7 +419,7 @@ function goBack() {
       if (p && p.op === 'remit' && p.back && p.back.box) { uriToken(p.tx.URITokenIDs[0]).catch(() => null).then(tok => { if (tok && tok.Owner === p.tx.Destination) p.back.box.sentTo = p.tx.Destination; S.pending = p.back; save(); finishPack(); }); return; }
       if (p && p.op === 'remit' && p.from === 'boxes') { S.pending = null; save(); return enterBoxes(); }
       if (p && p.op === 'remit' && p.from === 'inbox') { S.pending = null; save(); return enterInbox(); }
-      if (p && p.op === 'burn') { S.pending = null; save(); return enterCodes(); }
+      if (p && p.op === 'burn') { S.pending = null; save(); return burnBack(p); }
       return show('home');
     case 'done': return doneFrom === 'boxes' ? enterBoxes() : show('home');
     case 'sent': return sentFrom === 'inbox' ? enterInbox() : enterBoxes();
@@ -834,6 +834,7 @@ function renderTokens() {
   for (const tok of keys) {
     const why = tokenReason(tok);
     k.append(tokenCard(tok, { disabled: why || (sel.gift === tok.index ? t('keyIsGift') : null), selected: sel.key === tok.index, onclick: () => {} }));
+    if (!why && tok.Owner === acct.address && !S.history.some(x => x.ktid === tok.index)) k.append(burnCard(acct.address, tok.index, true, 'create')); // a spare key that opens no box
   }
 }
 const kind = () => { const top = document.querySelector('input[name=kind]:checked').value; return top === 'token' ? 'token' : document.querySelector('input[name=linkFor]:checked').value; };
@@ -1002,7 +1003,7 @@ function signLabels(p) {
   const L2 = (n, m, body) => sigHead(n, m) + ': ' + body;
   if (p.op === 'mint') { const m = (p.auto ? 2 : 1) + (p.audit ? 1 : 0); return [L2(1, m, t('sigMint'))]; }
   if (p.op === 'gmint') return [L2(1, 1, t('sigGmint'))];
-  if (p.op === 'burn') return [L2(1, 1, t('sigBurn'))];
+  if (p.op === 'burn') return [L2(1, 1, t(p.key ? 'sigBurnKey' : 'sigBurn'))];
   if (p.op === 'pack') {
     const b = p.box, n0 = p.afterMint ? 2 : 1, m = n0 + (p.audit ? 1 : 0), out = [];
     if (p.audit) out.push(L2(n0, m, t('sigAudit')));
@@ -1166,7 +1167,7 @@ async function checkPending() {
     const tok = await uriToken(p.tx.URITokenID).catch(() => undefined);
     if (tok !== null) return errSet('signErr', t('notYet'));
     if (acct && acct.tokens) acct.tokens = acct.tokens.filter(x => x.index !== p.tx.URITokenID);
-    S.pending = null; save(); stDirty(); toast('🔥 ' + t('burnDone')); return enterCodes();
+    S.pending = null; save(); stDirty(); toast('🔥 ' + t('burnDone')); return burnBack(p);
   }
   if (p.op === 'remit') {
     const tok = await uriToken(p.tx.URITokenIDs[0]); if (!tok || tok.Owner !== p.tx.Destination) return errSet('signErr', t('notYet'));
@@ -1555,7 +1556,7 @@ function inboxCard(b) {
   const me = S.account.address;
   const c = h('div', { class: 'card' + (inboxOpenable(b) ? ' inbox' : '') });
   if (b.gone) {
-    c.append(row(t('tokenKind'), short(b.ktid)), row(t('inboxFrom'), short(b.h)), row(t('status'), t('stGone'), 'bad'), h('p', { class: 'sm' }, t('inboxGone')));
+    c.append(row(t('tokenKind'), short(b.ktid)), row(t('inboxFrom'), short(b.h)), row(t('status'), t('stGone'), 'bad'), h('p', { class: 'sm' }, t('inboxGone')), burnCard(me, b.ktid, true, 'inbox'));
     return c;
   }
   const amt = BigInt('0x' + b.amt), hasTok = !isZero(b.tid), expN = parseInt(b.exp, 16);
@@ -1608,9 +1609,10 @@ async function codesLoad() {
   list.append(h('div', { class: 'card gcmine' }, gcs.map(tok => h('div', {}, tokenCard(tok, { big: true, reveal: true }), v.locked.has(tok.index) ? null : burnCard(me, tok.index)))));
 }
 /* burn a gift code token you own (URITokenBurn, signed by you in Xaman; the token and its code are gone for good) */
-function burnCard(me, id) {
-  const wrap = h('div', { class: 'hide' }, h('div', { class: 'card warn' }, h('p', { class: 'sm' }, t('burnWarn'))),
-    h('button', { class: 'btn burn', type: 'button', onclick: () => { S.pending = { op: 'burn', tx: { TransactionType: 'URITokenBurn', Account: me, URITokenID: id, NetworkID: NET().networkId }, from: 'codes' }; save(); enterSign(); } }, t('burnYes')));
+function burnBack(p) { return p.from === 'inbox' ? enterInbox() : p.from === 'create' ? enterCreate() : enterCodes(); }
+function burnCard(me, id, key, from = 'codes') {
+  const wrap = h('div', { class: 'hide' }, h('div', { class: 'card warn' }, h('p', { class: 'sm' }, t(key ? 'burnKeyWarn' : 'burnWarn'))),
+    h('button', { class: 'btn burn', type: 'button', onclick: () => { S.pending = { op: 'burn', key: !!key, tx: { TransactionType: 'URITokenBurn', Account: me, URITokenID: id, NetworkID: NET().networkId }, from }; save(); enterSign(); } }, t('burnYes')));
   const open = h('button', { class: 'btn o', type: 'button', onclick: () => { wrap.classList.remove('hide'); open.classList.add('hide'); } }, '🔥 ' + t('burnBtn'));
   return h('div', {}, open, wrap);
 }
