@@ -1998,3 +1998,11 @@ Object.assign(window.BOX_I18N.fr,{xamanMaking:"Création de la demande Xaman…"
 Object.assign(window.BOX_I18N.de,{xamanMaking:"Xaman-Anfrage wird erstellt…"});
 Object.assign(window.BOX_I18N.zh,{xamanMaking:"正在创建 Xaman 请求…"});
 Object.assign(window.BOX_I18N.ja,{xamanMaking:"Xaman のリクエストを作成中…"});
+
+Object.assign(window.BOX_I18N.ru,{doneGcPw:"В боксе подарочный код. Пароль к нему отправь получателю лично, в личном сообщении. Не пиши пароль в ссылке, в QR или в открытом посте."});
+Object.assign(window.BOX_I18N.en,{doneGcPw:"The box holds a gift code. Send its password to the recipient privately, in a direct message. Never put the password in a link, a QR or a public post."});
+Object.assign(window.BOX_I18N.es,{doneGcPw:"La caja contiene un código de regalo. Envía su contraseña al destinatario en privado, por mensaje directo. Nunca la pongas en un enlace, un QR o una publicación abierta."});
+Object.assign(window.BOX_I18N.fr,{doneGcPw:"La boîte contient un code cadeau. Envoyez son mot de passe au destinataire en privé, par message direct. Ne le mettez jamais dans un lien, un QR ou une publication publique."});
+Object.assign(window.BOX_I18N.de,{doneGcPw:"In der Box ist ein Geschenkcode. Schick das Passwort dem Empfänger privat per Direktnachricht. Nie in einen Link, einen QR oder einen öffentlichen Post."});
+Object.assign(window.BOX_I18N.zh,{doneGcPw:"盒子里有礼品码。请通过私信把密码单独发给收件人。不要把密码放在链接、二维码或公开帖子里。"});
+Object.assign(window.BOX_I18N.ja,{doneGcPw:"ボックスにはギフトコードが入っています。パスワードは受取人にダイレクトメッセージで個別に送ってください。リンク、QR、公開投稿には絶対に書かないでください。"});
