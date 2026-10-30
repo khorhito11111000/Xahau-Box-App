@@ -1365,9 +1365,10 @@ function buildClaim(who, msg) {
   S.pending = { op: 'claim', tx, h: q.h, vc: q.vc, k: q.k || null, t: q.t || null, amt: b.amt, tid: b.tid, from: q.from || null }; save();
   enterSign();
 }
+let claimShown = null; // two pollers can finish the same claim at once: draw the result only once
 async function finishClaim() {
-  stDirty();
-  const p = S.pending; show('opened');
+  const p = S.pending; if (!p || claimShown === p) return; claimShown = p;
+  stDirty(); show('opened');
   const info = $('openedInfo'); info.textContent = '';
   const amt = BigInt('0x' + p.amt); if (amt) info.append(row(t('received'), dropsToXah(amt) + ' XAH', 'yel'));
   if (!isZero(p.tid)) { const tok = await uriToken(p.tid).catch(() => null); if (tok) info.append(tokenCard(tok, { big: true, reveal: true })); if (tok && p.k) { const code = await giftCode(tok.URI, p.k); if (code) info.append(row(t('giftCode'), code, 'yel')); }
