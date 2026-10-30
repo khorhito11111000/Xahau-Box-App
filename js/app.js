@@ -1682,14 +1682,49 @@ async function stRefCount(hooks) {
   try { localStorage.setItem(SRK, JSON.stringify({ id, at: Date.now(), n })); } catch {}
   return n;
 }
+/* Every account that ever installed the box hook: each install/uninstall rewrites the HookDefinition, and its
+   PreviousTxnID chain links those SetHook transactions one after another. Walk it back from the newest (read-only,
+   from the network node only) and keep what was found, so later visits only walk the new links. Cached 1 h. */
+const SIK = 'xbox.statsinst.v1', SI_TTL = 60 * 60 * 1000;
+async function stInstallers(hooks) {
+  const id = S.net + ':' + hooks[0];
+  let c = null; try { c = JSON.parse(localStorage.getItem(SIK)); } catch {}
+  if (!c || c.id !== id) c = { id, at: 0, head: null, accts: [] };
+  if (Date.now() - c.at < SI_TTL) return c.accts;
+  const objs = await accountObjects(hooks[0], 'hook');
+  let hh = null; for (const o of objs) for (const x of o.Hooks || []) if (!hh && x.Hook && x.Hook.HookHash) hh = x.Hook.HookHash;
+  if (!hh) return c.accts;
+  const r = await rpc('ledger_entry', { hook_definition: hh, ledger_index: 'validated' });
+  const d = r.node; if (!d || !d.index) return c.accts;
+  const set = new Set(c.accts); let tx = d.PreviousTxnID, bad = false; const head = tx;
+  for (let i = 0; tx && tx !== c.head && i < 3000; i++) {
+    let e; try { e = await rpc('tx', { transaction: tx }); } catch { bad = true; break; }
+    if (!e || !e.meta) break;                                    // the node keeps no older history (testnet)
+    if (e.TransactionType === 'SetHook' && L.isAddress(e.Account)) set.add(e.Account);
+    let prev = null;
+    for (const n of e.meta.AffectedNodes || []) { const v = n.ModifiedNode || n.CreatedNode || n.DeletedNode; if (v && v.LedgerIndex === d.index && n.ModifiedNode) prev = v.PreviousTxnID || null; }
+    tx = prev;
+  }
+  c = { id, at: bad ? 0 : Date.now(), head: bad ? c.head : head, accts: [...set] };
+  try { localStorage.setItem(SIK, JSON.stringify(c)); } catch {}
+  return c.accts;
+}
+async function stScanAll(list) {
+  const out = []; let i = 0;
+  const work = async () => { while (i < list.length) { const a = list[i++]; out.push(await stScan(a)); } };
+  await Promise.all([work(), work(), work(), work()]);
+  return out;
+}
 function stNote(k, n) {
   const e = $('stHooks'); if (!e) return;
   e.textContent = n && n > k ? t('stHooksPart').replace('{k}', k).replace('{n}', n) : t('stHooksAll').replace('{k}', k);
 }
 async function loadStats(force) {
   const box = $('statsBox'); if (!box) return;
-  const hooks = ((C.STATS_HOOKS || {})[S.net]) || [];
-  if (!hooks.length) { box.classList.add('hide'); return; }
+  const base = ((C.STATS_HOOKS || {})[S.net]) || [];
+  if (!base.length) { box.classList.add('hide'); return; }
+  let hooks = base;
+  try { const found = await stInstallers(base); hooks = [...new Set(base.concat(found))].sort(); } catch {}
   box.classList.remove('hide');
   stNote(hooks.length, null); stRefCount(hooks).then(n => stNote(hooks.length, n)).catch(() => {});
   const id = S.net + ':' + hooks.join(',');
@@ -1699,7 +1734,7 @@ async function loadStats(force) {
   if ((fresh && !force) || stBusy === id) return;
   stBusy = id; const rb = $('stRefresh'); if (rb) rb.disabled = true;
   try {
-    const all = await Promise.all(hooks.map(stScan));
+    const all = await stScanAll(hooks);
     const d = all.reduce((a, b) => ({ total: a.total + b.total, opened: a.opened + b.opened, xah: a.xah + b.xah, tok: a.tok + b.tok, key: a.key + b.key, gc: a.gc + b.gc }));
     if (S.net + ':' + hooks.join(',') !== id) return;
     try { localStorage.setItem(STK, JSON.stringify({ id, at: Date.now(), d: Object.assign({}, d, { xah: d.xah.toString() }) })); } catch {}
