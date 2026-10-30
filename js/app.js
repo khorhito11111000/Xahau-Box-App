@@ -395,6 +395,7 @@ function goBack() {
     }
     case 'sign':
       if (p && (p.op === 'mint' || p.op === 'gmint')) { resumeMint(true).then(ok => { if (!ok) enterCreate(); }); return; }
+      if (p && p.op === 'pack' && p.shown) return finishPack();
       if (p && p.op === 'pack') { const who = p.box.h; return acct && acct.address === who ? show('create') : enterCreate(); }
       if (p && p.op === 'claim' && p.from === 'inbox') { S.pending = null; save(); return enterInbox(); }
       if (p && p.op === 'claim') return $('boxView').childElementCount ? show('open') : enterOpen();
@@ -743,7 +744,7 @@ const liveRow = () => row(t('ledgerNow'), h('span', { class: 'lcur' }, curLedger
 const leftRow = (exp, cur) => row(t('timeLeft'), h('span', { 'data-exp': String(exp || 0), 'data-cur': String(cur || 0) }, '…'));
 
 /* ---------- CREATE ---------- */
-const sel = { gift: null, key: null };
+const sel = { gift: null, key: null, fresh: null }; // key: only the key minted for this build (fresh)
 let createFor = null;
 async function enterCreate(preset) {
   if (!needAccount(() => enterCreate(preset), 'create')) return;
@@ -756,9 +757,9 @@ async function enterCreate(preset) {
   $('packBtn').disabled = !acct.hook;
   // coming back to this screen (Back, language) keeps the form; a new account/network or a finished mint starts fresh
   const formFor = S.net + ':' + acct.address;
-  if (preset || createFor !== formFor) { sel.gift = null; sel.key = null; gcReset(); wStep = 1; }
+  if (preset || createFor !== formFor) { sel.gift = null; sel.key = null; sel.fresh = null; gcReset(); wStep = 1; }
   else {
-    const ok = id => id && acct.tokens.some(x => x.index === id) && !tokenReason(acct.tokens.find(x => x.index === id)); if (!ok(sel.gift)) sel.gift = null; if (!ok(sel.key)) sel.key = null;
+    const ok = id => id && acct.tokens.some(x => x.index === id) && !tokenReason(acct.tokens.find(x => x.index === id)); if (!ok(sel.gift)) sel.gift = null; if (!ok(sel.key) || sel.key !== sel.fresh) { sel.key = null; sel.fresh = null; }
     $('gcToggle').textContent = t($('gcForm').classList.contains('hide') ? 'gcAdd' : 'gcCancel'); gcInfo();
   }
   createFor = formFor;
@@ -766,7 +767,7 @@ async function enterCreate(preset) {
     $('amtInput').value = preset.amt || ''; $('expSel').value = String(preset.expDays || 0);
     document.querySelector('input[name=kind][value=token]').checked = true;
     if (preset.gift && acct.tokens.some(x => x.index === preset.gift)) sel.gift = preset.gift;
-    if (preset.key && acct.tokens.some(x => x.index === preset.key)) { sel.key = preset.key; newIds.add(preset.key); }
+    if (preset.key && acct.tokens.some(x => x.index === preset.key)) { sel.key = preset.key; sel.fresh = preset.key; newIds.add(preset.key); }
     if (preset.giftNew && sel.gift) newIds.add(sel.gift);
     syncKindUi();
   }
@@ -783,7 +784,6 @@ const giftIsGc = () => { const g = sel.gift && acct && acct.tokens.find(x => x.i
 function keyDefaults() {
   if (!acct) return;
   if (giftIsGc()) document.querySelector('input[name=kind][value=token]').checked = true;
-  if (kind() === 'token' && !sel.key) { const f = freeKeys().filter(x => x.index !== sel.gift); if (f.length) { sel.key = (f.find(x => newIds.has(x.index)) || f[f.length - 1]).index; } }
 }
 function tokenReason(tok) {
   if ((tok.Flags || 0) & 1) return t('burnable');
@@ -814,19 +814,18 @@ function renderTokens() {
   }
   for (const tok of keys) {
     const why = tokenReason(tok);
-    k.append(tokenCard(tok, { disabled: why || (sel.gift === tok.index ? t('keyIsGift') : null), selected: sel.key === tok.index, onclick: () => { sel.key = sel.key === tok.index ? null : tok.index; renderTokens(); } }));
+    k.append(tokenCard(tok, { disabled: why || (sel.gift === tok.index ? t('keyIsGift') : null), selected: sel.key === tok.index, onclick: () => {} }));
   }
 }
 const kind = () => { const top = document.querySelector('input[name=kind]:checked').value; return top === 'token' ? 'token' : document.querySelector('input[name=linkFor]:checked').value; };
 function syncKindUi(quiet) {
   if (acct && giftIsGc() && kind() !== 'token') { document.querySelector('input[name=kind][value=token]').checked = true; if (!quiet) toast(t('gcNeedsKey')); }
-  if (!quiet && acct && kind() === 'token' && !sel.key) { keyDefaults(); if (sel.key) return renderTokens(); }
   const k = kind(); keyNote(); $('linkWrap').classList.toggle('hide', k === 'token'); $('namedWrap').classList.toggle('hide', k !== 'named'); $('keyWrap').classList.toggle('hide', k !== 'token'); updateSummary(); wProgress(); }
 /* key-token mode: say whether a key made earlier is waiting for a box (it goes into this one) or a new key is made when the box is built */
 function keyNote() {
   const e = $('keyWaitNote'); if (!e) return;
   if (!acct || kind() !== 'token') { e.classList.add('hide'); return; }
-  e.textContent = sel.key ? t('keyWait').replace('{id}', short(sel.key)) : t('keyNewHint'); e.classList.remove('hide');
+  e.textContent = t('keyNewHint'); e.classList.remove('hide');
 }
 /* create wizard: one step at a time (1 what, 2 how, 3 key - key-token mode only, 4 time limit, 5 check and sign) */
 let wStep = 1;
@@ -860,7 +859,7 @@ function sumMore() {
   const g = sel.gift && acct.tokens.find(x => x.index === sel.gift);
   if (g) m.append(row('URIToken', (gcTok(g) ? t('gcTag') + ' · ' : '') + short(g.index)));
   m.append(row(t('kind'), k === 'token' ? t('kToken') : k === 'named' ? t('kNamed') + ' ' + short($('namedAddr').value.trim()) : t('kBearer')));
-  if (k === 'token') m.append(row(t('sumKey'), sel.key ? t('keyWaitSum') + ' ' + short(sel.key) : t('keyNewSum'), 'yel'), h('p', { class: 'sm' }, t(sel.key ? 'keyWaitHint' : 'keyNewHint')));
+  if (k === 'token') m.append(row(t('sumKey'), sel.key && sel.key === sel.fresh ? t('keyMadeSum') + ' ' + short(sel.key) : t('keyNewSum'), 'yel'), h('p', { class: 'sm' }, t('keyNewHint')));
   m.append(row(t('timeLimit'), $('expSel').selectedOptions[0].textContent), row('Network', NET().label));
 }
 $('wNext').onclick = () => { const e = wCheck(wStep); if (e) return errSet('createErr', e); const st = wSteps(); wShow(st[st.indexOf(wStep) + 1] || 5); window.scrollTo(0, 0); };
@@ -897,6 +896,7 @@ function keyUri() {
 function mintTx(account, uriText) { return { TransactionType: 'URITokenMint', Account: account, NetworkID: NET().networkId, Flags: 0, URI: L.hex.toHex(new TextEncoder().encode(uriText)) }; }
 $('mintKeyBtn').onclick = () => {
   errSet('createErr');
+  return; // a key is made only by «Build box», together with its box
   if (!acct) return;
   if (!acct.hook) return errSet('createErr', t('hookNo'));
   if (!canMint(acct)) return errSet('createErr', t('mintNoFunds'));
@@ -938,8 +938,15 @@ $('gcMint').onclick = async () => {
   S.pending = { op: 'gmint', tx, tid, form: { amt: $('amtInput').value, key: sel.key, expDays: Number($('expSel').value) } }; save();
   enterSign();
 };
-$('packBtn').onclick = () => {
-  errSet('createErr');
+let packBusy = false;
+$('packBtn').onclick = async () => {
+  if (packBusy) return; errSet('createErr');
+  const auto = !!(justMinted && justMinted === sel.key);
+  packBusy = true; $('packBtn').disabled = true;
+  try { acct = await loadAccountView(S.account.address); } catch (e) { packBusy = false; $('packBtn').disabled = !(acct && acct.hook); return errSet('createErr', e.message); }
+  packBusy = false; $('packBtn').disabled = !acct.hook;
+  if (!acct.hook) return errSet('createErr', t('hookNo'));
+  if (sel.gift && !acct.tokens.some(x => x.index === sel.gift && !tokenReason(x))) { sel.gift = null; renderTokens(); updateSummary(); return errSet('createErr', t('needSomething')); }
   const amt = xahToDrops($('amtInput').value); const k = kind();
   if (amt === null) return errSet('createErr', t('amtBad'));
   if (!amt && !sel.gift) return errSet('createErr', t('needSomething'));
@@ -947,26 +954,53 @@ $('packBtn').onclick = () => {
   let named = null;
   if (k === 'named') { named = $('namedAddr').value.trim(); if (!L.isAddress(named)) return errSet('createErr', t('needNamed')); }
   if (giftIsGc() && k !== 'token') return errSet('createErr', t('gcNeedsKey'));
-  if (k === 'token' && !sel.key) {
+  // key-token box: always a brand-new key, minted right now (signature 1), then the box (signature 2)
+  if (k === 'token' && !(sel.key && sel.key === sel.fresh)) {
+    sel.key = null; sel.fresh = null;
     if (!canMint(acct)) return errSet('createErr', t('mintNoFunds'));
     const tx = mintTx(acct.address, keyUri()); const tid = L.uriTokenId(acct.address, tx.URI);
-    S.pending = { op: 'mint', tx, tid, auto: true, form: { amt: $('amtInput').value, gift: sel.gift, expDays: Number($('expSel').value) } }; save();
+    S.pending = { op: 'mint', tx, tid, auto: true, audit: needsAudit(acct, !!sel.gift), what: boxWhat(amt, !!sel.gift), form: { amt: $('amtInput').value, gift: sel.gift, expDays: Number($('expSel').value) } }; save();
     return enterSign();
   }
-  if (k === 'token' && (sel.key === sel.gift || !isKeyTok(acct.tokens.find(x => x.index === sel.key)))) return errSet('createErr', t('needKey'));
+  if (k === 'token') {
+    // the key must be on the ledger right now: ours, not burnable, not on sale, not in a box, not the key of any box
+    const id = sel.key, tok = await uriToken(id).catch(() => null), mine = acct.tokens.find(x => x.index === id);
+    const bad = !tok || tok.Owner !== acct.address || ((tok.Flags || 0) & 1) || tok.Amount !== undefined || !mine || !isKeyTok(mine) || id === sel.gift || acct.locked.has(id) || acct.keyOf.has(id) || S.history.some(x => x.ktid === id);
+    if (bad) { sel.key = null; sel.fresh = null; updateSummary(); return errSet('createErr', t('keyNotFree')); }
+  }
   const exp = expLedger();
   const b = { kind: k, h: acct.address, net: S.net, tid: sel.gift || Z64, amt: L.hex.u64(amt), exp: exp ? L.hex.u32(exp) : '00000000', named, created: Date.now() };
   if (k === 'token') { b.vc = L.randomVC(); b.ktid = sel.key; } else { const key = L.newBoxKey(); b.vc = key.vc; b.pub = key.pub; b.priv = key.priv; }
   if (!vaultPut(b)) return errSet('createErr', t('storageOff'));
-  S.pending = { op: 'pack', box: b, audit: needsAudit(acct, !!sel.gift), afterMint: !!(justMinted && justMinted === sel.key) }; save();
+  S.pending = { op: 'pack', box: b, audit: needsAudit(acct, !!sel.gift), afterMint: auto || (k === 'token' && sel.key === sel.fresh) }; save();
   enterSign();
 };
+/* what goes into the box, in words: "5 XAH + token" */
+function boxWhat(amt, tok) { const p = []; if (amt) p.push(dropsToXah(amt) + ' XAH'); if (tok) p.push(t('sigTok')); return p.join(' + '); }
+const sigHead = (n, m) => m > 1 ? t('sigOf').replace('{n}', n).replace('{m}', m) : t('sigOne');
+function signLabels(p) {
+  const L2 = (n, m, body) => sigHead(n, m) + ': ' + body;
+  if (p.op === 'mint') { const m = (p.auto ? 2 : 1) + (p.audit ? 1 : 0); return [L2(1, m, t('sigMint'))]; }
+  if (p.op === 'gmint') return [L2(1, 1, t('sigGmint'))];
+  if (p.op === 'pack') {
+    const b = p.box, n0 = p.afterMint ? 2 : 1, m = n0 + (p.audit ? 1 : 0), out = [];
+    if (p.audit) out.push(L2(n0, m, t('sigAudit')));
+    const what = boxWhat(BigInt('0x' + b.amt), !isZero(b.tid));
+    const body = b.kind === 'token' ? t('sigPackKey') : b.kind === 'named' ? t('sigPackNamed').replace('{a}', short(b.named)) : t('sigPackLink');
+    out.push(L2(m, m, body.replace('{what}', what))); return out;
+  }
+  if (p.op === 'claim') { const p2 = []; if (p.amt && BigInt('0x' + p.amt)) p2.push(dropsToXah(BigInt('0x' + p.amt)) + ' XAH'); if (p.tid && !isZero(p.tid)) p2.push(t('sigTok')); return [L2(1, 1, t('sigClaim').replace('{what}', p2.join(' + ') || '—'))]; }
+  if (p.op === 'open') return [L2(1, 1, t('sigOpen'))];
+  if (p.op === 'remit') return [L2(1, 1, t('sigRemit').replace('{a}', short(p.tx.Destination)))];
+  return [t('stepOnly')];
+}
 
 /* ---------- SIGN (shared by PACK / CLAIM / OPEN / REMIT) ---------- */
 function signTxs() {
   const p = S.pending; if (!p) return [];
-  if (p.op === 'pack') { const out = []; if (p.audit) out.push({ label: t('stepAudit'), tx: auditTx(p.box.h) }); out.push({ label: p.audit ? t('stepPack') : t('stepOnly'), tx: packTx(p.box.h, p.box), main: true }); return out; }
-  return [{ label: p.op === 'mint' ? t('stepMintKey') : t('stepOnly'), tx: p.tx, main: true }];
+  const lb = signLabels(p);
+  if (p.op === 'pack') { const out = []; if (p.audit) out.push({ label: lb[0], tx: auditTx(p.box.h) }); out.push({ label: lb[lb.length - 1], tx: packTx(p.box.h, p.box), main: true }); return out; }
+  return [{ label: lb[0], tx: p.tx, main: true }];
 }
 function jsonBlock(item) {
   const txt = JSON.stringify(item.tx, null, 2);
@@ -974,6 +1008,7 @@ function jsonBlock(item) {
 }
 function enterSign() {
   const p = S.pending; if (!p) return show('home');
+  if (p.op === 'pack' && p.shown) return finishPack(); // a built box is never offered for signing again
   show('sign'); errSet('signErr');
   const titles = { pack: 'packTitle', claim: 'claimTitle', open: 'openTitle', remit: 'remitTitle', mint: 'mintTitle', gmint: 'gcMintTitle' };
   $('signTitle').textContent = t(titles[p.op]);
@@ -981,7 +1016,7 @@ function enterSign() {
   $('signSub').textContent = t('signHere') + ' ' + short(signer) + ' · ' + NET().label + ' (NetworkID ' + NET().networkId + ').' + (p.op === 'pack' && p.audit ? ' ' + t('auditFirst') : '');
   const body = $('signBody'); body.textContent = '';
   if (p.op === 'mint' && p.auto) body.append(h('div', { class: 'card stepnote' }, t('mintStep1')));
-  if (p.op === 'pack' && p.afterMint) body.append(h('div', { class: 'card stepok' }, '✓ ' + t('mintDone2') + (p.audit ? ' ' + t('mintDoneAudit') : '')));
+  if (p.op === 'pack' && p.afterMint) body.append(h('div', { class: 'card stepok' }, '✓ ' + t('keyMadeOk')));
   const items = signTxs();
   const xme = xstate && xstate.me && xstate.me.account;
   if (xp && !xme) {
@@ -1050,7 +1085,7 @@ async function checkPending() {
   }
   if (p.op === 'remit') {
     const tok = await uriToken(p.tx.URITokenIDs[0]); if (!tok || tok.Owner !== p.tx.Destination) return errSet('signErr', t('notYet'));
-    const back = p.back; if (back && back.box) back.box.sentTo = p.tx.Destination; S.pending = back || null; save(); toast(t('keySentTo') + ' ' + short(p.tx.Destination)); return back ? finishPack() : p.from === 'boxes' ? enterBoxes() : p.from === 'inbox' ? enterInbox() : show('home');
+    const back = p.back; if (back && back.box) back.box.sentTo = p.tx.Destination; if (acct && acct.tokens) acct.tokens = acct.tokens.filter(x => x.index !== p.tx.URITokenIDs[0]); if (sel.key === p.tx.URITokenIDs[0]) { sel.key = null; sel.fresh = null; } S.pending = back || null; save(); toast(t('keySentTo') + ' ' + short(p.tx.Destination)); return back ? finishPack() : p.from === 'boxes' ? enterBoxes() : p.from === 'inbox' ? enterInbox() : show('home');
   }
 }
 
@@ -1114,7 +1149,7 @@ async function finishPack(only) {
   save();
   doneLink = qrLink(makeQr(q));
   doneFrom = only ? 'boxes' : 'home';
-  if (!only) { createFor = null; wStep = 1; sel.gift = null; sel.key = null; $('amtInput').value = ''; $('expSel').value = '0'; } // box made: next "Create" starts from step 1
+  if (!only) { createFor = null; wStep = 1; sel.gift = null; sel.key = null; sel.fresh = null; $('amtInput').value = ''; if (acct && b.ktid) { acct.keyOf.add(b.ktid); acct.tokens = acct.tokens.filter(x => x.index !== b.ktid || !b.sentTo); } $('expSel').value = '0'; } // box made: next "Create" starts from step 1
   show('done');
   await drawBox(doneLink);
   $('bearerWarn').classList.toggle('hide', b.kind !== 'bearer');
@@ -1159,7 +1194,7 @@ $('handBtn').onclick = () => {
   const back = S.pending; S.pending = { op: 'remit', tx: remitTx(back.box.h, to, back.box.ktid), back }; save();
   out.append(h('p', { class: 'sm' }, t('remitHint'))); enterSign();
 };
-$('doneFinish').onclick = () => { S.pending = null; save(); show('home'); };
+$('doneFinish').onclick = () => { S.pending = null; save(); createFor = null; show('home'); };
 
 /* ---------- OPEN (recipient) ---------- */
 let openQ = null, openBox = null;
