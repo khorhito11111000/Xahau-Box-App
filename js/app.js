@@ -1037,22 +1037,22 @@ function enterSign() {
       if (blocked) { card.append(h('p', { class: 'sm yel' }, t('stAuditFirst'))); continue; }
       blocked = true; // a later step waits until this one is done
       if (st.st === 'signed') { card.append(h('p', { class: 'sub yel' }, t('stWaitNet')), exTx(st.txid)); continue; }
-      if (st.st === 'open' && liveStep !== p) {
+      if (st.st === 'open') {
         card.append(h('p', { class: 'sub yel' }, t('stOpenX')));
         if (st.next) card.append(h('a', { class: 'btn w', href: st.next, target: '_blank', rel: 'noopener noreferrer' }, t('xamanOpen')));
-        card.append(h('button', { class: 'btn o', type: 'button', onclick: async ev => { ev.target.disabled = true; try { if (xstate && xstate.sdk && st.uuid) await xstate.sdk.payload.cancel(st.uuid); } catch {} if (p.st[key] === st) { delete p.st[key]; save(); } enterSign(); } }, t('stCancel')));
+        card.append(h('button', { class: 'btn o', type: 'button', onclick: async ev => { ev.target.disabled = true; try { if (xstate && xstate.sdk && st.uuid) await xstate.sdk.payload.cancel(st.uuid); } catch {} if (p.st[key] === st) { delete p.st[key]; save(); } if (liveStep === p) liveStep = null; enterSign(); } }, t('stCancel')));
         continue;
       }
       if (st.st === 'fail') card.append(h('p', { class: 'err-line' }, t('stFail').replace('{r}', st.res || '?')));
       const out = h('div', { class: 'xout' });
-      card.append(h('button', { class: 'btn y', type: 'button', disabled: liveStep === p ? true : null, onclick: async ev => {
-        if (liveStep) return; ev.target.disabled = true; errSet('signErr');
-        const ns = p.st[key] = { st: 'open' }; save(); liveStep = p;
+      card.append(h('button', { class: 'btn y', type: 'button', onclick: async ev => {
+        if (p.st[key] && p.st[key].st === 'open') return; ev.target.disabled = true; errSet('signErr');
+        const ns = p.st[key] = { st: 'open' }; save(); liveStep = p; liveKey = key; out.textContent = t('xamanMaking');
         try {
-          const id = await xamanSign(it.tx, out, c => { ns.uuid = c.uuid; ns.next = c.next && c.next.always; save(); });
-          ns.st = 'signed'; ns.txid = id; if (it.main && p.op === 'pack') p.box.tx = id; save();
-        } catch (e) { if (p.st[key] === ns) delete p.st[key]; save(); liveStep = null; if (S.pending === p && current === 'sign') enterSign(); if (e && e.xaman) xamanErrShow('signErr', e); else errSet('signErr', e.message); return; }
-        liveStep = null; if (S.pending === p && current === 'sign') enterSign();
+          const id = await xamanSign(it.tx, out, c => { ns.uuid = c.uuid; ns.next = c.next && c.next.always; save(); setTimeout(stepPoll, 3000); });
+          if (ns.st === 'open') { ns.st = 'signed'; ns.txid = id; if (it.main && p.op === 'pack') p.box.tx = id; save(); }
+        } catch (e) { if (p.st[key] === ns) delete p.st[key]; save(); if (liveStep === p && liveKey === key) liveStep = null; if (S.pending === p && current === 'sign') enterSign(); if (e && e.xaman) xamanErrShow('signErr', e); else errSet('signErr', e.message); return; }
+        if (liveStep === p && liveKey === key) liveStep = null; if (S.pending === p && current === 'sign') enterSign();
       } }, t('xamanSign')), out);
     }
     setTimeout(stepPoll, 0);
@@ -1078,7 +1078,7 @@ function txResult(id, r) {
 $('checkBtn').onclick = () => checkPending().catch(e => errSet('signErr', e.message));
 $('signBack').onclick = () => goBack();
 /* signed steps: wait for the network, never offer the same signature again */
-let liveStep = null, stepPolling = false;
+let liveStep = null, liveKey = null, stepPolling = false;
 async function stepPoll() {
   const p = S.pending; if (stepPolling || !p || !p.st) return;
   stepPolling = true;
@@ -1087,7 +1087,7 @@ async function stepPoll() {
       let changed = false, waiting = false;
       for (const key of ['audit', 'main']) {
         const st = p.st[key]; if (!st) continue;
-        if (st.st === 'open' && liveStep !== p && st.uuid && xstate && xstate.sdk) {
+        if (st.st === 'open' && st.uuid && xstate && xstate.sdk) {
           const r = await xstate.sdk.payload.get(st.uuid).catch(() => null);
           if (r && r.meta && r.meta.signed && r.response && r.response.txid) { st.st = 'signed'; st.txid = r.response.txid; if (key === 'main' && p.op === 'pack') p.box.tx = st.txid; changed = true; }
           else if (r && r.meta && (r.meta.resolved || r.meta.expired || r.meta.cancelled)) { delete p.st[key]; changed = true; }

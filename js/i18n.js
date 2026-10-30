@@ -1990,3 +1990,11 @@ Object.assign(window.BOX_I18N.fr,{w4H:"⚠️ Attention : le créateur d’une b
 Object.assign(window.BOX_I18N.de,{w4H:"⚠️ Achtung: Eine Box mit Frist kann der Ersteller erst nach Ablauf der Frist zurückholen. Eine Box ohne Frist kann nie zurückgeholt werden."});
 Object.assign(window.BOX_I18N.zh,{w4H:"⚠️ 注意：设有期限的盒子，创建者只能在期限过后取回。不设期限的盒子永远无法取回。"});
 Object.assign(window.BOX_I18N.ja,{w4H:"⚠️ 注意：期限付きのボックスは、期限が過ぎてからでないと作成者は取り戻せません。期限なしのボックスは決して取り戻せません。"});
+
+Object.assign(window.BOX_I18N.ru,{xamanMaking:"Создаём запрос в Xaman…"});
+Object.assign(window.BOX_I18N.en,{xamanMaking:"Creating the Xaman request…"});
+Object.assign(window.BOX_I18N.es,{xamanMaking:"Creando la solicitud en Xaman…"});
+Object.assign(window.BOX_I18N.fr,{xamanMaking:"Création de la demande Xaman…"});
+Object.assign(window.BOX_I18N.de,{xamanMaking:"Xaman-Anfrage wird erstellt…"});
+Object.assign(window.BOX_I18N.zh,{xamanMaking:"正在创建 Xaman 请求…"});
+Object.assign(window.BOX_I18N.ja,{xamanMaking:"Xaman のリクエストを作成中…"});
