@@ -1979,7 +1979,7 @@ function histCard(x) {
   if (amt) inside.append(row('XAH', dropsToXah(amt) + ' XAH', 'yel'));
   if (hasTok) {
     const tr = row('URIToken', short(b.tid)), slot = h('div'); inside.append(tr, slot);
-    uriToken(b.tid).then(tok => { if (!tok) return; if (gcTok(tok)) tr.lastChild.textContent = t('gcTag') + ' · ' + short(b.tid); slot.append(tokenCard(tok)); }).catch(() => {});
+    uriToken(b.tid).then(tok => { if (!tok) return; if (gcTok(tok)) { tr.lastChild.textContent = t('gcTag') + ' · ' + short(b.tid); sumTxt.textContent = [amt ? dropsToXah(amt) + ' XAH' : null, t('gcTag')].filter(Boolean).join(' + '); } slot.append(tokenCard(tok)); if (gcTok(tok) && S.account && tok.Owner === S.account.address) slot.append(h('div', { class: 'card warn' }, h('p', null, t('gcGotHint')), h('button', { class: 'btn y', type: 'button', onclick: () => enterCodes() }, t('myCodes')), h('p', { class: 'sm' }, t('askPwEg')), h('a', { class: 'btn o', href: C.EVERGRAM_URL, target: '_blank', rel: 'noopener noreferrer' }, h('img', { class: 'evi', src: 'img/evergram-logo.png', alt: '' }), 'Evergram'))); }).catch(() => {});
   }
   if (!amt && !hasTok) inside.append(h('p', { class: 'sm' }, t('bxEmpty')));
   const body = h('div', { class: 'bbody hide' }, inside,
