@@ -1690,12 +1690,12 @@ async function stInstallers(hooks) {
   const id = S.net + ':' + hooks[0];
   let c = null; try { c = JSON.parse(localStorage.getItem(SIK)); } catch {}
   if (!c || c.id !== id) c = { id, at: 0, head: null, accts: [] };
-  if (Date.now() - c.at < SI_TTL) return c.accts;
   const objs = await accountObjects(hooks[0], 'hook');
   let hh = null; for (const o of objs) for (const x of o.Hooks || []) if (!hh && x.Hook && x.Hook.HookHash) hh = x.Hook.HookHash;
   if (!hh) return c.accts;
   const r = await rpc('ledger_entry', { hook_definition: hh, ledger_index: 'validated' });
   const d = r.node; if (!d || !d.index) return c.accts;
+  if (d.PreviousTxnID && d.PreviousTxnID === c.head) return c.accts;   // nothing new since last visit (2 cheap reads)
   const set = new Set(c.accts); let tx = d.PreviousTxnID, bad = false; const head = tx;
   for (let i = 0; tx && tx !== c.head && i < 3000; i++) {
     let e; try { e = await rpc('tx', { transaction: tx }); } catch { bad = true; break; }
