@@ -1431,7 +1431,7 @@ function boxCard(b, kn, lk, pk, ks) {
     stRow(b, expN), row(t('ledgerExp'), expN ? String(expN) : t('limitNone')), expN ? leftRow(expN, acct.cur) : null,
     row(t('bxNo'), '#' + b.nonce), row(t('boxNumber'), kn ? short(kn.vc) : t('vcUnknown')),
     b.ktid ? row(t('bxKeyTok'), short(b.ktid)) : null);
-  if (lk) body.append(h('button', { class: 'btn y', type: 'button', onclick: () => { lk.nonce = b.nonce; finishPack(lk); } }, t('showLink')));
+  if (lk && !b.ktid) body.append(h('button', { class: 'btn y', type: 'button', onclick: () => { lk.nonce = b.nonce; finishPack(lk); } }, t('showLink')));
   if (b.ktid && ks) {
     const x = ks.x || {}, ok = ks.st === 'sent';
     const kb = h('div', { class: 'card ' + (ks.st === 'gone' ? 'warn' : 'ok') + ' kxfer' },
