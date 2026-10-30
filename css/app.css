@@ -480,3 +480,5 @@ html[data-theme=light] .card.stepnote{border-color:#d9a800;background:#fff8dc;co
 html[data-theme=light] .card.stepok{border-color:#2e9e5e;background:#eaf8ef;color:#1d5a36}
 
 .btn.burn{background:linear-gradient(180deg,#e5484d,#b4232a);color:#fff;box-shadow:0 8px 24px rgba(229,72,77,.28)}
+
+.bbadge.burnt{display:inline-block;font:700 12.5px/1 system-ui,sans-serif;padding:6px 10px;border-radius:20px;border:1px solid rgba(255,107,107,.6);background:rgba(255,107,107,.12);color:#ff6b6b}.bmeta .bbadge.burnt{margin-left:8px;padding:4px 8px;font-size:11.5px}.card.burnt{border-color:rgba(255,107,107,.55)}.card.burnt h3{margin:10px 0 6px}.burntln{color:#ff6b6b;font-weight:700}html[data-theme=light] .bbadge.burnt,html[data-theme=light] .burntln{color:var(--err);border-color:rgba(200,40,40,.45);background:rgba(200,40,40,.08)}

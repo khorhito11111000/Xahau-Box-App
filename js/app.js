@@ -1166,7 +1166,7 @@ async function checkPending() {
     const tok = await uriToken(p.tx.URITokenID).catch(() => undefined);
     if (tok !== null) return errSet('signErr', t('notYet'));
     if (acct && acct.tokens) acct.tokens = acct.tokens.filter(x => x.index !== p.tx.URITokenID);
-    S.pending = null; save(); stDirty(); toast('🔥 ' + t('burnDone')); return burnBack(p);
+    S.pending = null; save(); stDirty(); burnedNote = { id: p.tx.URITokenID, key: p.from === 'boxes' }; return burnBack(p);
   }
   if (p.op === 'remit') {
     const tok = await uriToken(p.tx.URITokenIDs[0]); if (!tok || tok.Owner !== p.tx.Destination) return errSet('signErr', t('notYet'));
@@ -1619,12 +1619,21 @@ async function codesLoad() {
   const me = S.account.address; codesFor = me + S.net;
   list.append(h('div', { class: 'spin sm' }));
   let v; try { v = await loadAccountView(me); } catch (e) { if (seq !== codesSeq) return; list.textContent = ''; codesFor = null; return errSet('codesErr', e.message); }
-  if (seq !== codesSeq) return; acct = v; list.textContent = '';
+  if (seq !== codesSeq) return; acct = v; list.textContent = ''; burnNote(list);
   const gcs = v.tokens.filter(gcTok);
   if (!gcs.length) return list.append(h('p', { class: 'sub' }, t('gcNone')));
   list.append(h('div', { class: 'card gcmine' }, gcs.map(tok => h('div', {}, tokenCard(tok, { big: true, reveal: true }), v.locked.has(tok.index) ? null : burnCard(me, tok.index)))));
 }
 /* burn a gift code token you own (URITokenBurn, signed by you in Xaman; the token and its code are gone for good) */
+let burnedNote = null;
+function burnNote(list) {
+  const n = burnedNote; if (!n) return; burnedNote = null;
+  list.append(h('div', { class: 'card burnt' },
+    h('span', { class: 'bbadge burnt' }, '🔥 ' + t('burntTag')),
+    h('h3', {}, t(n.key ? 'burntKeyH' : 'burntH')),
+    row(t('tokNum'), short(n.id)),
+    h('p', { class: 'sm' }, t(n.key ? 'burntKeyNote' : 'burntNote'))));
+}
 function burnBack(p) { return p.from === 'boxes' ? enterMyBoxes() : enterCodes(); }
 function burnCard(me, id, key, from = 'codes') {
   const wrap = h('div', { class: 'hide' }, h('div', { class: 'card warn' }, h('p', { class: 'sm' }, t(key ? 'burnKeyWarn' : 'burnWarn'))),
@@ -1983,7 +1992,7 @@ function mbTabsUi() {
 }
 function mbRender() {
   const d = mbData, list = $('mbList'); if (!d) return;
-  mbTabsUi(); list.textContent = ''; errSet('boxesErr');
+  mbTabsUi(); list.textContent = ''; errSet('boxesErr'); burnNote(list);
   const note = k => list.append(h('p', { class: 'sm mbnote' }, k));
   if (mbTab === 'built') {
     if (!d.built.length) list.append(h('p', { class: 'sub' }, t('noBoxes')));
@@ -2041,7 +2050,7 @@ function histCard(x) {
     x.live ? h('p', { class: 'sm' }, t('mbSeeBuilt')) : null,
     exBlock([['exPack', x.pack], ['exClaim', x.hash]]) || h('p', { class: 'sm' }, t('exNone')));
   if (x.burnKey && S.account) { const me = S.account.address, slot = h('div'); body.append(slot);
-    keyOfVc(x.burnKey.iss, x.burnKey.vc).then(kt => kt && uriToken(kt).then(tok => { if (tok && tok.Owner === me && S.account && S.account.address === me) slot.append(burnCard(me, kt, true, 'boxes')); })).catch(() => {}); }
+    keyOfVc(x.burnKey.iss, x.burnKey.vc).then(kt => kt && uriToken(kt).then(tok => { if (tok === null) { head.querySelector('.bmeta').append(h('span', { class: 'bbadge burnt' }, '🔥 ' + t('burntTag'))); slot.append(h('p', { class: 'sm burntln' }, t('burntKeyLine'))); return; } if (tok && tok.Owner === me && S.account && S.account.address === me) slot.append(burnCard(me, kt, true, 'boxes')); })).catch(() => {}); }
   const c = h('div', { class: 'card bcard' }, head, body);
   const set = on => { body.classList.toggle('hide', !on); c.classList.toggle('open', on); head.setAttribute('aria-expanded', String(on)); };
   head.onclick = () => { const on = !histOpen.has(id); if (on) histOpen.add(id); else histOpen.delete(id); set(on); };
