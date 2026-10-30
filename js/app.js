@@ -419,6 +419,7 @@ function goBack() {
       if (p && p.op === 'remit' && p.back && p.back.box) { uriToken(p.tx.URITokenIDs[0]).catch(() => null).then(tok => { if (tok && tok.Owner === p.tx.Destination) p.back.box.sentTo = p.tx.Destination; S.pending = p.back; save(); finishPack(); }); return; }
       if (p && p.op === 'remit' && p.from === 'boxes') { S.pending = null; save(); return enterBoxes(); }
       if (p && p.op === 'remit' && p.from === 'inbox') { S.pending = null; save(); return enterInbox(); }
+      if (p && p.op === 'burn') { S.pending = null; save(); return enterCodes(); }
       return show('home');
     case 'done': return doneFrom === 'boxes' ? enterBoxes() : show('home');
     case 'sent': return sentFrom === 'inbox' ? enterInbox() : enterBoxes();
@@ -1001,6 +1002,7 @@ function signLabels(p) {
   const L2 = (n, m, body) => sigHead(n, m) + ': ' + body;
   if (p.op === 'mint') { const m = (p.auto ? 2 : 1) + (p.audit ? 1 : 0); return [L2(1, m, t('sigMint'))]; }
   if (p.op === 'gmint') return [L2(1, 1, t('sigGmint'))];
+  if (p.op === 'burn') return [L2(1, 1, t('sigBurn'))];
   if (p.op === 'pack') {
     const b = p.box, n0 = p.afterMint ? 2 : 1, m = n0 + (p.audit ? 1 : 0), out = [];
     if (p.audit) out.push(L2(n0, m, t('sigAudit')));
@@ -1029,7 +1031,7 @@ function enterSign() {
   const p = S.pending; if (!p) return show('home');
   if (p.op === 'pack' && p.shown) return finishPack(); // a built box is never offered for signing again
   show('sign'); errSet('signErr');
-  const titles = { pack: 'packTitle', claim: 'claimTitle', open: 'openTitle', remit: 'remitTitle', mint: 'mintTitle', gmint: 'gcMintTitle' };
+  const titles = { pack: 'packTitle', claim: 'claimTitle', open: 'openTitle', remit: 'remitTitle', mint: 'mintTitle', gmint: 'gcMintTitle', burn: 'burnTitle' };
   $('signTitle').textContent = t(titles[p.op]);
   const signer = p.op === 'pack' ? p.box.h : p.tx.Account;
   const xme0 = xstate && xstate.me && xstate.me.account;
@@ -1159,6 +1161,12 @@ async function checkPending() {
     if (!tok || tok.Owner !== p.tx.Account) return errSet('signErr', t('notYet'));
     const form = p.form; S.pending = null; save(); stDirty();
     return enterCreate(Object.assign({}, form, { gift: p.tid, giftNew: true }));
+  }
+  if (p.op === 'burn') {
+    const tok = await uriToken(p.tx.URITokenID).catch(() => undefined);
+    if (tok !== null) return errSet('signErr', t('notYet'));
+    if (acct && acct.tokens) acct.tokens = acct.tokens.filter(x => x.index !== p.tx.URITokenID);
+    S.pending = null; save(); stDirty(); toast('🔥 ' + t('burnDone')); return enterCodes();
   }
   if (p.op === 'remit') {
     const tok = await uriToken(p.tx.URITokenIDs[0]); if (!tok || tok.Owner !== p.tx.Destination) return errSet('signErr', t('notYet'));
@@ -1597,7 +1605,14 @@ async function codesLoad() {
   if (seq !== codesSeq) return; acct = v; list.textContent = '';
   const gcs = v.tokens.filter(gcTok);
   if (!gcs.length) return list.append(h('p', { class: 'sub' }, t('gcNone')));
-  list.append(h('div', { class: 'card gcmine' }, gcs.map(tok => tokenCard(tok, { big: true, reveal: true }))));
+  list.append(h('div', { class: 'card gcmine' }, gcs.map(tok => h('div', {}, tokenCard(tok, { big: true, reveal: true }), v.locked.has(tok.index) ? null : burnCard(me, tok.index)))));
+}
+/* burn a gift code token you own (URITokenBurn, signed by you in Xaman; the token and its code are gone for good) */
+function burnCard(me, id) {
+  const wrap = h('div', { class: 'hide' }, h('div', { class: 'card warn' }, h('p', { class: 'sm' }, t('burnWarn'))),
+    h('button', { class: 'btn burn', type: 'button', onclick: () => { S.pending = { op: 'burn', tx: { TransactionType: 'URITokenBurn', Account: me, URITokenID: id, NetworkID: NET().networkId }, from: 'codes' }; save(); enterSign(); } }, t('burnYes')));
+  const open = h('button', { class: 'btn o', type: 'button', onclick: () => { wrap.classList.remove('hide'); open.classList.add('hide'); } }, '🔥 ' + t('burnBtn'));
+  return h('div', {}, open, wrap);
 }
 $('acc-codes').addEventListener('toggle', () => { if ($('acc-codes').open && current === 'settings' && codesFor !== (S.account ? S.account.address + S.net : null)) codesLoad(); });
 /* hand a box's key token to someone later, from the boxes list (a plain Remit, the hook does not take part) */
