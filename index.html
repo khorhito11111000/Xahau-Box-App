@@ -191,14 +191,20 @@
 <!-- DONE (box sent) -->
 <section class="screen" id="s-done">
   <div class="donehead"><h2 data-t="boxReady"></h2><span class="tag lock" data-t="locked"></span></div>
-  <div class="boximg"><canvas id="boxCanvas" width="1152" height="1712"></canvas></div>
+  <div class="boximg" id="boxImgWrap"><canvas id="boxCanvas" width="1152" height="1712"></canvas></div>
   <div class="card warn hide" id="bearerWarn" data-t="bearerWarn"></div>
   <div class="card" id="doneInfo"></div>
   <p class="sm whint" id="doneNext"></p>
-  <div class="foot">
+  <div class="foot" id="linkFoot">
     <button class="btn y" id="dlBtn" type="button" data-t="download"></button>
     <button class="btn w" id="shareBtn" type="button" data-t="share"></button>
     <div class="btn2"><button class="btn o" id="copyLinkBtn" type="button" data-t="copyLink"></button><button class="btn o" id="shareLinkBtn" type="button" data-t="shareLink"></button></div>
+  </div>
+  <div class="card keypart hide" id="keyPart">
+    <h3 class="wtitle" data-t="kdKeyT"></h3>
+    <img class="keyimg" src="img/key.jpg" alt="">
+    <div id="keyInfo"></div>
+    <p class="sm yel" data-t="kdKeyNote"></p>
   </div>
   <div class="card hide" id="handKey">
     <h3 class="wtitle" data-t="doneStepKey"></h3>

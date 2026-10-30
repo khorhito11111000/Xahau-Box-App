@@ -976,6 +976,7 @@ $('packBtn').onclick = async () => {
   enterSign();
 };
 /* what goes into the box, in words: "5 XAH + token" */
+const shortL = a => a.slice(0, 6) + '…' + a.slice(-4);
 function boxWhat(amt, tok) { const p = []; if (amt) p.push(dropsToXah(amt) + ' XAH'); if (tok) p.push(t('sigTok')); return p.join(' + '); }
 const sigHead = (n, m) => m > 1 ? t('sigOf').replace('{n}', n).replace('{m}', m) : t('sigOne');
 function signLabels(p) {
@@ -1013,7 +1014,8 @@ function enterSign() {
   const titles = { pack: 'packTitle', claim: 'claimTitle', open: 'openTitle', remit: 'remitTitle', mint: 'mintTitle', gmint: 'gcMintTitle' };
   $('signTitle').textContent = t(titles[p.op]);
   const signer = p.op === 'pack' ? p.box.h : p.tx.Account;
-  $('signSub').textContent = t('signHere') + ' ' + short(signer) + ' · ' + NET().label + ' (NetworkID ' + NET().networkId + ').' + (p.op === 'pack' && p.audit ? ' ' + t('auditFirst') : '');
+  const xme0 = xstate && xstate.me && xstate.me.account;
+  $('signSub').textContent = xp && xme0 === signer ? t('signsAcct') + ' ' + shortL(signer) + ' · ' + NET().label : t('signHere') + ' ' + short(signer) + ' · ' + NET().label + ' (NetworkID ' + NET().networkId + ').' + (p.op === 'pack' && p.audit ? ' ' + t('auditFirst') : '');
   const body = $('signBody'); body.textContent = '';
   if (p.op === 'mint' && p.auto) body.append(h('div', { class: 'card stepnote' }, t('mintStep1')));
   if (p.op === 'pack' && p.afterMint) body.append(h('div', { class: 'card stepok' }, '✓ ' + t('keyMadeOk')));
@@ -1028,7 +1030,7 @@ function enterSign() {
       const out = h('div', { class: 'xout' });
       body.append(h('div', { class: 'card' }, h('div', { class: 'lbl' }, it.label), h('button', { class: 'btn y', type: 'button', onclick: async ev => {
         ev.target.disabled = true; errSet('signErr');
-        try { const id = await xamanSign(it.tx, out); out.textContent = t('waiting'); const r = await waitTx(id); out.textContent = ''; out.append(txResult(id, r)); if (it.main) await checkPending(); }
+        try { const id = await xamanSign(it.tx, out); if (it.main && p.op === 'pack') { p.box.tx = id; save(); } out.textContent = t('waiting'); const r = await waitTx(id); out.textContent = ''; out.append(txResult(id, r)); if (it.main) await checkPending(); }
         catch (e) { if (e && e.xaman) xamanErrShow('signErr', e); else errSet('signErr', e.message); } finally { ev.target.disabled = false; }
       } }, t('xamanSign')), out));
     }
@@ -1151,19 +1153,24 @@ async function finishPack(only) {
   doneFrom = only ? 'boxes' : 'home';
   if (!only) { createFor = null; wStep = 1; sel.gift = null; sel.key = null; sel.fresh = null; $('amtInput').value = ''; if (acct && b.ktid) { acct.keyOf.add(b.ktid); acct.tokens = acct.tokens.filter(x => x.index !== b.ktid || !b.sentTo); } $('expSel').value = '0'; } // box made: next "Create" starts from step 1
   show('done');
-  await drawBox(doneLink);
+  const kb = b.kind === 'token';
+  $('boxImgWrap').classList.toggle('hide', kb); $('linkFoot').classList.toggle('hide', kb); $('keyPart').classList.toggle('hide', !kb);
+  document.querySelector('#s-done .donehead').classList.toggle('kd', kb);
+  { const hh = document.querySelector('#s-done .donehead h2'); hh.dataset.t = kb ? 'kdBoxT' : 'boxReady'; hh.textContent = t(hh.dataset.t); }
+  if (!kb) await drawBox(doneLink);
   $('bearerWarn').classList.toggle('hide', b.kind !== 'bearer');
   $('handKey').classList.toggle('hide', b.kind !== 'token' || !!b.sentTo);
   const gtok = !isZero(b.tid) && acct && acct.tokens ? acct.tokens.find(x => x.index === b.tid) : null;
   $('gcPwRemind').classList.toggle('hide', !(gtok && gcTok(gtok)));
-  $('doneNext').textContent = t(b.kind === 'token' ? 'doneNextKey' : 'doneNextLink');
+  $('doneNext').textContent = t(b.kind === 'token' ? 'doneNextKey' : 'doneNextLink'); $('doneNext').classList.toggle('hide', b.kind === 'token');
   const info = $('doneInfo'); info.textContent = '';
   if (b.sentTo) info.append(h('div', { class: 'ok' }, '✓ ' + t('keySentTo') + ' ' + short(b.sentTo)));
   const parts = []; if (BigInt('0x' + b.amt)) parts.push(dropsToXah(BigInt('0x' + b.amt)) + ' XAH'); if (!isZero(b.tid)) parts.push('1 URIToken');
   info.append(row(t('contents'), parts.join(' + '), 'yel'), row(t('kind'), t(b.kind + 'Kind')));
   if (b.kind === 'named') info.append(row(t('signedFor'), short(b.named)));
-  if (b.kind === 'token') info.append(row('Key', short(b.ktid)), h('p', { class: 'sm' }, t('keyQrHint')));
+  if (b.kind === 'token') { info.append(h('p', { class: 'sm' }, t('kdStays').replace('{a}', shortL(b.h)))); const ki = $('keyInfo'); ki.textContent = ''; ki.append(row(t('kdKeyNo'), short(b.ktid), 'yel')); }
   info.append(row(t('expires'), b.exp !== '00000000' ? t('expAt') + ' ' + parseInt(b.exp, 16) : t('limitNone')), row(t('boxNumber'), short(b.vc)), row('Network', C.NETWORKS[b.net].label));
+  if (b.kind === 'token' && b.tx && /^[0-9A-F]{64}$/i.test(b.tx)) info.append(exTx(b.tx.toUpperCase()));
 }
 function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
 async function drawBox(link) {
