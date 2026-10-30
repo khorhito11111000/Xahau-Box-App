@@ -958,7 +958,7 @@ $('packBtn').onclick = () => {
   const b = { kind: k, h: acct.address, net: S.net, tid: sel.gift || Z64, amt: L.hex.u64(amt), exp: exp ? L.hex.u32(exp) : '00000000', named, created: Date.now() };
   if (k === 'token') { b.vc = L.randomVC(); b.ktid = sel.key; } else { const key = L.newBoxKey(); b.vc = key.vc; b.pub = key.pub; b.priv = key.priv; }
   if (!vaultPut(b)) return errSet('createErr', t('storageOff'));
-  S.pending = { op: 'pack', box: b, audit: needsAudit(acct, !!sel.gift) }; save();
+  S.pending = { op: 'pack', box: b, audit: needsAudit(acct, !!sel.gift), afterMint: !!(justMinted && justMinted === sel.key) }; save();
   enterSign();
 };
 
@@ -980,6 +980,8 @@ function enterSign() {
   const signer = p.op === 'pack' ? p.box.h : p.tx.Account;
   $('signSub').textContent = t('signHere') + ' ' + short(signer) + ' · ' + NET().label + ' (NetworkID ' + NET().networkId + ').' + (p.op === 'pack' && p.audit ? ' ' + t('auditFirst') : '');
   const body = $('signBody'); body.textContent = '';
+  if (p.op === 'mint' && p.auto) body.append(h('div', { class: 'card stepnote' }, t('mintStep1')));
+  if (p.op === 'pack' && p.afterMint) body.append(h('div', { class: 'card stepok' }, '✓ ' + t('mintDone2') + (p.audit ? ' ' + t('mintDoneAudit') : '')));
   const items = signTxs();
   const xme = xstate && xstate.me && xstate.me.account;
   if (xp && !xme) {
@@ -1060,7 +1062,8 @@ let resumingC = false;
 /* back from Xaman after minting a key/gift token: if the token is already on the ledger, go on to the next step with it selected */
 let resumingM = false;
 /* the key was made by «Build box»: go on to packing with it (second signature) */
-function autoPack(p) { if (p.auto && current === 'create' && sel.key === p.tid && kind() === 'token') $('packBtn').onclick(); }
+let justMinted = null;
+function autoPack(p) { if (p.auto && current === 'create' && sel.key === p.tid && kind() === 'token') { justMinted = p.tid; try { $('packBtn').onclick(); } finally { justMinted = null; } } }
 async function resumeRemit() {
   const p = S.pending; if (resumingM || !p || p.op !== 'remit' || current !== 'sign') return false;
   resumingM = true;

@@ -472,3 +472,7 @@ html[data-theme=light] .don{background:#fff;border-color:#e2b800;color:#334}html
 .exbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.exbtn{min-height:44px;font-size:14px;padding:6px 8px}
 .exico{width:22px;height:22px;border-radius:6px;flex:0 0 22px;object-fit:contain}
 .exitem{margin-top:8px}.exitem .exbtns{margin-top:4px}.exk{opacity:.8}
+.card.stepnote{border:1.5px solid var(--y);background:rgba(248,206,34,.1);color:var(--txt);font-size:13.5px;line-height:1.45;box-shadow:none}
+.card.stepok{border:1.5px solid rgba(60,200,120,.7);background:rgba(60,200,120,.12);color:var(--txt);font-size:13.5px;line-height:1.45;font-weight:600;box-shadow:none}
+html[data-theme=light] .card.stepnote{border-color:#d9a800;background:#fff8dc;color:#4a3800}
+html[data-theme=light] .card.stepok{border-color:#2e9e5e;background:#eaf8ef;color:#1d5a36}
