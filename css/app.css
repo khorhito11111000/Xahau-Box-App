@@ -497,3 +497,5 @@ html[data-theme=light] .xkick{color:#1b2460}
 .opt.hk{align-items:center}.hkimg{width:34px;height:46px;object-fit:cover;border-radius:6px;flex:none}
 .hkbox{display:block;color:var(--y);font-size:12.5px;font-weight:700}.hklist{margin-top:8px}
 .bkshare{display:block;width:100%;font-size:12px;color:var(--y);margin-top:4px;text-align:left}
+#mbTabs .tab{font-size:11.5px;padding:5px 2px}
+.kycard .kyhead{display:flex;gap:10px;align-items:center;margin-bottom:6px}.kycard .kyhead b{display:block}.kycard .bbadge{margin:4px 6px 0 0;display:inline-block}

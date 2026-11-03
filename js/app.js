@@ -1481,6 +1481,35 @@ function exBlock(list) {
   return h('div', { class: 'exbox' }, h('div', { class: 'lbl' }, t('exCheck')),
     list.map(([k, hs]) => h('div', { class: 'exitem' }, h('div', { class: 'sm exk' }, t(k)), exTx(hs.toUpperCase()))));
 }
+/* ---------- MY KEY TOKENS: active key tokens on this address (own and received) and the boxes under each ---------- */
+const KEY_RE = /\/img\/key\.jpg\?k=[0-9a-f]{8,64}$/;
+async function keysRender(list, d) {
+  const me = d.me, box = h('div'); list.append(box); box.append(h('div', { class: 'spin sm' }));
+  let objs; try { objs = await accountObjects(me, 'uri_token'); } catch (e) { box.textContent = ''; return errSet('boxesErr', e.message); }
+  if (mbData !== d || mbTab !== 'keys') return;
+  box.textContent = '';
+  const keys = objs.filter(o => o.LedgerEntryType === 'URIToken' && o.Owner === me && (o.Issuer === me ? KEY_RE.test(hexToText(o.URI || '')) : !!keyTokenId(o)));
+  const own = keys.filter(k => k.Issuer === me), got = keys.filter(k => k.Issuer !== me);
+  if (!keys.length) return box.append(h('p', { class: 'sub' }, t('kyNone')));
+  const recv = (d.recvOpen || []).concat(d.recvGone || []);
+  const card = (k, mine) => {
+    const id = String(k.index).toUpperCase(), sale = k.Amount !== undefined;
+    const bx = mine ? d.built.filter(b => b.ktid && String(b.ktid).toUpperCase() === id) : recv.filter(b => !b.gone && String(b.ktid).toUpperCase() === id);
+    const c = h('div', { class: 'card kycard' });
+    c.append(h('div', { class: 'kyhead' }, h('img', { class: 'hkimg', src: 'img/key.jpg', alt: '' }),
+      h('span', {}, h('b', {}, '🔑 ' + t('tokenKind') + ' ' + short(id)), h('span', { class: 'bbadge key' }, mine ? t('kyMine') : t('kyFrom') + ' ' + short(k.Issuer)), sale ? h('span', { class: 'bbadge burnt' }, t('kySale')) : null)));
+    if (!bx.length) c.append(h('p', { class: 'sm' }, t('kyNoBoxes')));
+    for (const b of bx.sort((a, x) => a.nonce - x.nonce)) c.append(h('div', { class: 'hkbox' }, '#' + b.nonce + ' · ' + boxSum(b) + (b.status === 0 ? '' : ' · ' + t('stClaiming'))));
+    if (!mine && bx.some(inboxOpenable)) c.append(h('button', { class: 'btn y', type: 'button', onclick: () => { mbTab = 'recv'; mbRender(); window.scrollTo(0, 0); } }, '🎁 ' + t('kyOpenRecv')));
+    const closed = bx.some(b => b.status === 0);
+    if (mine && !sale) c.append(keyHandCard(k.index, 'boxes'));
+    if (!sale && !closed && (mine || !d.inboxErr) && !(mine && d.built.some(b => b.ktid && String(b.ktid).toUpperCase() === id))) c.append(burnCard(me, k.index, true, 'boxes'));
+    return c;
+  };
+  if (own.length) { box.append(h('div', { class: 'lbl' }, t('kyOwnH') + ' (' + own.length + ')')); for (const k of own) box.append(card(k, true)); }
+  if (got.length) { box.append(h('div', { class: 'lbl' }, t('kyGotH') + ' (' + got.length + ')')); for (const k of got) box.append(card(k, false)); }
+  box.append(h('p', { class: 'sm mbnote' }, t('hkExplain')));
+}
 /* ---------- MY BOXES (creator) ---------- */
 const boxOpen = new Set();
 function boxCard(b, kn, lk, pk, ks) {
@@ -2028,7 +2057,7 @@ function mbTabsUi() {
     const on = b.dataset.tab === mbTab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on));
     const n = cnt[b.dataset.tab]; b.querySelector('.tn').textContent = n ? String(n) : ''; b.querySelector('.tn').classList.toggle('hide', !n);
   });
-  $('mbSub').textContent = t(mbOnly ? 'inboxOnlySub' : mbTab === 'built' ? 'mbBuiltSub' : mbTab === 'recv' ? 'mbRecvSub' : 'mbSentSub');
+  $('mbSub').textContent = t(mbOnly ? 'inboxOnlySub' : mbTab === 'built' ? 'mbBuiltSub' : mbTab === 'recv' ? 'mbRecvSub' : mbTab === 'keys' ? 'mbKeysSub' : 'mbSentSub');
   $('mbTabs').classList.toggle('hide', mbOnly); $('mbTitle').textContent = t(mbOnly ? 'inboxT' : 'mbH');
 }
 function mbRender() {
@@ -2045,6 +2074,8 @@ function mbRender() {
     if (d.inboxErr) note(t('mbPartErr'));
     if (!live.length) list.append(h('p', { class: 'sub' }, t('mbNone')));
     for (const b of live) list.append(inboxCard(b));
+  } else if (mbTab === 'keys') {
+    $('vcCard').classList.add('hide'); keysRender(list, d);
   } else if (mbTab === 'recv') {
     $('vcCard').classList.add('hide');
     if (d.inboxErr) note(t('mbPartErr'));
