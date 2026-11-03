@@ -2050,3 +2050,11 @@ Object.assign(window.BOX_I18N.fr,{"burntTag": "brûlé", "burntH": "Jeton brûl�
 Object.assign(window.BOX_I18N.de,{"burntTag": "verbrannt", "burntH": "Token verbrannt", "burntKeyH": "Schlüssel-Token verbrannt", "burntNote": "Der Token existiert nicht mehr im Netzwerk, seine Reserve ist frei.", "burntKeyNote": "Der Schlüssel existiert nicht mehr im Netzwerk, die Reserve ist frei. Die Box bleibt in deinem Verlauf.", "burntKeyLine": "Der Schlüssel-Token dieser Box wurde verbrannt."});
 Object.assign(window.BOX_I18N.zh,{"burntTag": "已销毁", "burntH": "代币已销毁", "burntKeyH": "钥匙代币已销毁", "burntNote": "该代币已不在网络中，其储备金已释放。", "burntKeyNote": "钥匙已不在网络中，储备金已释放。盒子仍保留在你的记录中。", "burntKeyLine": "此盒子的钥匙代币已被销毁。"});
 Object.assign(window.BOX_I18N.ja,{"burntTag": "焼却済み", "burntH": "トークンを焼却しました", "burntKeyH": "鍵トークンを焼却しました", "burntNote": "トークンはネットワーク上から消え、リザーブが解放されました。", "burntKeyNote": "鍵はネットワーク上から消え、リザーブが解放されました。ボックスは履歴に残ります。", "burntKeyLine": "このボックスの鍵トークンは焼却済みです。"});
+
+Object.assign(window.BOX_I18N.ru,{signKicker:'Подпись в Xaman',xamanWaitSig:'Жду подпись в Xaman…'});
+Object.assign(window.BOX_I18N.en,{signKicker:'Sign in Xaman',xamanWaitSig:'Waiting for signature in Xaman…'});
+Object.assign(window.BOX_I18N.es,{signKicker:'Firma en Xaman',xamanWaitSig:'Esperando la firma en Xaman…'});
+Object.assign(window.BOX_I18N.fr,{signKicker:'Signature dans Xaman',xamanWaitSig:'En attente de signature dans Xaman…'});
+Object.assign(window.BOX_I18N.de,{signKicker:'In Xaman signieren',xamanWaitSig:'Warte auf Signatur in Xaman…'});
+Object.assign(window.BOX_I18N.zh,{signKicker:'在 Xaman 中签名',xamanWaitSig:'等待在 Xaman 中签名…'});
+Object.assign(window.BOX_I18N.ja,{signKicker:'Xaman で署名',xamanWaitSig:'Xaman での署名を待っています…'});

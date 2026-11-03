@@ -624,6 +624,14 @@ function xamanErrShow(id, e) {
     el.append(h('div', { class: 'xrelog' }, h('button', { class: 'btn y', type: 'button', onclick: () => { afterAccount = back ? () => enterSign() : null; if (back) { S.back = back; save(); } mwSignIn(S.account && S.account.address); } }, t('xamanReloginBtn'))));
   }
 }
+function xPanel(next, qr, cancel) {
+  const d = h('div', { class: 'xpan' }, h('div', { class: 'xkick' }, t('signKicker')));
+  if (qr) d.append(h('div', { class: 'xqrbox' }, h('img', { class: 'xqrimg', src: qr, alt: '' }), h('img', { class: 'xqrlogo', src: 'img/icon-192.png', alt: '' })));
+  d.append(h('div', { class: 'xwait' }, h('span', { class: 'xspin' }), t('xamanWaitSig')));
+  if (next) d.append(h('a', { class: 'btn y', href: next, target: '_blank', rel: 'noopener noreferrer' }, t('xamanOpen')));
+  if (cancel) d.append(cancel);
+  return d;
+}
 async function xamanSign(tx, box, onCreated) {
   const sdk = xstate.sdk;
   let sub;
@@ -632,8 +640,7 @@ async function xamanSign(tx, box, onCreated) {
   if (!sub || !sub.created) { const e = new Error('Unexpected response from XUMM API [POST:payload]'); e.xaman = true; throw e; }
   if (onCreated) try { onCreated(sub.created); } catch {}
   box.textContent = '';
-  box.append(h('p', { class: 'sub' }, t('xamanWait')), h('a', { class: 'btn w', href: sub.created.next.always, target: '_blank', rel: 'noopener noreferrer' }, t('xamanOpen')));
-  if (sub.created.refs && sub.created.refs.qr_png) box.append(h('img', { class: 'xqr', src: sub.created.refs.qr_png, alt: '' }));
+  box.append(xPanel(sub.created.next.always, sub.created.refs && sub.created.refs.qr_png));
   const r = await sub.resolved;
   if (!r || !r.signed) throw new Error(t('rejected'));
   return r.txid;
@@ -1056,9 +1063,8 @@ function enterSign() {
       blocked = true; // a later step waits until this one is done
       if (st.st === 'signed') { card.append(h('p', { class: 'sub yel' }, t('stWaitNet')), exTx(st.txid)); continue; }
       if (st.st === 'open') {
-        card.append(h('p', { class: 'sub yel' }, t('stOpenX')));
-        if (st.next) card.append(h('a', { class: 'btn w', href: st.next, target: '_blank', rel: 'noopener noreferrer' }, t('xamanOpen')));
-        card.append(h('button', { class: 'btn o', type: 'button', onclick: async ev => { ev.target.disabled = true; try { if (xstate && xstate.sdk && st.uuid) await xstate.sdk.payload.cancel(st.uuid); } catch {} if (p.st[key] === st) { delete p.st[key]; save(); } if (liveStep === p) liveStep = null; enterSign(); } }, t('stCancel')));
+        card.append(h('p', { class: 'sm' }, t('stOpenX')));
+        card.append(xPanel(st.next, st.qr, h('button', { class: 'btn o xcancel', type: 'button', onclick: async ev => { ev.target.disabled = true; try { if (xstate && xstate.sdk && st.uuid) await xstate.sdk.payload.cancel(st.uuid); } catch {} if (p.st[key] === st) { delete p.st[key]; save(); } if (liveStep === p) liveStep = null; enterSign(); } }, t('stCancel'))));
         continue;
       }
       if (st.st === 'fail') card.append(h('p', { class: 'err-line' }, t('stFail').replace('{r}', st.res || '?')));
@@ -1067,7 +1073,7 @@ function enterSign() {
         if (p.st[key] && p.st[key].st === 'open') return; ev.target.disabled = true; errSet('signErr');
         const ns = p.st[key] = { st: 'open' }; save(); liveStep = p; liveKey = key; out.textContent = t('xamanMaking');
         try {
-          const id = await xamanSign(it.tx, out, c => { ns.uuid = c.uuid; ns.next = c.next && c.next.always; save(); setTimeout(stepPoll, 3000); });
+          const id = await xamanSign(it.tx, out, c => { ns.uuid = c.uuid; ns.next = c.next && c.next.always; ns.qr = c.refs && c.refs.qr_png; save(); setTimeout(stepPoll, 3000); });
           if (ns.st === 'open') { ns.st = 'signed'; ns.txid = id; if (it.main && p.op === 'pack') p.box.tx = id; save(); }
         } catch (e) { if (p.st[key] === ns) delete p.st[key]; save(); if (liveStep === p && liveKey === key) liveStep = null; if (S.pending === p && current === 'sign') enterSign(); if (e && e.xaman) xamanErrShow('signErr', e); else errSet('signErr', e.message); return; }
         if (liveStep === p && liveKey === key) liveStep = null; if (S.pending === p && current === 'sign') enterSign();
