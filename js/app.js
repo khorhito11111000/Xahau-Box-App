@@ -1298,7 +1298,15 @@ async function finishPack(only) {
   if (b.kind === 'named') info.append(row(t('signedFor'), short(b.named)));
   if (b.kind === 'token') { info.append(h('p', { class: 'sm' }, t('kdStays').replace('{a}', shortL(b.h)))); const ki = $('keyInfo'); ki.textContent = ''; ki.append(row(t('kdKeyNo'), short(b.ktid), 'yel'));
     if (b.held != null) { const lst = h('div', { class: 'card hklist' }, h('div', { class: 'lbl' }, t('hkAllNow'))); ki.append(lst);
-      loadAccountView(b.h).then(v => { const bx = v.boxes.filter(x => x.ktid === b.ktid).sort((a, c) => a.nonce - c.nonce); for (const x of bx) lst.append(h('div', { class: 'hkbox' }, '#' + x.nonce + ' · ' + boxSum(x))); lst.append(h('p', { class: 'sm' }, t('hkExplain'))); }).catch(() => {}); } }
+      // the box just signed can be missing from the validated ledger for a few seconds: wait for it, never show a short list
+      const want = (b.held || 0) + 1, kt = String(b.ktid).toUpperCase();
+      const fill = async () => { let bx = [];
+        for (let i = 0; i < 6; i++) { const v = await loadAccountView(b.h).catch(() => null); if (v) { bx = v.boxes.filter(x => String(x.ktid || '').toUpperCase() === kt).sort((a, c) => a.nonce - c.nonce); if (acct && acct.address === v.address) acct = v; } if (bx.length >= want) break; await new Promise(r => setTimeout(r, 3000)); }
+        if (!lst.isConnected) return;
+        for (const x of bx) lst.append(h('div', { class: 'hkbox' }, '#' + x.nonce + ' · ' + boxSum(x)));
+        if (bx.length < want) lst.append(h('p', { class: 'sm yel' }, t('hkLag')));
+        lst.append(h('p', { class: 'sm' }, t('hkCount').replace('{n}', Math.max(bx.length, want)) + '. ' + t('hkExplain'))); };
+      fill(); } }
   info.append(row(t('expires'), b.exp !== '00000000' ? t('expAt') + ' ' + parseInt(b.exp, 16) : t('limitNone')), row(t('boxNumber'), short(b.vc)), row('Network', C.NETWORKS[b.net].label));
   if (b.kind === 'token' && b.tx && /^[0-9A-F]{64}$/i.test(b.tx)) info.append(exTx(b.tx.toUpperCase()));
 }
