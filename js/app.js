@@ -371,6 +371,7 @@ const OWN_SCREENS = ['create', 'sign', 'done', 'sent', 'opened'];
 let screenOwner = null;
 function pOwner(p) { if (!p) return null; if (p.op === 'pack') return p.box && p.box.h || null; if (p.op === 'open') return p.h || null; return p.tx && p.tx.Account || null; }
 function acctSwap() {
+  sel.held = null;
   const me = S.account ? S.account.address : null, p = S.pending, o = pOwner(p);
   if (p && o && o !== me) { S.parked[o] = p; S.pending = null; }
   if (!S.pending && me && S.parked[me]) { S.pending = S.parked[me]; delete S.parked[me]; }
@@ -770,7 +771,7 @@ const liveRow = () => row(t('ledgerNow'), h('span', { class: 'lcur' }, curLedger
 const leftRow = (exp, cur) => row(t('timeLeft'), h('span', { 'data-exp': String(exp || 0), 'data-cur': String(cur || 0) }, '…'));
 
 /* ---------- CREATE ---------- */
-const sel = { gift: null, key: null, fresh: null }; // key: only the key minted for this build (fresh)
+const sel = { gift: null, key: null, fresh: null, held: null }; // held: a key this account issued and still holds, picked to pack one more box under it // key: only the key minted for this build (fresh)
 let createFor = null;
 async function enterCreate(preset) {
   if (!needAccount(() => enterCreate(preset), 'create')) return;
@@ -783,9 +784,9 @@ async function enterCreate(preset) {
   $('packBtn').disabled = !acct.hook;
   // coming back to this screen (Back, language) keeps the form; a new account/network or a finished mint starts fresh
   const formFor = S.net + ':' + acct.address;
-  if (preset || createFor !== formFor) { sel.gift = null; sel.key = null; sel.fresh = null; gcReset(); wStep = 1; }
+  if (preset || createFor !== formFor) { sel.gift = null; sel.key = null; sel.fresh = null; sel.held = null; gcReset(); wStep = 1; }
   else {
-    const ok = id => id && acct.tokens.some(x => x.index === id) && !tokenReason(acct.tokens.find(x => x.index === id)); if (!ok(sel.gift)) sel.gift = null; if (!ok(sel.key) || sel.key !== sel.fresh) { sel.key = null; sel.fresh = null; }
+    const ok = id => id && acct.tokens.some(x => x.index === id) && !tokenReason(acct.tokens.find(x => x.index === id)); if (!ok(sel.gift)) sel.gift = null; if (!ok(sel.key) || sel.key !== sel.fresh) { sel.key = null; sel.fresh = null; } if (sel.held && !heldKeys().some(x => x.index === sel.held)) sel.held = null;
     $('gcToggle').textContent = t($('gcForm').classList.contains('hide') ? 'gcAdd' : 'gcCancel'); gcInfo();
   }
   createFor = formFor;
@@ -804,6 +805,24 @@ async function enterCreate(preset) {
 }
 /* a key token made by this page: issued by this account, URI = <page>/img/key.jpg?k=<hex> */
 const isKeyTok = tok => !!tok && tok.Issuer === (acct && acct.address) && /\/img\/key\.jpg\?k=[0-9a-f]{8,64}$/.test(hexToText(tok.URI || ''));
+/* keys this account issued and still holds (not on sale, not burnable, not locked inside a box): one more box can go under each */
+const heldKeys = () => acct ? acct.tokens.filter(x => isKeyTok(x) && x.Owner === acct.address && x.Amount === undefined && !((x.Flags || 0) & 1) && !acct.locked.has(x.index)) : [];
+const boxesUnder = id => acct ? acct.boxes.filter(b => b.ktid === id).sort((a, c) => a.nonce - c.nonce) : [];
+const boxSum = b => { const a = BigInt('0x' + b.amt), p = []; if (a) p.push(dropsToXah(a) + ' XAH'); if (!isZero(b.tid)) p.push('1 URIToken'); return p.join(' + ') || t('bxEmpty'); };
+function heldRender() {
+  const w = $('heldKeys'); if (!w) return; w.textContent = '';
+  const on = !!acct && kind() === 'token'; w.classList.toggle('hide', !on); if (!on) { sel.held = null; return; }
+  const ks = heldKeys(); if (sel.held && !ks.some(x => x.index === sel.held)) sel.held = null;
+  w.append(h('div', { class: 'lbl' }, t('hkPick')), h('p', { class: 'sm' }, t('hkExplain')));
+  const opt = (val, body, img) => { const r = h('input', { type: 'radio', name: 'keyPick', value: val }); r.checked = (sel.held || 'new') === val; r.onchange = () => { sel.held = val === 'new' ? null : val; updateSummary(); }; return h('label', { class: 'opt opt2 hk' }, r, img ? h('img', { class: 'hkimg', src: 'img/key.jpg', alt: '' }) : null, body); };
+  w.append(opt('new', h('span', {}, h('b', {}, '+ ' + t('hkNew')), h('span', {}, t('hkNewSub')))));
+  for (const k of ks) {
+    const bx = boxesUnder(k.index), list = h('span', {});
+    if (!bx.length) list.append(h('span', {}, t('hkNoBoxes')));
+    for (const b of bx) list.append(h('span', { class: 'hkbox' }, '#' + b.nonce + ' · ' + boxSum(b)));
+    w.append(opt(k.index, h('span', {}, h('b', {}, '🔑 ' + t('tokenKind') + ' ' + short(k.index)), h('span', {}, t('hkCount').replace('{n}', bx.length)), list), true));
+  }
+}
 const freeKeys = () => acct.tokens.filter(x => isKeyTok(x) && !tokenReason(x));
 const giftIsGc = () => { const g = sel.gift && acct && acct.tokens.find(x => x.index === sel.gift); return !!(g && gcTok(g)); };
 /* a gift code goes only into a key-token box; in key-token mode a free key token is picked by default */
@@ -829,12 +848,15 @@ function renderTokens() {
   if (!all.length) g.append(h('p', { class: 'sm yel' }, t('noTokens')));
   else if (!okN) g.append(h('p', { class: 'sm yel' }, t('noFreeTokens')));
   else g.append(h('p', { class: 'sm' }, t('tokPick').replace('{n}', okN)));
+  const gcOpen = !$('gcForm').classList.contains('hide');
+  $('gcToggle').disabled = !!sel.gift && !gcOpen; $('gcOneTok').classList.toggle('hide', !sel.gift);
+  if (gcOpen) g.append(h('p', { class: 'sm yel' }, t('gcOneTokB')));
   const free = freeKeys().some(x => x.index !== sel.gift);
   if (!free) k.append(h('p', { class: 'sm yel' }, t('noKeyYet')));
   $('mintKeyBtn').className = 'btn ' + (free ? 'o' : 'y');
   for (const tok of inside) {
     const why = why0(tok);
-    const c = tokenCard(tok, { disabled: why, selected: sel.gift === tok.index, onclick: () => { sel.gift = sel.gift === tok.index ? null : tok.index; if (sel.key === sel.gift) sel.key = null; renderTokens(); updateSummary(); } });
+    const c = tokenCard(tok, { disabled: why || (gcOpen ? t('gcOneTokR') : null), selected: sel.gift === tok.index, onclick: () => { sel.gift = sel.gift === tok.index ? null : tok.index; if (sel.key === sel.gift) sel.key = null; renderTokens(); updateSummary(); } });
     if (gcTok(tok)) c.querySelector('.tinfo').insertBefore(h('span', { class: 'gctag' }, t('gcTag')), c.querySelector('.tinfo').children[1]);
     g.append(c);
   }
@@ -846,12 +868,12 @@ function renderTokens() {
 const kind = () => { const top = document.querySelector('input[name=kind]:checked').value; return top === 'token' ? 'token' : document.querySelector('input[name=linkFor]:checked').value; };
 function syncKindUi(quiet) {
   if (acct && giftIsGc() && kind() !== 'token') { document.querySelector('input[name=kind][value=token]').checked = true; if (!quiet) toast(t('gcNeedsKey')); }
-  const k = kind(); keyNote(); $('linkWrap').classList.toggle('hide', k === 'token'); $('namedWrap').classList.toggle('hide', k !== 'named'); $('keyWrap').classList.toggle('hide', k !== 'token'); updateSummary(); wProgress(); }
+  const k = kind(); heldRender(); keyNote(); $('linkWrap').classList.toggle('hide', k === 'token'); $('namedWrap').classList.toggle('hide', k !== 'named'); $('keyWrap').classList.toggle('hide', k !== 'token'); updateSummary(); wProgress(); }
 /* key-token mode: say whether a key made earlier is waiting for a box (it goes into this one) or a new key is made when the box is built */
 function keyNote() {
   const e = $('keyWaitNote'); if (!e) return;
   if (!acct || kind() !== 'token') { e.classList.add('hide'); return; }
-  e.textContent = t('keyNewHint'); e.classList.remove('hide');
+  e.textContent = t('keyNewHint'); e.classList.toggle('hide', !!sel.held || heldKeys().length > 0);
 }
 /* create wizard: one step at a time (1 what, 2 how, 3 key - key-token mode only, 4 time limit, 5 check and sign) */
 let wStep = 1;
@@ -885,7 +907,8 @@ function sumMore() {
   const g = sel.gift && acct.tokens.find(x => x.index === sel.gift);
   if (g) m.append(row('URIToken', (gcTok(g) ? t('gcTag') + ' · ' : '') + short(g.index)));
   m.append(row(t('kind'), k === 'token' ? t('kToken') : k === 'named' ? t('kNamed') + ' ' + short($('namedAddr').value.trim()) : t('kBearer')));
-  if (k === 'token') m.append(row(t('sumKey'), sel.key && sel.key === sel.fresh ? t('keyMadeSum') + ' ' + short(sel.key) : t('keyNewSum'), 'yel'), h('p', { class: 'sm' }, t('keyNewHint')));
+  if (k === 'token' && sel.held) m.append(row(t('sumKey'), t('hkUse') + ' ' + short(sel.held), 'yel'), h('p', { class: 'sm' }, t('hkNote').replace('{k}', short(sel.held)).replace('{n}', boxesUnder(sel.held).length)));
+  else if (k === 'token') m.append(row(t('sumKey'), sel.key && sel.key === sel.fresh ? t('keyMadeSum') + ' ' + short(sel.key) : t('keyNewSum'), 'yel'), h('p', { class: 'sm' }, t('keyNewHint')));
   m.append(row(t('timeLimit'), $('expSel').selectedOptions[0].textContent), row('Network', NET().label));
 }
 $('wNext').onclick = () => { const e = wCheck(wStep); if (e) return errSet('createErr', e); const st = wSteps(); wShow(st[st.indexOf(wStep) + 1] || 5); window.scrollTo(0, 0); };
@@ -895,7 +918,7 @@ document.querySelectorAll('input[name=kind]').forEach(r => r.onchange = () => sy
 $('amtInput').oninput = updateSummary; $('expSel').onchange = updateSummary;
 function expLedger() { const d = Number($('expSel').value); if (!d || !acct) return 0; return curLedger(acct.cur) + Math.ceil(d * 86400 / avgSec()); }
 function updateSummary() {
-  if (!acct) return;
+  if (!acct) return; keyNote();
   const d = xahToDrops($('amtInput').value);
   $('amtNote').textContent = d === null ? t('amtBad') : '≈ ' + t('available').toLowerCase() + ': ' + dropsToXah(freeToLock(acct, !!sel.gift, kind() === 'token')) + ' XAH';
   const parts = []; if (d) parts.push(dropsToXah(d) + ' XAH'); if (sel.gift) { const gt0 = acct.tokens.find(x => x.index === sel.gift); parts.push(gt0 && gcTok(gt0) ? '🔒 ' + t('gcTokName') : '1 URIToken'); }
@@ -940,7 +963,7 @@ function gcInfo() {
   const pw = gcPwNorm($('gcPw').value); $('gcPwNote').textContent = pw && pw.length < GC.MIN_PW ? t('gcPwShort') : '';
   $('gcPwNote').classList.toggle('bad', !!pw && pw.length < GC.MIN_PW);
 }
-$('gcToggle').onclick = () => { const open = $('gcForm').classList.contains('hide'); if (!open) return gcReset(); $('gcForm').classList.remove('hide'); $('gcToggle').textContent = t('gcCancel'); gcInfo(); };
+$('gcToggle').onclick = () => { const open = $('gcForm').classList.contains('hide'); if (open && sel.gift) return; if (!open) { gcReset(); if (acct) renderTokens(); return; } $('gcForm').classList.remove('hide'); $('gcToggle').textContent = t('gcCancel'); gcInfo(); if (acct) renderTokens(); };
 $('gcCode').oninput = gcInfo; $('gcPw').oninput = () => { $('gcSaved').checked = false; gcInfo(); };
 $('gcGen').onclick = () => { $('gcPw').value = gcGenPw(); $('gcSaved').checked = false; gcInfo(); };
 $('gcCopyPw').onclick = () => { if ($('gcPw').value) copy($('gcPw').value); };
@@ -981,14 +1004,22 @@ $('packBtn').onclick = async () => {
   if (k === 'named') { named = $('namedAddr').value.trim(); if (!L.isAddress(named)) return errSet('createErr', t('needNamed')); }
   if (giftIsGc() && k !== 'token') return errSet('createErr', t('gcNeedsKey'));
   // key-token box: always a brand-new key, minted right now (signature 1), then the box (signature 2)
-  if (k === 'token' && !(sel.key && sel.key === sel.fresh)) {
+  let heldN = null;
+  if (k === 'token' && sel.held) {
+    // the picked key must be ours on the ledger right now: issued by us, held by us, not on sale, not burnable, not inside a box
+    const id = sel.held, tok = await uriToken(id).catch(() => null);
+    const bad = !tok || tok.Issuer !== acct.address || tok.Owner !== acct.address || ((tok.Flags || 0) & 1) || tok.Amount !== undefined || !isKeyTok(tok) || id === sel.gift || acct.locked.has(id);
+    if (bad) { sel.held = null; heldRender(); updateSummary(); return errSet('createErr', t('hkGone')); }
+    sel.key = id; sel.fresh = null; heldN = boxesUnder(id).length;
+  }
+  if (k === 'token' && heldN === null && !(sel.key && sel.key === sel.fresh)) {
     sel.key = null; sel.fresh = null;
     if (!canMint(acct)) return errSet('createErr', t('mintNoFunds'));
     const tx = mintTx(acct.address, keyUri()); const tid = L.uriTokenId(acct.address, tx.URI);
     S.pending = { op: 'mint', tx, tid, auto: true, audit: needsAudit(acct, !!sel.gift), what: boxWhat(amt, !!sel.gift), form: { amt: $('amtInput').value, gift: sel.gift, expDays: Number($('expSel').value) } }; save();
     return enterSign();
   }
-  if (k === 'token') {
+  if (k === 'token' && heldN === null) {
     // the key must be on the ledger right now: ours, not burnable, not on sale, not in a box, not the key of any box
     const id = sel.key, tok = await uriToken(id).catch(() => null), mine = acct.tokens.find(x => x.index === id);
     const bad = !tok || tok.Owner !== acct.address || ((tok.Flags || 0) & 1) || tok.Amount !== undefined || !mine || !isKeyTok(mine) || id === sel.gift || acct.locked.has(id) || acct.keyOf.has(id) || S.history.some(x => x.ktid === id);
@@ -996,9 +1027,9 @@ $('packBtn').onclick = async () => {
   }
   const exp = expLedger();
   const b = { kind: k, h: acct.address, net: S.net, tid: sel.gift || Z64, amt: L.hex.u64(amt), exp: exp ? L.hex.u32(exp) : '00000000', named, created: Date.now() };
-  if (k === 'token') { b.vc = L.randomVC(); b.ktid = sel.key; } else { const key = L.newBoxKey(); b.vc = key.vc; b.pub = key.pub; b.priv = key.priv; }
+  if (k === 'token') { b.vc = L.randomVC(); b.ktid = sel.key; if (heldN !== null) b.held = heldN; } else { const key = L.newBoxKey(); b.vc = key.vc; b.pub = key.pub; b.priv = key.priv; }
   if (!vaultPut(b)) return errSet('createErr', t('storageOff'));
-  S.pending = { op: 'pack', box: b, audit: needsAudit(acct, !!sel.gift), afterMint: auto || (k === 'token' && sel.key === sel.fresh) }; save();
+  S.pending = { op: 'pack', box: b, audit: needsAudit(acct, !!sel.gift), afterMint: heldN === null && (auto || (k === 'token' && sel.key === sel.fresh)) }; save();
   enterSign();
 };
 /* what goes into the box, in words: "5 XAH + token" */
@@ -1045,6 +1076,7 @@ function enterSign() {
   $('signSub').textContent = xp && xme0 === signer ? t('signsAcct') + ' ' + shortL(signer) + ' · ' + NET().label : t('signHere') + ' ' + short(signer) + ' · ' + NET().label + ' (NetworkID ' + NET().networkId + ').' + (p.op === 'pack' && p.audit ? ' ' + t('auditFirst') : '');
   const body = $('signBody'); body.textContent = '';
   if (p.op === 'mint' && p.auto) body.append(h('div', { class: 'card stepnote' }, t('mintStep1')));
+  if (p.op === 'pack' && p.box.held != null && p.box.ktid) body.append(h('div', { class: 'card stepnote' }, t('hkSignNote').replace('{k}', short(p.box.ktid)).replace('{n}', p.box.held)));
   if (p.op === 'pack' && p.afterMint) body.append(h('div', { class: 'card stepok' }, '✓ ' + t('keyMadeOk')));
   const items = signTxs();
   const xme = xstate && xstate.me && xstate.me.account;
@@ -1246,12 +1278,12 @@ async function finishPack(only) {
   save();
   doneLink = qrLink(makeQr(q));
   doneFrom = only ? 'boxes' : 'home';
-  if (!only) { createFor = null; wStep = 1; sel.gift = null; sel.key = null; sel.fresh = null; $('amtInput').value = ''; if (acct && b.ktid) { acct.keyOf.add(b.ktid); acct.tokens = acct.tokens.filter(x => x.index !== b.ktid || !b.sentTo); } $('expSel').value = '0'; } // box made: next "Create" starts from step 1
+  if (!only) { createFor = null; wStep = 1; sel.gift = null; sel.key = null; sel.fresh = null; sel.held = null; $('amtInput').value = ''; if (acct && b.ktid) { acct.keyOf.add(b.ktid); acct.tokens = acct.tokens.filter(x => x.index !== b.ktid || !b.sentTo); } $('expSel').value = '0'; } // box made: next "Create" starts from step 1
   show('done');
   const kb = b.kind === 'token';
   $('boxImgWrap').classList.toggle('hide', kb); $('linkFoot').classList.toggle('hide', kb); $('keyPart').classList.toggle('hide', !kb);
   document.querySelector('#s-done .donehead').classList.toggle('kd', kb);
-  { const hh = document.querySelector('#s-done .donehead h2'); hh.dataset.t = kb ? 'kdBoxT' : 'boxReady'; hh.textContent = t(hh.dataset.t); }
+  { const hh = document.querySelector('#s-done .donehead h2'); hh.dataset.t = kb ? (b.held != null ? 'hkDoneT' : 'kdBoxT') : 'boxReady'; hh.textContent = t(hh.dataset.t); }
   if (!kb) await drawBox(doneLink);
   $('bearerWarn').classList.toggle('hide', b.kind !== 'bearer');
   $('handKey').classList.toggle('hide', b.kind !== 'token' || !!b.sentTo);
@@ -1264,7 +1296,9 @@ async function finishPack(only) {
   const cRow = row(t('contents'), parts.join(' + '), 'yel'); info.append(cRow); if (!isZero(b.tid)) info.append(row(t('tokNum'), short(b.tid))); info.append(row(t('kind'), t(b.kind + 'Kind')));
   if (!isZero(b.tid) && !gtok) uriToken(b.tid).then(n => { if (n && gcTok(n) && cRow.isConnected) { cRow.querySelector('b').textContent = parts.join(' + ').replace('1 URIToken', '🔒 ' + t('gcTokName')); $('gcPwRemind').classList.remove('hide'); } }).catch(() => {});
   if (b.kind === 'named') info.append(row(t('signedFor'), short(b.named)));
-  if (b.kind === 'token') { info.append(h('p', { class: 'sm' }, t('kdStays').replace('{a}', shortL(b.h)))); const ki = $('keyInfo'); ki.textContent = ''; ki.append(row(t('kdKeyNo'), short(b.ktid), 'yel')); }
+  if (b.kind === 'token') { info.append(h('p', { class: 'sm' }, t('kdStays').replace('{a}', shortL(b.h)))); const ki = $('keyInfo'); ki.textContent = ''; ki.append(row(t('kdKeyNo'), short(b.ktid), 'yel'));
+    if (b.held != null) { const lst = h('div', { class: 'card hklist' }, h('div', { class: 'lbl' }, t('hkAllNow'))); ki.append(lst);
+      loadAccountView(b.h).then(v => { const bx = v.boxes.filter(x => x.ktid === b.ktid).sort((a, c) => a.nonce - c.nonce); for (const x of bx) lst.append(h('div', { class: 'hkbox' }, '#' + x.nonce + ' · ' + boxSum(x))); lst.append(h('p', { class: 'sm' }, t('hkExplain'))); }).catch(() => {}); } }
   info.append(row(t('expires'), b.exp !== '00000000' ? t('expAt') + ' ' + parseInt(b.exp, 16) : t('limitNone')), row(t('boxNumber'), short(b.vc)), row('Network', C.NETWORKS[b.net].label));
   if (b.kind === 'token' && b.tx && /^[0-9A-F]{64}$/i.test(b.tx)) info.append(exTx(b.tx.toUpperCase()));
 }
@@ -1460,6 +1494,7 @@ function boxCard(b, kn, lk, pk, ks) {
     h('span', { class: 'bbadge' + (b.ktid ? ' key' : '') }, b.ktid ? '🔑 ' + t('tokenKind') : '🔗 ' + t('kLink')),
     h('span', { class: 'bchev', 'aria-hidden': 'true' }, '▾'),
     h('span', { class: 'bmeta' }, st, sumTxt));
+  if (b.ktid && acct && acct.boxes) { const n = acct.boxes.filter(x => x.ktid === b.ktid).length; if (n > 1) head.append(h('span', { class: 'bkshare' }, t('hkShare').replace('{k}', short(b.ktid)).replace('{n}', n))); }
   const inside = h('div', { class: 'binside' }, h('div', { class: 'lbl' }, t('bxInside')));
   if (amt) inside.append(row('XAH', dropsToXah(amt) + ' XAH', 'yel'));
   if (hasTok) {
@@ -2162,7 +2197,7 @@ themeUi();
 $('pageVer').textContent = (([...document.scripts].map(x => x.src).find(x => /app\.js/.test(x)) || '').split('v=')[1] || '—');
 $('backBtn').onclick = () => goBack();
 $('setBtn').onclick = () => enterSettings();
-$('netBtn').onclick = () => { S.net = S.net === 'testnet' ? 'mainnet' : 'testnet'; save(); applyNet(); pollLedger(); renderAcct(); acct = null; if ($('acc-hook').open) hkUi(); route(current === 'sign' || current === 'done' || current === 'opened' ? 'home' : current); };
+$('netBtn').onclick = () => { sel.held = null; sel.key = null; sel.fresh = null; createFor = null; S.net = S.net === 'testnet' ? 'mainnet' : 'testnet'; save(); applyNet(); pollLedger(); renderAcct(); acct = null; if ($('acc-hook').open) hkUi(); route(current === 'sign' || current === 'done' || current === 'opened' ? 'home' : current); };
 for (const id of ['evergramDone']) $(id).href = C.EVERGRAM_URL;
 function handleHash() {
   startLive();
