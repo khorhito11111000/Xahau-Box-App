@@ -2266,8 +2266,19 @@ $('hkGo').onclick = async () => {
     box.textContent = ''; box.append(h('p', { class: 'sub' }, t('hkSent')), h('p', { class: 'mono sm' }, id),
       exTx(id));
     const r = await waitTx(id);
-    const res = r && r.meta ? r.meta.TransactionResult : null;
-    box.append(h('p', { class: res === 'tesSUCCESS' ? 'sub yel' : 'err-line' }, res ? (res === 'tesSUCCESS' ? t('hkOk') : t('hkFail') + ' ' + res) : t('hkPendingTx')));
+    let res = r && r.meta ? r.meta.TransactionResult : null;
+    const want = tx.Hooks[0].Hook.HookHash || (hkCode && hkCode.hash);
+    if (!res && want) { // not seen yet (phone back from Xaman): look at the account's hooks
+      const objs = await accountObjects(tx.Account).catch(() => []);
+      if (objs.some(o => o.LedgerEntryType === 'Hook' && (o.Hooks || []).some(x => x.Hook && String(x.Hook.HookHash || '').toUpperCase() === want))) res = 'tesSUCCESS';
+    }
+    if (res === 'tesSUCCESS') {
+      box.textContent = '';
+      box.append(h('h2', { class: 'hkdone' }, t('hkDone') + ' ', h('span', { class: 'okchk', 'aria-hidden': 'true' }, '✓')),
+        h('div', { class: 'card' }, row(t('hkAcct'), short(tx.Account), 'mono'), row(t('hkNet'), 'Xahau ' + NET().label), want ? row('HookHash', want.slice(0, 10) + '…', 'mono') : null, row(t('txHash'), short(id)), row('Result', res, 'ok')),
+        exTx(id));
+      box.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    } else box.append(h('p', { class: res ? 'err-line' : 'sub yel' }, res ? t('hkFail') + ' ' + res : t('hkPendingTx')));
   } catch (x) { if (x && x.xaman) xamanErrShow('hkErr', x); else errSet('hkErr', x && x.message || String(x)); }
   finally { btn.disabled = false; }
 };
