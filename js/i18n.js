@@ -2089,3 +2089,10 @@ Object.assign(window.BOX_I18N.zh,{"hkSignNote": "盒子将放在钥匙代币 {k}
 Object.assign(window.BOX_I18N.ja,{"hkSignNote": "ボックスはキートークン {k} の下に置かれます。現在 {n} 個、これが次になります。", "hkLag": "ネットワークにまだ全ボックスが反映されていません。1分後に更新してください。"});
 Object.assign(window.BOX_I18N.ru,{"hkNote": "Бокс будет положен под токен-ключ {k}. Сейчас под ним боксов: {n}, этот станет следующим. Одна подпись, новый ключ не выпускается."});
 Object.assign(window.BOX_I18N.en,{"hkNote": "The box will go under key token {k}. Boxes under it now: {n}; this one will be the next. One signature, no new key is minted."});
+Object.assign(window.BOX_I18N.ru,{"kyShNote": "Один ключ на {n} бокса(ов) · передача ключа отдаст все {n}", "kyToKey": "К ключу", "kyAllGo": "Вместе с ключом уйдут все боксы под ним: {n}"});
+Object.assign(window.BOX_I18N.en,{"kyShNote": "One key for {n} boxes · handing over the key gives away all {n}", "kyToKey": "To the key", "kyAllGo": "All boxes under it go with the key: {n}"});
+Object.assign(window.BOX_I18N.es,{"kyShNote": "Una llave para {n} cajas · entregar la llave da las {n}", "kyToKey": "A la llave", "kyAllGo": "Con la llave se van todas las cajas bajo ella: {n}"});
+Object.assign(window.BOX_I18N.fr,{"kyShNote": "Une clé pour {n} boîtes · remettre la clé donne les {n}", "kyToKey": "Vers la clé", "kyAllGo": "Toutes les boîtes sous elle partent avec la clé : {n}"});
+Object.assign(window.BOX_I18N.de,{"kyShNote": "Ein Schlüssel für {n} Boxen · wer den Schlüssel bekommt, bekommt alle {n}", "kyToKey": "Zum Schlüssel", "kyAllGo": "Mit dem Schlüssel gehen alle Boxen darunter mit: {n}"});
+Object.assign(window.BOX_I18N.zh,{"kyShNote": "一把钥匙对应 {n} 个盒子 · 交出钥匙即交出全部 {n} 个", "kyToKey": "前往钥匙", "kyAllGo": "钥匙下的所有盒子将一起转出：{n}"});
+Object.assign(window.BOX_I18N.ja,{"kyShNote": "1つのキーで{n}個のボックス · キーを渡すと{n}個すべて渡ります", "kyToKey": "キーへ", "kyAllGo": "キーと一緒にその下の全ボックスが移ります：{n}"});

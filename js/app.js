@@ -1510,7 +1510,8 @@ async function keysRender(list, d) {
     for (const b of bx.sort((a, x) => a.nonce - x.nonce)) c.append(h('div', { class: 'hkbox' }, '#' + b.nonce + ' · ' + boxSum(b) + (b.status === 0 ? '' : ' · ' + t('stClaiming'))));
     if (!mine && bx.some(inboxOpenable)) c.append(h('button', { class: 'btn y', type: 'button', onclick: () => { mbTab = 'recv'; mbRender(); window.scrollTo(0, 0); } }, '🎁 ' + t('kyOpenRecv')));
     const closed = bx.some(b => b.status === 0);
-    if (mine && !sale) c.append(keyHandCard(k.index, 'boxes'));
+    const nClosed = bx.filter(b => b.status === 0).length;
+    if (!sale && (mine || bx.some(inboxOpenable))) { if (nClosed) c.append(h('p', { class: 'sm yel' }, '⚠️ ' + t('kyAllGo').replace('{n}', nClosed))); c.append(keyHandCard(k.index, 'boxes')); }
     if (!sale && !closed && (mine || !d.inboxErr) && !(mine && d.built.some(b => b.ktid && String(b.ktid).toUpperCase() === id))) c.append(burnCard(me, k.index, true, 'boxes'));
     return c;
   };
@@ -1561,7 +1562,7 @@ function boxCard(b, kn, lk, pk, ks) {
       exBlock([['kxTx', x.hash]]));
     body.append(kb);
     if (ok) head.querySelector('.bst').textContent = t('kxSentShort');
-  } else if (b.ktid) body.append(keyHandCard(b.ktid, 'boxes', b.nonce));
+  } else if (b.ktid) { const n = acct && acct.boxes ? acct.boxes.filter(x => x.ktid === b.ktid).length : 1; body.append(n > 1 ? sharedKeyNote(n) : keyHandCard(b.ktid, 'boxes', b.nonce)); }
   if (kn) {
     const keyGone = !!(b.ktid && ks && ks.st === 'gone'), expGone = !!(expN && curLedger(acct.cur) > expN);
     if (expGone || keyGone) body.append(h('button', { class: 'btn o', type: 'button', onclick: () => startOpen(kn.vc) }, t('takeBack')));
@@ -1681,7 +1682,8 @@ function inboxCard(b) {
     } catch (e) { go.disabled = false; msg.textContent = e.message; }
   } }, '🎁 ' + t('inboxOpen'));
   c.append(msg, go);
-  if (inboxOpenable(b)) c.append(keyHandCard(b.ktid, 'inbox', b.nonce)); // the holder can pass the key on from the page
+  const shN = mbData && mbData.recvOpen ? mbData.recvOpen.filter(x => !x.gone && String(x.ktid).toUpperCase() === String(b.ktid).toUpperCase()).length : 1;
+  if (inboxOpenable(b)) c.append(shN > 1 ? sharedKeyNote(shN) : keyHandCard(b.ktid, 'inbox', b.nonce)); // the holder can pass the key on from the page
   if (!inboxOpenable(b)) c.append(h('p', { class: 'sm' }, b.status === 0 ? t('expired') : t('stClaiming')));
   return c;
 }
@@ -1721,6 +1723,11 @@ function burnCard(me, id, key, from = 'codes') {
 }
 $('acc-codes').addEventListener('toggle', () => { if ($('acc-codes').open && current === 'settings' && codesFor !== (S.account ? S.account.address + S.net : null)) codesLoad(); });
 /* hand a box's key token to someone later, from the boxes list (a plain Remit, the hook does not take part) */
+/* several boxes under one key: no per-box transfer, one transfer per key in the «Keys» tab */
+function sharedKeyNote(n) {
+  return h('div', { class: 'card stepnote' }, h('p', { class: 'sm' }, t('kyShNote').replace(/\{n\}/g, n)),
+    h('button', { class: 'btn o', type: 'button', onclick: () => { if (current !== 'mybx' || mbOnly) return enterMyBoxes('keys'); mbTab = 'keys'; mbRender(); window.scrollTo(0, 0); } }, '🔑 ' + t('kyToKey')));
+}
 function keyHandCard(ktid, from = 'boxes', nonce) {
   const inp = h('input', { class: 'inp', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: t('recipientPh') });
   const out = h('div');
