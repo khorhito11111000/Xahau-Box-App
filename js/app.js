@@ -1821,7 +1821,7 @@ async function stScan(hk) {
   const GCP = hexStr(GC.PFX), KEYRE = /\/img\/key\.jpg\?k=[0-9a-f]{16}$/;
   let marker;
   for (let i = 0; i < 50; i++) {
-    const r = await rpc('account_tx', Object.assign({ account: hk, ledger_index_min: -1, ledger_index_max: -1, limit: 400, forward: false }, marker ? { marker } : {}));
+    const r = await rpc('account_tx', Object.assign({ account: hk, ledger_index_min: ((C.STATS_FROM || {})[S.net]) || -1, ledger_index_max: -1, limit: 400, forward: false }, marker ? { marker } : {}));
     if (!r.transactions) throw new Error('no tx');
     for (const e of r.transactions) {
       const tx = e.tx || e.tx_json || {}, meta = e.meta || e.metaData || {};
@@ -1872,6 +1872,7 @@ async function stInstallers(hooks) {
   const objs = await accountObjects(hooks[0], 'hook');
   let hh = null; for (const o of objs) for (const x of o.Hooks || []) if (!hh && x.Hook && x.Hook.HookHash) hh = x.Hook.HookHash;
   if (!hh) return c.accts;
+  if (c.hh !== hh) c = { id, hh, at: 0, head: null, accts: [] };   // new hook version: start the installer list over
   const r = await rpc('ledger_entry', { hook_definition: hh, ledger_index: 'validated' });
   const d = r.node; if (!d || !d.index) return c.accts;
   if (d.PreviousTxnID && d.PreviousTxnID === c.head) return c.accts;   // nothing new since last visit (2 cheap reads)
@@ -1906,7 +1907,7 @@ async function loadStats(force) {
   try { const found = await stInstallers(base); hooks = [...new Set(base.concat(found))].sort(); } catch {}
   box.classList.remove('hide');
   stNote(hooks.length, null); stRefCount(hooks).then(n => stNote(hooks.length, n)).catch(() => {});
-  const id = S.net + ':' + hooks.join(',');
+  const id = S.net + ':' + (((C.STATS_FROM || {})[S.net]) || 0) + ':' + hooks.join(',');
   let c = null; try { c = JSON.parse(localStorage.getItem(STK)) || null; } catch {}
   const fresh = c && c.id === id && Date.now() - c.at < ST_TTL;
   if (c && c.id === id) stPaint(Object.assign({}, c.d, { xah: c.d.xah == null ? null : BigInt(c.d.xah) })); else stPaint(null);
@@ -1915,7 +1916,7 @@ async function loadStats(force) {
   try {
     const all = await stScanAll(hooks);
     const d = all.reduce((a, b) => ({ total: a.total + b.total, opened: a.opened + b.opened, xah: a.xah + b.xah, tok: a.tok + b.tok, key: a.key + b.key, gc: a.gc + b.gc }));
-    if (S.net + ':' + hooks.join(',') !== id) return;
+    if (S.net + ':' + (((C.STATS_FROM || {})[S.net]) || 0) + ':' + hooks.join(',') !== id) return;
     try { localStorage.setItem(STK, JSON.stringify({ id, at: Date.now(), d: Object.assign({}, d, { xah: d.xah.toString() }) })); } catch {}
     stPaint(d);
   } catch {
