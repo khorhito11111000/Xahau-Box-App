@@ -502,3 +502,6 @@ html[data-theme=light] .xkick{color:#1b2460}
 .kycard.muted{opacity:.72;border-color:rgba(255,255,255,.1)}.kycard.muted .hkbox{color:var(--mut)}.kypassed{margin-top:14px}
 
 .hkdone{margin:14px 0 10px}
+
+.top .chip.acctt{padding:8px 11px;max-width:55%}
+.top .chip.acctt:empty{display:none}
