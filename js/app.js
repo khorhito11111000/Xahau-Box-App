@@ -1498,7 +1498,7 @@ async function keysRender(list, d) {
   box.textContent = '';
   const keys = objs.filter(o => o.LedgerEntryType === 'URIToken' && o.Owner === me && (o.Issuer === me ? KEY_RE.test(hexToText(o.URI || '')) : !!keyTokenId(o)));
   const own = keys.filter(k => k.Issuer === me), got = keys.filter(k => k.Issuer !== me);
-  if (!keys.length) return box.append(h('p', { class: 'sub' }, t('kyNone')));
+  if (!keys.length) box.append(h('p', { class: 'sub' }, t('kyNone')));
   const recv = (d.recvOpen || []).concat(d.recvGone || []);
   const card = (k, mine) => {
     const id = String(k.index).toUpperCase(), sale = k.Amount !== undefined;
@@ -1518,6 +1518,42 @@ async function keysRender(list, d) {
   if (own.length) { box.append(h('div', { class: 'lbl' }, t('kyOwnH') + ' (' + own.length + ')')); for (const k of own) box.append(card(k, true)); }
   if (got.length) { box.append(h('div', { class: 'lbl' }, t('kyGotH') + ' (' + got.length + ')')); for (const k of got) box.append(card(k, false)); }
   box.append(h('p', { class: 'sm mbnote' }, t('hkExplain')));
+  keysPassed(box, d, me, new Set(keys.map(k => String(k.index).toUpperCase())));
+}
+/* key tokens that left this address (Remit or sold through our offer), own and received ones; read-only */
+async function keysPassed(box, d, me, held) {
+  const sec = h('div', { class: 'kypassed' }); box.append(sec);
+  let mv; try { mv = await keyMoves(me); } catch { return; }
+  if (mbData !== d || mbTab !== 'keys') return;
+  const known = new Set(); for (const x of (d.sent || []).concat(d.mine || [])) { const k = x.ktid || (x.b && x.b.ktid); if (k) known.add(String(k).toUpperCase()); }
+  const ids = [...mv.out.keys()].filter(k => !held.has(k));
+  const toks = new Map(); await Promise.all(ids.map(id => uriToken(id).then(x => toks.set(id, x)).catch(() => {})));
+  if (mbData !== d || mbTab !== 'keys') return;
+  const rows = ids.filter(id => toks.has(id)).map(id => ({ id, tok: toks.get(id), mv: mv.out.get(id), fr: mv.inn.get(id) }))
+    .filter(r => r.tok ? (r.tok.Owner !== me && (r.tok.Issuer === me ? KEY_RE.test(hexToText(r.tok.URI || '')) : !!keyTokenId(r.tok))) : known.has(r.id));
+  if (!rows.length) return;
+  sec.append(h('div', { class: 'lbl' }, t('kyPassedH') + ' (' + rows.length + ')'));
+  const stCache = new Map();
+  const issBoxes = iss => { if (!stCache.has(iss)) stCache.set(iss, nsEntries(iss).then(es => { const st = new Map(es.map(e => [e.HookStateKey, e.HookStateData])), out = [];
+    for (const [k, v] of st) { if (v.length !== 170) continue; const m = st.get(L.modeKey(k)); if (!m || m.length !== 66 || !m.startsWith('01')) continue; const b = parseBox(v); if (b) out.push(Object.assign(b, { ktid: m.slice(2).toUpperCase() })); }
+    return out; }).catch(() => null)); return stCache.get(iss); };
+  for (const r of rows.sort((a, c) => (c.mv.date || 0) - (a.mv.date || 0))) {
+    const iss = r.tok ? r.tok.Issuer : me, mine = iss === me; // a burned key is listed only when it is a key of our own boxes
+    const c = h('div', { class: 'card kycard muted' });
+    c.append(h('div', { class: 'kyhead' }, h('span', {}, h('b', {}, '🔑 ' + short(r.id)),
+      h('span', { class: 'bbadge' }, mine ? t('kyByMe') : t('kyFrom') + ' ' + short(iss || (r.fr && r.fr.from) || '')),
+      r.tok ? null : h('span', { class: 'bbadge burnt' }, t('burntTag')))));
+    c.append(row(t('kxTo'), short(r.mv.to)), r.mv.date ? row(t('mbWhen'), new Date(r.mv.date).toLocaleString(S.lang, { timeZone: 'Europe/Berlin' })) : null);
+    if (r.tok && r.tok.Owner !== r.mv.to) c.append(row(t('mbKeyAt'), short(r.tok.Owner)));
+    const bl = h('div'); c.append(bl); sec.append(c);
+    const opened = (d.sent || []).filter(x => x.ok && String(x.ktid || (x.b && x.b.ktid) || '').toUpperCase() === r.id);
+    const live = iss ? await issBoxes(iss) : [];
+    if (mbData !== d || mbTab !== 'keys') return;
+    const lb = (live || []).filter(b => b.ktid === r.id).sort((a, x) => a.nonce - x.nonce);
+    for (const b of lb) bl.append(h('div', { class: 'hkbox' }, '#' + b.nonce + ' · ' + boxSum(b) + ' · ' + t(b.status === 0 ? 'stClosed' : 'stClaiming')));
+    for (const x of opened) bl.append(h('div', { class: 'hkbox mut' }, '#' + x.nonce + ' · ' + boxSum(x.b) + ' · ' + t('mbOpenedSt')));
+    if (!lb.length && !opened.length) bl.append(h('p', { class: 'sm' }, t(mine ? 'kyNoBoxes' : 'kyPassedNone')));
+  }
 }
 /* ---------- MY BOXES (creator) ---------- */
 const boxOpen = new Set();
@@ -1961,8 +1997,14 @@ function keyMoves(me) {
       const r = await rpc('account_tx', Object.assign({ account: me, ledger_index_min: -1, ledger_index_max: -1, limit: 200, forward: false }, marker ? { marker } : {}));
       for (const e of r.transactions || []) {
         const tx = e.tx || e.tx_json || {}, meta = e.meta || e.metaData || {};
-        if (tx.TransactionType !== 'Remit' || meta.TransactionResult !== 'tesSUCCESS') continue;
+        if (meta.TransactionResult !== 'tesSUCCESS') continue;
         const d = tx.date ? (tx.date + 946684800) * 1000 : 0;
+        if (tx.TransactionType === 'URITokenBuy' && tx.Account !== me) { // our token bought from our sell offer
+          const was = (meta.AffectedNodes || []).some(n => { const m = n.ModifiedNode; return m && m.LedgerEntryType === 'URIToken' && (m.PreviousFields || {}).Owner === me; });
+          const k = String(tx.URITokenID || '').toUpperCase(); if (was && k && !out.has(k)) out.set(k, { to: tx.Account, date: d });
+          continue;
+        }
+        if (tx.TransactionType !== 'Remit') continue;
         for (const id of tx.URITokenIDs || []) {
           const k = String(id).toUpperCase();
           if (tx.Account === me && !out.has(k)) out.set(k, { to: tx.Destination, date: d });

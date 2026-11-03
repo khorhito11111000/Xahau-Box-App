@@ -2096,3 +2096,10 @@ Object.assign(window.BOX_I18N.fr,{"kyShNote": "Une clé pour {n} boîtes · reme
 Object.assign(window.BOX_I18N.de,{"kyShNote": "Ein Schlüssel für {n} Boxen · wer den Schlüssel bekommt, bekommt alle {n}", "kyToKey": "Zum Schlüssel", "kyAllGo": "Mit dem Schlüssel gehen alle Boxen darunter mit: {n}"});
 Object.assign(window.BOX_I18N.zh,{"kyShNote": "一把钥匙对应 {n} 个盒子 · 交出钥匙即交出全部 {n} 个", "kyToKey": "前往钥匙", "kyAllGo": "钥匙下的所有盒子将一起转出：{n}"});
 Object.assign(window.BOX_I18N.ja,{"kyShNote": "1つのキーで{n}個のボックス · キーを渡すと{n}個すべて渡ります", "kyToKey": "キーへ", "kyAllGo": "キーと一緒にその下の全ボックスが移ります：{n}"});
+Object.assign(window.BOX_I18N.ru,{"kyPassedH": "Переданные мной", "kyByMe": "создан тобой", "kyPassedNone": "Закрытых боксов под ним нет (открыты или их не было)"});
+Object.assign(window.BOX_I18N.en,{"kyPassedH": "Passed on by me", "kyByMe": "created by you", "kyPassedNone": "No closed boxes under it (opened or none)"});
+Object.assign(window.BOX_I18N.es,{"kyPassedH": "Entregadas por mí", "kyByMe": "creada por ti", "kyPassedNone": "No hay cajas cerradas bajo ella (abiertas o ninguna)"});
+Object.assign(window.BOX_I18N.fr,{"kyPassedH": "Transmises par moi", "kyByMe": "créée par vous", "kyPassedNone": "Aucune boîte fermée dessous (ouvertes ou aucune)"});
+Object.assign(window.BOX_I18N.de,{"kyPassedH": "Von mir weitergegeben", "kyByMe": "von dir erstellt", "kyPassedNone": "Keine geschlossenen Boxen darunter (geöffnet oder keine)"});
+Object.assign(window.BOX_I18N.zh,{"kyPassedH": "我已转出", "kyByMe": "由你创建", "kyPassedNone": "其下没有未打开的盒子（已打开或没有）"});
+Object.assign(window.BOX_I18N.ja,{"kyPassedH": "自分が渡したキー", "kyByMe": "あなたが作成", "kyPassedNone": "この下に未開封のボックスはありません（開封済みまたはなし）"});
