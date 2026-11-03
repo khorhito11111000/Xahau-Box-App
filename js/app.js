@@ -475,7 +475,7 @@ const MWK = 'xbox.wallets.v1', MWS = 'xbox.wsess.v1';
 let mwExpired = null, mwQuiet = false;
 const xRet = /[?&](authorization_code|access_token|error_description)=/.test(location.search); // this load is the return from Xaman
 const MWR = 'xbox.mwrestore';
-function mwRestore(a, msg) { const se = mwSessAll()[a]; if (!se || !se.pkce) return false; try { sessionStorage.setItem(MWR, a); if (msg) sessionStorage.setItem('xbox.mwerr', msg); localStorage.setItem('XummPkceJwt', se.pkce); if (se.sdk) localStorage.setItem('XummSdkJwt', se.sdk); } catch { return false; } S.account = { address: a, via: 'xaman' }; save(); try { history.replaceState(history.state, "", location.pathname + location.hash); } catch {} location.reload(); return true; }
+function mwRestore(a, msg) { const se = mwSessAll()[a]; if (!se || !se.pkce) return false; try { sessionStorage.setItem(MWR, a); if (msg) sessionStorage.setItem('xbox.mwerr', msg); localStorage.setItem('XummPkceJwt', se.pkce); if (se.sdk) localStorage.setItem('XummSdkJwt', se.sdk); } catch { return false; } S.account = { address: a, via: 'xaman' }; save(); try { history.replaceState(null, "", location.pathname + '#home'); } catch {} location.reload(); return true; }
 const mwList = () => { try { const v = JSON.parse(localStorage.getItem(MWK)); return Array.isArray(v) ? v.filter(w => w && L.isAddress(w.address)) : []; } catch { return []; } };
 const mwSave = l => { try { localStorage.setItem(MWK, JSON.stringify(l)); } catch {} };
 const mwSessAll = () => { try { return JSON.parse(localStorage.getItem(MWS)) || {}; } catch { return {}; } };
@@ -518,7 +518,7 @@ function mwRender() {
   }
 }
 function mwActivate(w) {
-  if (w.via !== 'xaman') { mwClearXaman(); acct = null; setAccount(w.address, w.via); mbRefresh(); return mwRender(); }
+  if (w.via !== 'xaman') { mwClearXaman(); acct = null; setAccount(w.address, w.via); mbRefresh(); mwHide(); return show('home'); }
   const se = mwSessAll()[w.address];
   if (se && se.pkce) { mwClearXaman(); if (mwRestore(w.address)) return; }
   mwSignIn(w.address);
@@ -529,6 +529,7 @@ function mwSignIn(want) {
   if (xstate && xstate.me) mwSnap(xstate.me.account);
   mwClearXaman(); acct = null; mwExpired = null;
   if (want) toast(t('mwSignFor') + ' ' + short(want));
+  afterAccount = null; S.back = null; save(); show('home');
   xp.authorize().catch(e => xamanErrShow('mwErr', e));
 }
 function mwOut(a) {
