@@ -245,7 +245,7 @@ function tokenView(tok) {
     const id = String(tok.index || '').toUpperCase(); const rm = remarkMap(tok); const rmeta = remarkMeta(rm); const meta = rmeta && rmeta.meta;
     const v = { name: null, img: null, attrs: [], desc: null, remarks: [] };
     const k = keyTokenId(tok);
-    if (k) { v.name = t('tokenKind') + ' · ' + k.slice(0, 6); v.img = 'img/key.jpg?v=3'; return v; }
+    if (k) { v.name = t('tokenKind') + ' · ' + k.slice(0, 6); v.img = 'img/key.jpg?v=4'; return v; }
     if (meta) { v.name = clean(meta.name); v.desc = clean(meta.desc || meta.description, 160); v.descFull = clean(meta.desc || meta.description, 2000); v.attrs = attrList(meta.attributes); v.full = attrFull(meta.attributes); }
     else v.remarks = [...rm].filter(([, r]) => clean(r.text, 80)).slice(0, 4).map(([n, r]) => (clean(n, 30) + ': ' + clean(r.text, 80)));
     if (tok.Issuer === ISS.CARDS && meta && typeof meta.image === 'string' && CARD_IMG.test(meta.image)) v.img = meta.image;
@@ -814,7 +814,7 @@ function heldRender() {
   const on = !!acct && kind() === 'token'; w.classList.toggle('hide', !on); if (!on) { sel.held = null; return; }
   const ks = heldKeys(); if (sel.held && !ks.some(x => x.index === sel.held)) sel.held = null;
   w.append(h('div', { class: 'lbl' }, t('hkPick')), h('p', { class: 'sm' }, t('hkExplain')));
-  const opt = (val, body, img) => { const r = h('input', { type: 'radio', name: 'keyPick', value: val }); r.checked = (sel.held || 'new') === val; r.onchange = () => { sel.held = val === 'new' ? null : val; updateSummary(); }; return h('label', { class: 'opt opt2 hk' }, r, img ? h('img', { class: 'hkimg', src: 'img/key.jpg', alt: '' }) : null, body); };
+  const opt = (val, body, img) => { const r = h('input', { type: 'radio', name: 'keyPick', value: val }); r.checked = (sel.held || 'new') === val; r.onchange = () => { sel.held = val === 'new' ? null : val; updateSummary(); }; return h('label', { class: 'opt opt2 hk' }, r, img ? h('img', { class: 'hkimg', src: 'img/key.jpg?v=4', alt: '' }) : null, body); };
   w.append(opt('new', h('span', {}, h('b', {}, '+ ' + t('hkNew')), h('span', {}, t('hkNewSub')))));
   for (const k of ks) {
     const bx = boxesUnder(k.index), list = h('span', {});
@@ -1313,7 +1313,7 @@ async function finishPack(only) {
 function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
 async function drawBox(link) {
   const cv = $('boxCanvas'), ctx = cv.getContext('2d');
-  const bg = await loadImg('img/box.jpg?v=2'); cv.width = bg.width; cv.height = bg.height; ctx.drawImage(bg, 0, 0);
+  const bg = await loadImg('img/box.jpg?v=3'); cv.width = bg.width; cv.height = bg.height; ctx.drawImage(bg, 0, 0);
   const qr = await loadImg(await L.qrDataURL(link, { margin: 1, width: 600, errorCorrectionLevel: 'H' }));
   const ico = await loadImg('img/icon-512.png?v=3').catch(() => null);
   // White rounded card, bottom-right (keeps the X mark visible), "OPEN BOX" under the QR.
@@ -1368,7 +1368,7 @@ async function showBox() {
   openBox = b ? Object.assign(b, { ktid, holder, tok, cur }) : null;
   v.textContent = '';
   const card = h('div', { class: 'card' });
-  const rest = h('div', { class: 'giftrest' }, h('div', { class: 'hero sm' }, h('img', { src: 'img/hero2.jpg', alt: '' })), card);
+  const rest = h('div', { class: 'giftrest' }, h('div', { class: 'hero sm' }, h('img', { src: 'img/hero2.jpg?v=3', alt: '' })), card);
   v.append(rest);
   if (b && b.status === 0) {
     const a0 = BigInt('0x' + b.amt), gp = []; if (a0) gp.push(dropsToXah(a0) + ' XAH'); if (tok) gp.push(gcTok(tok) ? t('gcTag') : '1 URIToken');
@@ -1504,7 +1504,7 @@ async function keysRender(list, d) {
     const id = String(k.index).toUpperCase(), sale = k.Amount !== undefined;
     const bx = mine ? d.built.filter(b => b.ktid && String(b.ktid).toUpperCase() === id) : recv.filter(b => !b.gone && String(b.ktid).toUpperCase() === id);
     const c = h('div', { class: 'card kycard' });
-    c.append(h('div', { class: 'kyhead' }, h('img', { class: 'hkimg', src: 'img/key.jpg', alt: '' }),
+    c.append(h('div', { class: 'kyhead' }, h('img', { class: 'hkimg', src: 'img/key.jpg?v=4', alt: '' }),
       h('span', {}, h('b', {}, '🔑 ' + t('tokenKind') + ' ' + short(id)), h('span', { class: 'bbadge key' }, mine ? t('kyMine') : t('kyFrom') + ' ' + short(k.Issuer)), sale ? h('span', { class: 'bbadge burnt' }, t('kySale')) : null)));
     if (!bx.length) c.append(h('p', { class: 'sm' }, t('kyNoBoxes')));
     for (const b of bx.sort((a, x) => a.nonce - x.nonce)) c.append(h('div', { class: 'hkbox' }, '#' + b.nonce + ' · ' + boxSum(b) + (b.status === 0 ? '' : ' · ' + t('stClaiming'))));
