@@ -626,7 +626,7 @@ function xamanErrShow(id, e) {
 }
 function xPanel(next, qr, cancel) {
   const d = h('div', { class: 'xpan' }, h('div', { class: 'xkick' }, t('signKicker')));
-  if (qr) d.append(h('div', { class: 'xqrbox' }, h('img', { class: 'xqrimg', src: qr, alt: '' }), h('img', { class: 'xqrlogo', src: 'img/icon-192.png', alt: '' })));
+  if (qr) d.append(h('div', { class: 'xqrbox' }, h('img', { class: 'xqrimg', src: qr, alt: '' }), h('img', { class: 'xqrlogo', src: 'img/xaman.png', alt: 'Xaman' })));
   d.append(h('div', { class: 'xwait' }, h('span', { class: 'xspin' }), t('xamanWaitSig')));
   if (next) d.append(h('a', { class: 'btn y', href: next, target: '_blank', rel: 'noopener noreferrer' }, t('xamanOpen')));
   if (cancel) d.append(cancel);
