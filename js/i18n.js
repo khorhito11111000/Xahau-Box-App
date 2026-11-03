@@ -2073,3 +2073,10 @@ Object.assign(window.BOX_I18N.fr,{"mbKeys": "Clés", "mbKeysSub": "Jetons clés 
 Object.assign(window.BOX_I18N.de,{"mbKeys": "Schlüssel", "mbKeysSub": "Aktive Schlüssel-Token auf dieser Adresse und die Boxen darunter.", "kyNone": "Keine aktiven Schlüssel-Token auf dieser Adresse.", "kyMine": "dein Schlüssel", "kyFrom": "erhalten von", "kySale": "zum Verkauf", "kyNoBoxes": "Keine Boxen darunter", "kyOpenRecv": "In „Erhalten“ öffnen", "kyOwnH": "Deine Schlüssel", "kyGotH": "Erhaltene Schlüssel"});
 Object.assign(window.BOX_I18N.zh,{"mbKeys": "钥匙", "mbKeysSub": "此地址上的有效钥匙代币及其下的盒子。", "kyNone": "此地址上没有有效的钥匙代币。", "kyMine": "你的钥匙", "kyFrom": "收到自", "kySale": "在售", "kyNoBoxes": "下面没有盒子", "kyOpenRecv": "在“已收到”中打开", "kyOwnH": "你的钥匙", "kyGotH": "收到的钥匙"});
 Object.assign(window.BOX_I18N.ja,{"mbKeys": "キー", "mbKeysSub": "このアドレスの有効なキートークンと、その下のボックス。", "kyNone": "このアドレスに有効なキートークンはありません。", "kyMine": "あなたのキー", "kyFrom": "受取元", "kySale": "販売中", "kyNoBoxes": "この下にボックスはありません", "kyOpenRecv": "「受け取り」で開く", "kyOwnH": "あなたのキー", "kyGotH": "受け取ったキー"});
+Object.assign(window.BOX_I18N.ru,{kyShared:"один ключ на {n}"});
+Object.assign(window.BOX_I18N.en,{kyShared:"one key for {n}"});
+Object.assign(window.BOX_I18N.es,{kyShared:"una llave para {n}"});
+Object.assign(window.BOX_I18N.fr,{kyShared:"une clé pour {n}"});
+Object.assign(window.BOX_I18N.de,{kyShared:"ein Schlüssel für {n}"});
+Object.assign(window.BOX_I18N.zh,{kyShared:"同一钥匙 {n} 个"});
+Object.assign(window.BOX_I18N.ja,{kyShared:"1キーで{n}個"});

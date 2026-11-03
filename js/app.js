@@ -2039,7 +2039,7 @@ async function mbLoad() {
     for (const [bk, r] of claimOn) {
       const lb = v.boxes.find(b => String(b.key).toUpperCase() === bk), pk = packByKey.get(bk);
       const b = lb || r.b; if (!b) continue;
-      sent.push({ b, pack: pk && pk.hash, nonce: b.nonce, key: pk ? !!pk.ktid : !r.link, st: lb && lb.status !== 0 ? t('stClaiming') : t('mbOpenedSt'), ok: true, who: [t('mbOpenedBy'), r.from], date: r.date, hash: r.hash });
+      sent.push({ b, pack: pk && pk.hash, nonce: b.nonce, key: pk ? !!pk.ktid : !r.link, ktid: pk && pk.ktid || null, st: lb && lb.status !== 0 ? t('stClaiming') : t('mbOpenedSt'), ok: true, who: [t('mbOpenedBy'), r.from], date: r.date, hash: r.hash });
     }
     for (const x of passed) sent.push(x);
     sent.sort((a, c) => (c.nonce || 0) - (a.nonce || 0));
@@ -2106,13 +2106,18 @@ function histCard(x) {
     h('span', { class: 'bchev', 'aria-hidden': 'true' }, '▾'),
     h('span', { class: 'bmeta' }, h('span', { class: 'bst' + (x.bad ? ' bad' : x.ok ? ' ok' : ' yel') }, x.st), sumTxt));
   const inside = h('div', { class: 'binside' }, h('div', { class: 'lbl' }, t('bxInside')));
+  const ktRow = h('div'); let kt0 = x.key ? (x.ktid || b.ktid || null) : null;
+  const ktShow = kt => { if (!kt || ktRow.firstChild) return; kt = String(kt).toUpperCase();
+    const n = mbData && mbData.sent ? mbData.sent.filter(y => String(y.ktid || (y.b && y.b.ktid) || '').toUpperCase() === kt).length : 0;
+    ktRow.append(row(t('tokenKind'), short(kt), 'yel')); if (n > 1) ktRow.append(h('p', { class: 'sm yel' }, t('hkShare').replace('{k}', short(kt)).replace('{n}', n)));
+    head.append(h('span', { class: 'bkshare' }, '🔑 ' + short(kt) + (n > 1 ? ' · ' + t('kyShared').replace('{n}', n) : ''))); };
   if (amt) inside.append(row('XAH', dropsToXah(amt) + ' XAH', 'yel'));
   if (hasTok) {
     const tr = row('URIToken', short(b.tid)), slot = h('div'); inside.append(tr, slot);
     uriToken(b.tid).then(tok => { if (!tok) return; if (gcTok(tok)) { tr.lastChild.textContent = t('gcTag') + ' · ' + short(b.tid); sumTxt.textContent = [amt ? dropsToXah(amt) + ' XAH' : null, t('gcTag')].filter(Boolean).join(' + '); } slot.append(tokenCard(tok)); if (gcTok(tok) && S.account && tok.Owner === S.account.address) slot.append(h('div', { class: 'card warn' }, h('p', null, t('gcGotHint')), h('button', { class: 'btn y', type: 'button', onclick: () => enterCodes() }, t('myCodes')), h('p', { class: 'sm' }, t('askPwEg')), h('a', { class: 'btn o', href: C.EVERGRAM_URL, target: '_blank', rel: 'noopener noreferrer' }, h('img', { class: 'evi', src: 'img/evergram-logo.png', alt: '' }), 'Evergram'))); }).catch(() => {});
   }
   if (!amt && !hasTok) inside.append(h('p', { class: 'sm' }, t('bxEmpty')));
-  const body = h('div', { class: 'bbody hide' }, inside,
+  const body = h('div', { class: 'bbody hide' }, inside, ktRow,
     x.from ? row(t('kFromWho'), short(x.from)) : null,
     x.to ? row(t('kToWho'), short(x.to)) : null,
     x.who ? row(x.who[0], short(x.who[1])) : null,
@@ -2121,6 +2126,7 @@ function histCard(x) {
     x.local ? h('p', { class: 'sm' }, t('mbLocal')) : null,
     x.live ? h('p', { class: 'sm' }, t('mbSeeBuilt')) : null,
     exBlock([['exPack', x.pack], ['exClaim', x.hash]]) || h('p', { class: 'sm' }, t('exNone')));
+  ktShow(kt0); if (!kt0 && x.burnKey) keyOfVc(x.burnKey.iss, x.burnKey.vc).then(ktShow).catch(() => {});
   if (x.burnKey && S.account) { const me = S.account.address, slot = h('div'); body.append(slot);
     keyOfVc(x.burnKey.iss, x.burnKey.vc).then(kt => kt && uriToken(kt).then(tok => { if (tok === null) { head.querySelector('.bmeta').append(h('span', { class: 'bbadge burnt' }, '🔥 ' + t('burntTag'))); slot.append(h('p', { class: 'sm burntln' }, t('burntKeyLine'))); return; } if (tok && tok.Owner === me && S.account && S.account.address === me) slot.append(burnCard(me, kt, true, 'boxes')); })).catch(() => {}); }
   const c = h('div', { class: 'card bcard' }, head, body);
