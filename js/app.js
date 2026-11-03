@@ -2022,7 +2022,10 @@ async function mbLoad() {
     // who holds the key token of each live key box now
     const holders = new Map();
     const keyObj = new Map();
-    await Promise.all(built.filter(b => b.ktid).map(b => uriToken(b.ktid).then(x => { holders.set(b.key, x ? x.Owner : null); keyObj.set(b.key, x); }).catch(() => {})));
+    // one lookup per key token (boxes share keys), retried: a failed lookup must not drop one box of a shared key
+    const kts = [...new Set(built.filter(b => b.ktid).map(b => String(b.ktid).toUpperCase()))], kmap = new Map();
+    await Promise.all(kts.map(async kt => { for (let i = 0; i < 3; i++) { try { kmap.set(kt, await uriToken(kt)); return; } catch { await new Promise(r => setTimeout(r, 800 * (i + 1))); } } }));
+    for (const b of built) { const kt = b.ktid && String(b.ktid).toUpperCase(); if (kt && kmap.has(kt)) { const x = kmap.get(kt); holders.set(b.key, x ? x.Owner : null); keyObj.set(b.key, x); } }
     if (seq !== mbSeq) return;
     const moved = built.filter(b => b.ktid && holders.has(b.key) && (holders.get(b.key) !== me || (keyObj.get(b.key) || {}).Amount != null));
     const xf = await keyXfers(me, moved.map(b => b.ktid)).catch(() => new Map());
