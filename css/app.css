@@ -505,3 +505,7 @@ html[data-theme=light] .xkick{color:#1b2460}
 
 .top .chip.acctt{padding:8px 11px;max-width:55%}
 .top .chip.acctt:empty{display:none}
+.pj .pji.xm-lt{display:none}
+html[data-theme=light] .pj .pji.xm-lt{display:flex}
+html[data-theme=light] .pj .pji.xm-dk{display:none}
+.pj .pji.xm-dk,.pj .pji.xm-lt{background:none}
