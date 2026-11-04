@@ -10,6 +10,8 @@ The `brand/` folder holds these files:
 
 - `brand/xahau-box-logo-yellow.png`: logo on a yellow background
 - `brand/xahau-box-logo-navy.png`: logo on a navy background
+- `brand/xahau-box-logo-sizes-navy.png`: the logo in several sizes, navy version
+- `brand/xahau-box-logo-sizes-yellow.png`: the logo in several sizes, yellow version
 - `brand/xahau-box-box.jpg`: the box image with the logo and name
 
 The name, logos and images above may not be used in products, marketplaces, storefronts, ads or other services without written permission. Commercial use of the code or the brand is possible only by agreement.
