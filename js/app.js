@@ -10,6 +10,10 @@ const LANGS = ['en', 'es', 'fr', 'ru', 'de', 'zh', 'ja'];
 function browserLang() { for (const l of (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''])) { const c = String(l).slice(0, 2).toLowerCase(); if (LANGS.includes(c)) return c; } return 'en'; }
 const S = Object.assign({ net: C.DEFAULT_NETWORK, lang: browserLang(), account: null, history: [], pending: null, back: null, parked: {} }, load());
 if (!S.parked || typeof S.parked !== 'object') S.parked = {};
+// state saved by an older page version may be broken: drop it instead of crashing or showing a half step
+{ const okP = p => p && typeof p === 'object' && typeof p.op === 'string' && (p.op !== 'pack' || (p.box && typeof p.box === 'object'));
+  if (!okP(S.pending)) S.pending = null; for (const k of Object.keys(S.parked)) if (!okP(S.parked[k])) delete S.parked[k];
+  if (!Array.isArray(S.history)) S.history = []; }
 if (!C.NETWORKS[S.net]) S.net = C.DEFAULT_NETWORK;
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ net: S.net, lang: S.lang, account: S.account, history: S.history.slice(-200), pending: S.pending, back: S.back || null, parked: S.parked })); } catch {} };
 if (!LANGS.includes(S.lang)) S.lang = 'en';
@@ -1079,6 +1083,8 @@ function jsonBlock(item) {
 function enterSign() {
   const p = S.pending; if (!p) return show('home');
   if (p.op === 'pack' && p.shown) return finishPack(); // a built box is never offered for signing again
+  // a step made on the other network (testnet / mainnet) is never shown for signing here
+  const pn = p.op === 'pack' ? p.box.net : p.net; if (!pn) { p.net = S.net; save(); } else if (pn !== S.net) return show('home');
   show('sign'); errSet('signErr');
   const titles = { pack: 'packTitle', claim: 'claimTitle', open: 'openTitle', remit: 'remitTitle', mint: 'mintTitle', gmint: 'gcMintTitle', burn: 'burnTitle' };
   $('signTitle').textContent = t(titles[p.op]);
@@ -1265,9 +1271,9 @@ async function resumeClaim() {
   catch {} finally { resumingC = false; }
 }
 async function resumePack() {
-  const p = S.pending; if (resuming || !p || p.op !== 'pack' || p.shown || p.box.net !== S.net || ['done', 'open', 'opened'].includes(current)) return;
+  const p = S.pending; if (resuming || !p || p.op !== 'pack' || p.shown || p.box.net !== S.net || ['done', 'open', 'opened', 'keycheck'].includes(current)) return;
   resuming = true;
-  try { const b = parseBox(await hookState(p.box.h, L.boxKey(p.box.vc))); if (b && S.pending === p && !['done', 'open', 'opened'].includes(current)) { p.box.nonce = b.nonce; p.shown = true; save(); toast(t('boxRestored')); await finishPack(); } }
+  try { const b = parseBox(await hookState(p.box.h, L.boxKey(p.box.vc))); if (b && S.pending === p && !['done', 'open', 'opened', 'keycheck'].includes(current)) { p.box.nonce = b.nonce; p.shown = true; save(); toast(t('boxRestored')); await finishPack(); } }
   catch {} finally { resuming = false; }
 }
 
