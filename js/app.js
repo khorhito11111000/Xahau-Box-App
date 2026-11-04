@@ -194,7 +194,8 @@ function gcReveal(uriText) {
      Xahmoeba      -> https://api.xahmoeba.com (their public API: name + picture), testnet species only
      our key token -> img/key.jpg from this page
      anything else -> ◆ and the name, no network request. */
-const ISS = { CARDS: 'rCardMi9ZsS5dBMrtZtaDeZchvW64W38c', RAVEN: 'rodinGM9xiKq7rDDnLPyieREkqGJ6zKyb', MOEBA: 'rMmx5nHzoVJAoMTFWkgCCMrZryTaD682tr' };
+const ISS = { CARDS: 'rCardMi9ZsS5dBMrtZtaDeZchvW64W38c', RAVEN: 'rodinGM9xiKq7rDDnLPyieREkqGJ6zKyb', MOEBA: 'rMmx5nHzoVJAoMTFWkgCCMrZryTaD682tr', EVERGRAM: 'rpUuegiveZuWAkduG9emWEia3HRXwXvkkW' };
+const EG_PRO = /^https:\/\/evergram\.app\/api\/nft\/pro\?issued_at=(\d{1,12})&expires=(\d{1,12})$/;
 const CARD_IMG = /^https:\/\/xahaucards\.com\/card\/[A-Za-z0-9-]+\.webp$/;
 const MOEBA_API = 'https://api.xahmoeba.com/v1/moebas/';
 const viewCache = new Map();
@@ -250,6 +251,7 @@ function tokenView(tok) {
     const v = { name: null, img: null, attrs: [], desc: null, remarks: [] };
     const k = keyTokenId(tok);
     if (k) { v.name = t('tokenKind') + ' · ' + k.slice(0, 6); v.img = 'img/key.jpg?v=4'; return v; }
+    if (tok.Issuer === ISS.EVERGRAM) { const m = EG_PRO.exec(hexToText(tok.URI || '')); if (m) { const d = x => new Date(Number(x) * 1000).toLocaleDateString(S.lang, { timeZone: 'Europe/Berlin' }); v.name = 'Evergram — PRO'; v.img = 'https://evergram.app/badges/pro.png'; v.full = [['Plan', 'PRO'], ['Issued', d(m[1])], ['Expires', d(m[2])]]; v.attrs = v.full.map(([a, b]) => a + ': ' + b); return v; } }
     if (meta) { v.name = clean(meta.name); v.desc = clean(meta.desc || meta.description, 160); v.descFull = clean(meta.desc || meta.description, 2000); v.attrs = attrList(meta.attributes); v.full = attrFull(meta.attributes); }
     else v.remarks = [...rm].filter(([, r]) => clean(r.text, 80)).slice(0, 4).map(([n, r]) => (clean(n, 30) + ': ' + clean(r.text, 80)));
     if (tok.Issuer === ISS.CARDS && meta && typeof meta.image === 'string' && CARD_IMG.test(meta.image)) v.img = meta.image;
