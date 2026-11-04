@@ -1661,7 +1661,7 @@ function boxCard(b, kn, lk, pk, ks) {
     row(t('kind'), b.ktid ? t('tokenKind') : t('kLink')),
     stRow(b, expN), row(t('ledgerExp'), expN ? String(expN) : t('limitNone')), expN ? leftRow(expN, acct.cur) : null,
     row(t('bxNo'), '#' + b.nonce), row(t('boxNumber'), kn ? short(kn.vc) : t('vcUnknown')),
-    b.ktid ? row(t('bxKeyTok'), short(b.ktid)) : null);
+    b.ktid ? row(t('bxKeyTok'), short(b.ktid)) : null, b.ktid ? kidBox(b.ktid) : null);
   if (lk && !b.ktid) body.append(h('button', { class: 'btn y', type: 'button', onclick: () => { lk.nonce = b.nonce; finishPack(lk); } }, t('showLink')));
   if (b.ktid && ks) {
     const x = ks.x || {}, ok = ks.st === 'sent';
