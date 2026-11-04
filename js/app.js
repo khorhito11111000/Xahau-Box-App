@@ -1876,7 +1876,7 @@ $('vcOpenBtn').onclick = () => { const v = $('vcInput').value.trim().toUpperCase
 const HX = { PACK: '5041434B', CLAIM: '434C41494D', OPEN: '4F50454E' };
 
 /* ---------- home: box statistics from the hook accounts' public history (read-only, cached) ---------- */
-const STK = 'xbox.stats.v1', ST_TTL = 60 * 1000;
+const STK = 'xbox.stats.v2', ST_TTL = 60 * 1000;
 /* a box/token tx signed through the page succeeded: drop the cached numbers and count again shortly */
 function stDirty() { try { localStorage.removeItem(STK); } catch {} clearTimeout(stDirty.t); stDirty.t = setTimeout(() => loadStats(true), 2500); }
 let stBusy = '';
@@ -1896,7 +1896,7 @@ function stPaint(d) {
 }
 async function stScan(hk) {
   const r0 = { total: 0, opened: 0, xah: 0n, tok: 0, key: 0, gc: 0 };
-  const GCP = hexStr(GC.PFX), KEYRE = /\/img\/key\.jpg\?k=[0-9a-f]{16}$/;
+  const GCP = hexStr(GC.PFX), KEYRE = /\/img\/key\.(?:jpg|json)\?k=[0-9a-f]{16}$/;
   let marker;
   for (let i = 0; i < 50; i++) {
     const r = await rpc('account_tx', Object.assign({ account: hk, ledger_index_min: ((C.STATS_FROM || {})[S.net]) || -1, ledger_index_max: -1, limit: 400, forward: false }, marker ? { marker } : {}));
