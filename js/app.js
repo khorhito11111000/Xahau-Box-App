@@ -236,7 +236,7 @@ async function moebaFetch(id) {
     if (!r.ok) return null; const j = await r.json(); return j && typeof j === 'object' ? j : null;
   } catch { return null; } finally { clearTimeout(tm); }
 }
-function keyTokenId(tok) { const u = hexToText(tok.URI || ''); const km = u && /\/img\/key\.jpg\?k=([0-9a-f]{16})$/.exec(u); return km ? km[1] : null; }
+function keyTokenId(tok) { const u = hexToText(tok.URI || ''); const km = u && /\/img\/key\.(?:jpg|json)\?k=([0-9a-f]{16})$/.exec(u); return km ? km[1] : null; }
 function uriLabel(tok) { const u = hexToText(tok.URI || ''); if (gcIs(u)) return '🔒 ' + t('gcCard'); return u && printable(u) ? u : (tok.URI || '').slice(0, 16) + '…'; }
 function tokenView(tok) {
   const ck = S.net + ':' + tok.index;
@@ -804,8 +804,8 @@ async function enterCreate(preset) {
   if (preset && preset.giftNew && sel.gift) { toast(t('gcMinted')); const el = document.querySelector('#giftTokens .tok.sel'); if (el) el.scrollIntoView({ block: 'center' }); }
   else if (preset && sel.key) { toast(t('minted')); const el = document.querySelector('#keyTokens .tok.sel'); if (el) el.scrollIntoView({ block: 'center' }); }
 }
-/* a key token made by this page: issued by this account, URI = <page>/img/key.jpg?k=<hex> */
-const isKeyTok = tok => !!tok && tok.Issuer === (acct && acct.address) && /\/img\/key\.jpg\?k=[0-9a-f]{8,64}$/.test(hexToText(tok.URI || ''));
+/* a key token made by this page: issued by this account, URI = <page>/img/key.json?k=<hex> (older keys: key.jpg?k=) */
+const isKeyTok = tok => !!tok && tok.Issuer === (acct && acct.address) && /\/img\/key\.(?:jpg|json)\?k=[0-9a-f]{8,64}$/.test(hexToText(tok.URI || ''));
 /* keys this account issued and still holds (not on sale, not burnable, not locked inside a box): one more box can go under each */
 const heldKeys = () => acct ? acct.tokens.filter(x => isKeyTok(x) && x.Owner === acct.address && x.Amount === undefined && !((x.Flags || 0) & 1) && !acct.locked.has(x.index)) : [];
 const boxesUnder = id => acct ? acct.boxes.filter(b => b.ktid === id).sort((a, c) => a.nonce - c.nonce) : [];
@@ -941,7 +941,7 @@ function canMint(v) {
 }
 function keyUri() {
   const n = new Uint8Array(8); crypto.getRandomValues(n);
-  return new URL('img/key.jpg', appUrl()).href + '?k=' + L.hex.toHex(n).toLowerCase();
+  return new URL('img/key.json', appUrl()).href + '?k=' + L.hex.toHex(n).toLowerCase();
 }
 function mintTx(account, uriText) { return { TransactionType: 'URITokenMint', Account: account, NetworkID: NET().networkId, Flags: 0, URI: L.hex.toHex(new TextEncoder().encode(uriText)) }; }
 $('mintKeyBtn').onclick = () => {
@@ -1491,7 +1491,7 @@ function exBlock(list) {
     list.map(([k, hs]) => h('div', { class: 'exitem' }, h('div', { class: 'sm exk' }, t(k)), exTx(hs.toUpperCase()))));
 }
 /* ---------- MY KEY TOKENS: active key tokens on this address (own and received) and the boxes under each ---------- */
-const KEY_RE = /\/img\/key\.jpg\?k=[0-9a-f]{8,64}$/;
+const KEY_RE = /\/img\/key\.(?:jpg|json)\?k=[0-9a-f]{8,64}$/;
 async function keysRender(list, d) {
   const me = d.me, box = h('div'); list.append(box); box.append(h('div', { class: 'spin sm' }));
   let objs; try { objs = await accountObjects(me, 'uri_token'); } catch (e) { box.textContent = ''; return errSet('boxesErr', e.message); }

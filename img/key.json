@@ -1,0 +1,7 @@
+{
+  "name": "Xahau Box Key",
+  "description": "Key token of Xahau Box. Whoever holds this key token can open the boxes made for it on xahaubox.com.",
+  "image": "https://xahaubox.com/img/key.jpg",
+  "external_url": "https://xahaubox.com",
+  "collection": { "name": "Xahau Box" }
+}
