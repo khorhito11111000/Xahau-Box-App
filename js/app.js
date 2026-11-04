@@ -374,11 +374,13 @@ function acctSwap() {
   sel.held = null;
   const me = S.account ? S.account.address : null, p = S.pending, o = pOwner(p);
   if (p && o && o !== me) { S.parked[o] = p; S.pending = null; }
-  if (!S.pending && me && S.parked[me]) { S.pending = S.parked[me]; delete S.parked[me]; }
+  if (!S.pending && me && S.parked[me]) { S.pending = S.parked[me]; delete S.parked[me]; if (S.pending.op === 'pack' && S.pending.shown) S.pending = null; }
   save();
   if (OWN_SCREENS.includes(current) && screenOwner && screenOwner !== me) { doneLink = ''; screenOwner = null; createFor = null; show('home'); }
 }
 function show(name) {
+  // a built box (already saved in history) is finished once the user leaves the Done screen: a reload must not bring it back
+  if (name !== 'done' && name !== 'sign' && S.pending && S.pending.op === 'pack' && S.pending.shown) { S.pending = null; save(); }
   if (current && current !== name) { const o = $('s-' + current); if (o) o.querySelectorAll('details[open]').forEach(d => { d.open = false; }); }
   if (name === 'account' && current !== 'account') accountFrom = current;
   if (OWN_SCREENS.includes(name)) screenOwner = S.account ? S.account.address : null;
