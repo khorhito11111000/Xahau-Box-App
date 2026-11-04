@@ -2138,10 +2138,10 @@ Object.assign(window.BOX_I18N.de, {"hwMh": "Mehrere Boxen unter einem Schlüssel
 Object.assign(window.BOX_I18N.zh, {"hwMh": "一把钥匙下的多个礼盒", "hwMt": "在你持有的钥匙下，可以再创建更多礼盒。一把钥匙就能打开全部。", "hwKh": "按 ID 查看钥匙", "hwKt": "每把钥匙都有完整的 ID。任何人都可以凭它在网站上查看钥匙（「🔍 按 ID 查看钥匙」），例如用于 X 上的抽奖。可以看到钥匙下有哪些礼盒，数据直接从网络读取。已打开的礼盒不再显示。", "hwGh": "🔐 礼品码如何受保护", "hwG1": "你写下文本（最多 143 字节）和密码（至少 12 个字符）。「生成」按钮会生成由 20 个随机字符组成的密码（不含易混的 l/1、o/0）。一切都直接在你的浏览器中加密，文本和密码不会发送到任何地方。发行前，页面会检查用该密码能否再次打开代码。发行的代币里只有加密后的代码，文本和密码会立即从页面上清除。", "hwG2": "由密码生成密钥：PBKDF2 配合 SHA-256，600,000 次迭代，以及 16 字节的随机「盐」。文本本身用 AES-256-GCM 加密，使用 12 字节的随机 IV。GCM 会附加校验标签：如果密码错误或数据被改动，代码无法打开。", "hwG3": "网络上只能看到加密后的乱码，没有密码无法读取。600,000 次迭代让猜密码变得非常慢。解密只在输入密码的人的浏览器中进行，密码框随后立即清空。", "hwG4": "密码无法找回。丢了密码，谁也打不开代码，包括你自己。请把密码单独交给收件人，不要放在同一个链接里。", "hwPh": "基本原则", "hwP1": "1. 钥匙、代码和密码都在你的浏览器中随机生成。", "hwP2": "2. 发到网络上的只有验证所需的内容（指纹、签名），而不是秘密。", "hwP3": "3. 打开的人必须证明有权打开：链接中的秘密密钥、给其地址的签名，或持有钥匙代币。网络上的规则会自行检查。", "hwP4": "4. 每项操作都由你自己在 Xaman 中签名。网站无法以你的名义发送任何东西。", "hwP5": "5. 礼盒数据只保存在此浏览器中。请自己保存好链接或二维码。"});
 Object.assign(window.BOX_I18N.ja, {"hwMh": "1つのキーで複数のボックス", "hwMt": "持っているキーの下に、さらにボックスを作れます。1つのキーですべて開けられます。", "hwKh": "IDでキーを確認", "hwKt": "どのキーにも完全なIDがあります。それを使えば誰でもサイトでキーを確認できます（「🔍 IDでキーを確認」）。例えば X でのプレゼント企画に。キーの下にどのボックスがあるかが見え、データはネットワークから直接読み取られます。開封済みのボックスは表示されなくなります。", "hwGh": "🔐 ギフトコードの守り方", "hwG1": "テキスト（最大143バイト）とパスワード（12文字以上）を書きます。「生成」ボタンでランダムな20文字のパスワードを作れます（紛らわしい l/1、o/0 は使いません）。すべてブラウザ内で暗号化され、テキストもパスワードもどこにも送られません。発行の前に、ページはこのパスワードでコードがもう一度開けるか確認します。暗号化されたコードだけを持つトークンが発行され、テキストとパスワードはすぐにページから消去されます。", "hwG2": "パスワードから鍵を作ります：PBKDF2（SHA-256）、600,000回の繰り返し、ランダムな16バイトの「ソルト」。テキストはランダムな12バイトのIVを使い AES-256-GCM で暗号化されます。GCM は確認用タグを付けます。パスワードが違うかデータが変更されていれば、コードは開きません。", "hwG3": "ネットワーク上に見えるのは暗号化されたデータだけで、パスワードなしでは読めません。600,000回の繰り返しでパスワードの推測はとても遅くなります。復号はパスワードを入力した人のブラウザ内だけで行われ、パスワード欄はすぐに消去されます。", "hwG4": "パスワードは復元できません。なくすと、あなたも含め誰もコードを開けません。パスワードは同じリンクに入れず、受取人に別に渡してください。", "hwPh": "基本原則", "hwP1": "1. キー、コード、パスワードはブラウザ内でランダムに作られます。", "hwP2": "2. ネットワークに送られるのは確認に必要なもの（指紋、署名）だけで、秘密は送られません。", "hwP3": "3. 開ける人は権利を証明しなければなりません：リンク内の秘密鍵、自分のアドレス向けの署名、またはキートークンの保有。ネットワーク上のルールが自動で確認します。", "hwP4": "4. すべての操作はあなた自身が Xaman で署名します。サイトがあなたの名前で何かを送ることはできません。", "hwP5": "5. ボックスのデータはこのブラウザだけに保存されます。リンクやQRは自分で保管してください。"});
 
-Object.assign(window.BOX_I18N.ru, {"sfSupport": "💬 Поддержка в Evergram"});
-Object.assign(window.BOX_I18N.en, {"sfSupport": "💬 Support on Evergram"});
-Object.assign(window.BOX_I18N.es, {"sfSupport": "💬 Soporte en Evergram"});
-Object.assign(window.BOX_I18N.fr, {"sfSupport": "💬 Support sur Evergram"});
-Object.assign(window.BOX_I18N.de, {"sfSupport": "💬 Support auf Evergram"});
-Object.assign(window.BOX_I18N.zh, {"sfSupport": "💬 Evergram 支持"});
-Object.assign(window.BOX_I18N.ja, {"sfSupport": "💬 Evergram でサポート"});
+Object.assign(window.BOX_I18N.ru, {"sfSupport": "Поддержка в Evergram"});
+Object.assign(window.BOX_I18N.en, {"sfSupport": "Support on Evergram"});
+Object.assign(window.BOX_I18N.es, {"sfSupport": "Soporte en Evergram"});
+Object.assign(window.BOX_I18N.fr, {"sfSupport": "Support sur Evergram"});
+Object.assign(window.BOX_I18N.de, {"sfSupport": "Support auf Evergram"});
+Object.assign(window.BOX_I18N.zh, {"sfSupport": "Evergram 支持"});
+Object.assign(window.BOX_I18N.ja, {"sfSupport": "Evergram でサポート"});
