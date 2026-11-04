@@ -355,7 +355,7 @@ const appUrl = () => C.APP_URL || (location.origin + location.pathname);
 const qrLink = q => appUrl() + '#' + q;
 
 /* ---------- screens ---------- */
-const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'sent', 'settings', 'mybx'];
+const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'sent', 'settings', 'mybx', 'keycheck'];
 let current = 'home', afterAccount = null;
 /* Back: the in-page "Back" button and the phone's / browser's Back do the same thing (goBack).
    History holds at most one extra entry above "#home" ({xb:1}): leaving home adds it, moving between
@@ -1349,6 +1349,63 @@ function enterOpen(text) {
   if (text) { $('qrInput').value = text.includes('tgs1:') ? text.slice(text.indexOf('tgs1:')) : text; showBox(); }
 }
 $('qrGo').onclick = () => showBox();
+/* ---------- check a key by its ID: read-only, straight from the network node, nothing can be signed here ---------- */
+async function rpcOn(net, method, params) {
+  const r = await fetch(C.NETWORKS[net].rpc, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ method, params: [params || {}] }) });
+  if (!r.ok) throw new Error('RPC ' + r.status); const j = await r.json(); return j.result || {};
+}
+const kcId = s => { const m = String(s || '').toUpperCase().match(/[0-9A-F]{64}/g); return m ? m[m.length - 1] : null; };
+async function kcRead(net, id) {
+  const tr = await rpcOn(net, 'ledger_entry', { index: id, ledger_index: 'validated' });
+  const tok = tr.node && tr.node.LedgerEntryType === 'URIToken' ? tr.node : null; if (!tok) return null;
+  const out = { net, tok, isKey: false, boxes: [] };
+  if (!/\/img\/key\.(?:jpg|json)\?k=[0-9a-f]{8,64}$/.test(hexToText(tok.URI || ''))) return out;
+  const [info, ho, lc] = await Promise.all([rpcOn(net, 'account_info', { account: tok.Issuer, ledger_index: 'validated' }), rpcOn(net, 'account_objects', { account: tok.Issuer, type: 'hook', ledger_index: 'validated' }), rpcOn(net, 'ledger_current', {})]);
+  out.cur = Number(lc.ledger_current_index) || 0;
+  const hasNs = ((info.account_data || {}).HookNamespaces || []).includes(C.HOOK_NAMESPACE);
+  out.isKey = hasNs || (ho.account_objects || []).length > 0; if (!out.isKey) return out;
+  let ents = [], marker; for (let i = 0; i < 50; i++) { const r = await rpcOn(net, 'account_namespace', Object.assign({ account: tok.Issuer, namespace_id: C.HOOK_NAMESPACE, ledger_index: 'validated' }, marker ? { marker } : {})); ents = ents.concat(r.namespace_entries || []); marker = r.marker; if (!marker) break; }
+  const st = new Map(ents.map(e => [e.HookStateKey, e.HookStateData])), want = '01' + id;
+  for (const [k, d] of st) if (d.length === 170 && String(st.get(L.modeKey(k)) || '').toUpperCase() === want) out.boxes.push(parseBox(d));
+  out.boxes.sort((a, c) => a.nonce - c.nonce);
+  await Promise.all(out.boxes.filter(b => !isZero(b.tid)).map(b => rpcOn(net, 'ledger_entry', { uri_token: b.tid, ledger_index: 'validated' }).then(r => { b.gc = !!(r.node && gcTok(r.node)); }).catch(() => {})));
+  return out;
+}
+async function kcCheck() {
+  errSet('kcErr'); const v = $('kcView'); v.textContent = '';
+  const id = kcId($('kcInput').value); if (!id) return errSet('kcErr', t('kcBadId'));
+  v.append(h('div', { class: 'spin sm' }));
+  let r = null; try { r = await kcRead(S.net, id); if (!r) { const o = S.net === 'mainnet' ? 'testnet' : 'mainnet'; r = await kcRead(o, id).catch(() => null); } } catch (e) { v.textContent = ''; return errSet('kcErr', e.message); }
+  v.textContent = '';
+  if (!r) return errSet('kcErr', t('kcNotFound'));
+  const c = h('div', { class: 'card kycard' }); v.append(c);
+  c.append(h('div', { class: 'kyhead' }, h('img', { class: 'hkimg', src: 'img/key.jpg?v=4', alt: '' }), h('span', {}, h('b', {}, '🔑 ' + short(id)), r.tok.Amount !== undefined ? h('span', { class: 'bbadge burnt' }, t('kySale')) : null)));
+  if (r.net !== S.net) c.append(h('p', { class: 'sm yel' }, '⚠️ ' + t('kcOtherNet').replace('{n}', C.NETWORKS[r.net].label)));
+  c.append(row('Network', C.NETWORKS[r.net].label), row(t('kcCreator'), short(r.tok.Issuer), 'mono'), row(t('kcHolder'), short(r.tok.Owner), 'mono'));
+  if (!r.isKey) { c.append(h('p', { class: 'err-line' }, t('kcNotKey'))); return; }
+  c.append(row(t('kcCount'), String(r.boxes.length), 'yel'));
+  if (!r.boxes.length) c.append(h('p', { class: 'sm' }, t('kcNone')));
+  const same = r.net === S.net, sec = avgSec();
+  for (const b of r.boxes) {
+    const a = BigInt('0x' + b.amt), p = []; if (a) p.push(dropsToXah(a) + ' XAH'); if (!isZero(b.tid)) p.push(b.gc ? '🔒 ' + t('gcTokName') : '1 URIToken');
+    const exp = parseInt(b.exp, 16), gone = exp && r.cur > exp;
+    const bc = h('div', { class: 'card hkbox' }, h('div', { class: 'lbl' }, t('bxNo') + ' #' + b.nonce),
+      row(t('contents'), p.join(' + ') || t('bxEmpty'), 'yel'),
+      row(t('status'), gone ? t('expiredState') : b.status === 0 ? t('stClosed') : t('stClaiming')),
+      row(t('ledgerExp'), exp ? String(exp) : t('limitNone')));
+    if (exp) bc.append(same ? leftRow(exp, r.cur) : row(t('timeLeft'), gone ? t('expiredState') : '≈ ' + fmtLeft((exp - r.cur) * sec)));
+    c.append(bc);
+  }
+  c.append(h('p', { class: 'sm' }, t('kcNote')), h('button', { class: 'btn w', type: 'button', onclick: () => copy(kcShare(id)) }, t('kcCopy')));
+  if (same) renderLive(false);
+}
+$('kcGo').onclick = () => kcCheck();
+/* deep link for giveaway posts: #keycheck=<64 hex> or ?key=<64 hex> */
+function kcLink(href) { try { const u = new URL(href), q = u.searchParams.get('key'); const m = /^#keycheck=([0-9A-Fa-f]{64})$/.exec(u.hash) || (q && /^[0-9A-Fa-f]{64}$/.test(q) ? [0, q] : null); return m ? m[1].toUpperCase() : null; } catch { return null; } }
+const kcShare = id => new URL('#keycheck=' + id, appUrl()).href;
+function enterKeyCheck(id) { show('keycheck'); errSet('kcErr'); $('kcView').textContent = ''; if (id) { $('kcInput').value = id; kcCheck(); } }
+$('goKeyCheck').onclick = () => enterKeyCheck();
+
 $('qrPaste').onclick = async () => {
   errSet('openErr');
   let txt = ''; try { txt = await navigator.clipboard.readText(); } catch {}
@@ -2293,6 +2350,7 @@ function route(name) {
   if (name === 'mybx') return enterMyBoxes();
   if (name === 'codes') return enterCodes();
   if (name === 'inbox') return enterInbox();
+  if (name === 'keycheck') return enterKeyCheck();
   if (name === 'sign' && S.pending) return enterSign();
   if (name === 'account') return show('account');
   if (name === 'settings') return enterSettings();
@@ -2333,6 +2391,7 @@ for (const id of ['evergramDone']) $(id).href = C.EVERGRAM_URL;
 function handleHash() {
   startLive();
   const hs = decodeURIComponent(location.hash.slice(1));
+  { const kq = kcLink(location.href); if (kq) { history.replaceState(null, '', location.pathname + '#home'); return enterKeyCheck(kq); } }
   if (hs.startsWith('tgs1:')) { history.replaceState(null, '', '#open'); return enterOpen(hs); }
   route(hs || 'home');
 }
