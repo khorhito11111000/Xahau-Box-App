@@ -8,8 +8,8 @@ The code in this repository is licensed under PolyForm Noncommercial 1.0.0 (see 
 
 The `brand/` folder holds these files:
 
-- `brand/xahau-box-logo-yellow.png`: logo, yellow version (yellow cube on navy)
-- `brand/xahau-box-logo-navy.png`: logo, navy version (navy cube on yellow)
+- `brand/xahau-box-logo-yellow.png`: logo on a yellow background
+- `brand/xahau-box-logo-navy.png`: logo on a navy background
 - `brand/xahau-box-box.jpg`: the box image with the logo and name
 
 The name, logos and images above may not be used in products, marketplaces, storefronts, ads or other services without written permission. Commercial use of the code or the brand is possible only by agreement.
