@@ -510,3 +510,4 @@ html[data-theme=light] .pj .pji.xm-lt{display:flex}
 html[data-theme=light] .pj .pji.xm-dk{display:none}
 .pj .pji.xm-dk,.pj .pji.xm-lt{background:none}
 .sfdis a{color:var(--y);font-weight:700}
+.kid{margin:8px 0}.kid .kidv{font-size:12px;word-break:break-all;overflow-wrap:anywhere;margin:4px 0 6px;user-select:all}.kid .row2 .btn{padding:8px 12px;font-size:13px}

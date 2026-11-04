@@ -821,7 +821,7 @@ function heldRender() {
     const bx = boxesUnder(k.index), list = h('span', {});
     if (!bx.length) list.append(h('span', {}, t('hkNoBoxes')));
     for (const b of bx) list.append(h('span', { class: 'hkbox' }, '#' + b.nonce + ' · ' + boxSum(b)));
-    w.append(opt(k.index, h('span', {}, h('b', {}, '🔑 ' + t('tokenKind') + ' ' + short(k.index)), h('span', {}, t('hkCount').replace('{n}', bx.length)), list), true));
+    w.append(opt(k.index, h('span', {}, h('b', {}, '🔑 ' + t('tokenKind') + ' ' + short(k.index)), h('span', {}, t('hkCount').replace('{n}', bx.length)), list, kidBox(k.index)), true));
   }
 }
 const freeKeys = () => acct.tokens.filter(x => isKeyTok(x) && !tokenReason(x));
@@ -938,6 +938,14 @@ function canMint(v) {
   const rv = v.res.base + BigInt(v.info.OwnerCount || 0) * v.res.inc;
   const need = rv + v.res.inc + 100000n + (v.held ? v.held + v.ock + 1000000n : 0n);
   return v.balance >= need;
+}
+/* full key token ID (public) under a key, with Copy ID and Check */
+function kidBox(id, check = true) {
+  id = String(id || '').toUpperCase(); if (!/^[0-9A-F]{64}$/.test(id)) return null;
+  const stop = f => ev => { ev.preventDefault(); ev.stopPropagation(); f(); };
+  return h('div', { class: 'kid' }, h('div', { class: 'lbl' }, t('kidH')), h('p', { class: 'mono kidv' }, id),
+    h('div', { class: 'row2' }, h('button', { class: 'btn w', type: 'button', onclick: stop(() => copy(id)) }, t('kidCopy')),
+      check ? h('button', { class: 'btn o', type: 'button', onclick: stop(() => enterKeyCheck(id)) }, t('kcBtn')) : null));
 }
 function keyUri() {
   const n = new Uint8Array(8); crypto.getRandomValues(n);
@@ -1297,7 +1305,7 @@ async function finishPack(only) {
   const cRow = row(t('contents'), parts.join(' + '), 'yel'); info.append(cRow); if (!isZero(b.tid)) info.append(row(t('tokNum'), short(b.tid))); info.append(row(t('kind'), t(b.kind + 'Kind')));
   if (!isZero(b.tid) && !gtok) uriToken(b.tid).then(n => { if (n && gcTok(n) && cRow.isConnected) { cRow.querySelector('b').textContent = parts.join(' + ').replace('1 URIToken', '🔒 ' + t('gcTokName')); $('gcPwRemind').classList.remove('hide'); } }).catch(() => {});
   if (b.kind === 'named') info.append(row(t('signedFor'), short(b.named)));
-  if (b.kind === 'token') { info.append(h('p', { class: 'sm' }, t('kdStays').replace('{a}', shortL(b.h)))); const ki = $('keyInfo'); ki.textContent = ''; ki.append(row(t('kdKeyNo'), short(b.ktid), 'yel'));
+  if (b.kind === 'token') { info.append(h('p', { class: 'sm' }, t('kdStays').replace('{a}', shortL(b.h)))); const ki = $('keyInfo'); ki.textContent = ''; ki.append(row(t('kdKeyNo'), short(b.ktid), 'yel'), kidBox(b.ktid));
     if (b.held != null) { const lst = h('div', { class: 'card hklist' }, h('div', { class: 'lbl' }, t('hkAllNow'))); ki.append(lst);
       // the box just signed can be missing from the validated ledger for a few seconds: wait for it, never show a short list
       const want = (b.held || 0) + 1, kt = String(b.ktid).toUpperCase();
@@ -1380,6 +1388,7 @@ async function kcCheck() {
   if (!r) return errSet('kcErr', t('kcNotFound'));
   const c = h('div', { class: 'card kycard' }); v.append(c);
   c.append(h('div', { class: 'kyhead' }, h('img', { class: 'hkimg', src: 'img/key.jpg?v=4', alt: '' }), h('span', {}, h('b', {}, '🔑 ' + short(id)), r.tok.Amount !== undefined ? h('span', { class: 'bbadge burnt' }, t('kySale')) : null)));
+  c.append(kidBox(id, false));
   if (r.net !== S.net) c.append(h('p', { class: 'sm yel' }, '⚠️ ' + t('kcOtherNet').replace('{n}', C.NETWORKS[r.net].label)));
   c.append(row('Network', C.NETWORKS[r.net].label), row(t('kcCreator'), short(r.tok.Issuer), 'mono'), row(t('kcHolder'), short(r.tok.Owner), 'mono'));
   if (!r.isKey) { c.append(h('p', { class: 'err-line' }, t('kcNotKey'))); return; }
@@ -1564,6 +1573,7 @@ async function keysRender(list, d) {
     const c = h('div', { class: 'card kycard' });
     c.append(h('div', { class: 'kyhead' }, h('img', { class: 'hkimg', src: 'img/key.jpg?v=4', alt: '' }),
       h('span', {}, h('b', {}, '🔑 ' + t('tokenKind') + ' ' + short(id)), h('span', { class: 'bbadge key' }, mine ? t('kyMine') : t('kyFrom') + ' ' + short(k.Issuer)), sale ? h('span', { class: 'bbadge burnt' }, t('kySale')) : null)));
+    c.append(kidBox(id));
     if (!bx.length) c.append(h('p', { class: 'sm' }, t('kyNoBoxes')));
     for (const b of bx.sort((a, x) => a.nonce - x.nonce)) c.append(h('div', { class: 'hkbox' }, '#' + b.nonce + ' · ' + boxSum(b) + (b.status === 0 ? '' : ' · ' + t('stClaiming'))));
     if (!mine && bx.some(inboxOpenable)) c.append(h('button', { class: 'btn y', type: 'button', onclick: () => { mbTab = 'recv'; mbRender(); window.scrollTo(0, 0); } }, '🎁 ' + t('kyOpenRecv')));
@@ -1600,7 +1610,7 @@ async function keysPassed(box, d, me, held) {
     const c = h('div', { class: 'card kycard muted' });
     c.append(h('div', { class: 'kyhead' }, h('span', {}, h('b', {}, '🔑 ' + short(r.id)),
       h('span', { class: 'bbadge' }, mine ? t('kyByMe') : t('kyFrom') + ' ' + short(iss || (r.fr && r.fr.from) || '')),
-      r.tok ? null : h('span', { class: 'bbadge burnt' }, t('burntTag')))));
+      r.tok ? null : h('span', { class: 'bbadge burnt' }, t('burntTag')))), kidBox(r.id));
     c.append(row(t('kxTo'), short(r.mv.to)), r.mv.date ? row(t('mbWhen'), new Date(r.mv.date).toLocaleString(S.lang, { timeZone: 'Europe/Berlin' })) : null);
     if (r.tok && r.tok.Owner !== r.mv.to) c.append(row(t('mbKeyAt'), short(r.tok.Owner)));
     const bl = h('div'); c.append(bl); sec.append(c);
@@ -1745,7 +1755,7 @@ function inboxCard(b) {
   const me = S.account.address;
   const c = h('div', { class: 'card' + (inboxOpenable(b) ? ' inbox' : '') });
   if (b.gone) {
-    c.append(row(t('tokenKind'), short(b.ktid)), row(t('inboxFrom'), short(b.h)), row(t('status'), t('stGone'), 'bad'), h('p', { class: 'sm' }, t('inboxGone')));
+    c.append(row(t('tokenKind'), short(b.ktid)), kidBox(b.ktid), row(t('inboxFrom'), short(b.h)), row(t('status'), t('stGone'), 'bad'), h('p', { class: 'sm' }, t('inboxGone')));
     return c;
   }
   const amt = BigInt('0x' + b.amt), hasTok = !isZero(b.tid), expN = parseInt(b.exp, 16);
@@ -1760,7 +1770,7 @@ function inboxCard(b) {
   }
   c.append(ins, row(t('ledgerExp'), expN ? String(expN) : t('limitNone')));
   if (expN) c.append(leftRow(expN, b.cur));
-  c.append(row(t('bxKeyTok'), short(b.ktid)));
+  c.append(row(t('bxKeyTok'), short(b.ktid)), kidBox(b.ktid));
   { const fr = row(t('kFromWho'), short(b.h)); c.append(fr); keyMoves(me).then(m => { const x = m.inn.get(String(b.ktid).toUpperCase()); if (x) fr.lastChild.textContent = short(x.from); }).catch(() => {}); }
   const msg = h('p', { class: 'err-line' });
   const go = h('button', { class: 'btn y big', type: 'button', disabled: inboxOpenable(b) ? null : true, onclick: async () => {

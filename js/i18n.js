@@ -2123,3 +2123,10 @@ Object.assign(window.BOX_I18N.fr,{"sfLic": "© Xahau Box. Code : PolyForm Noncom
 Object.assign(window.BOX_I18N.de,{"sfLic": "© Xahau Box. Code: PolyForm Noncommercial 1.0.0. Name, Logo und Box-Bild nur mit Erlaubnis. Kommerzielle Nutzung nach Vereinbarung."});
 Object.assign(window.BOX_I18N.zh,{"sfLic": "© Xahau Box。代码：PolyForm Noncommercial 1.0.0。名称、标志和礼盒图片须经许可方可使用。商业用途须另行协商。"});
 Object.assign(window.BOX_I18N.ja,{"sfLic": "© Xahau Box。コード：PolyForm Noncommercial 1.0.0。名称・ロゴ・ボックス画像は許可が必要です。商用利用は要相談。"});
+Object.assign(window.BOX_I18N.en,{"kidH": "Key token ID", "kidCopy": "Copy ID"});
+Object.assign(window.BOX_I18N.ru,{"kidH": "ID токена-ключа", "kidCopy": "Скопировать ID"});
+Object.assign(window.BOX_I18N.es,{"kidH": "ID del token llave", "kidCopy": "Copiar ID"});
+Object.assign(window.BOX_I18N.fr,{"kidH": "ID du jeton clé", "kidCopy": "Copier l’ID"});
+Object.assign(window.BOX_I18N.de,{"kidH": "ID des Schlüssel-Tokens", "kidCopy": "ID kopieren"});
+Object.assign(window.BOX_I18N.zh,{"kidH": "钥匙代币 ID", "kidCopy": "复制 ID"});
+Object.assign(window.BOX_I18N.ja,{"kidH": "キートークンID", "kidCopy": "IDをコピー"});
