@@ -2116,3 +2116,10 @@ Object.assign(window.BOX_I18N.fr,{"kcBtnHome": "🔍 Vérifier une clé par ID",
 Object.assign(window.BOX_I18N.de,{"kcBtnHome": "🔍 Schlüssel per ID prüfen", "kcCopy": "Prüf-Link kopieren"});
 Object.assign(window.BOX_I18N.zh,{"kcBtnHome": "🔍 按 ID 查看钥匙", "kcCopy": "复制查看链接"});
 Object.assign(window.BOX_I18N.ja,{"kcBtnHome": "🔍 IDでキーを確認", "kcCopy": "確認リンクをコピー"});
+Object.assign(window.BOX_I18N.ru,{"sfLic": "© Xahau Box. Код — PolyForm Noncommercial 1.0.0. Название, логотип и изображение бокса — только с разрешения. Коммерческое использование — по договорённости."});
+Object.assign(window.BOX_I18N.en,{"sfLic": "© Xahau Box. Code: PolyForm Noncommercial 1.0.0. Name, logo and box image only with permission. Commercial use by agreement."});
+Object.assign(window.BOX_I18N.es,{"sfLic": "© Xahau Box. Código: PolyForm Noncommercial 1.0.0. Nombre, logotipo e imagen de la caja solo con permiso. Uso comercial previo acuerdo."});
+Object.assign(window.BOX_I18N.fr,{"sfLic": "© Xahau Box. Code : PolyForm Noncommercial 1.0.0. Nom, logo et image de la boîte uniquement avec autorisation. Usage commercial sur accord."});
+Object.assign(window.BOX_I18N.de,{"sfLic": "© Xahau Box. Code: PolyForm Noncommercial 1.0.0. Name, Logo und Box-Bild nur mit Erlaubnis. Kommerzielle Nutzung nach Vereinbarung."});
+Object.assign(window.BOX_I18N.zh,{"sfLic": "© Xahau Box。代码：PolyForm Noncommercial 1.0.0。名称、标志和礼盒图片须经许可方可使用。商业用途须另行协商。"});
+Object.assign(window.BOX_I18N.ja,{"sfLic": "© Xahau Box。コード：PolyForm Noncommercial 1.0.0。名称・ロゴ・ボックス画像は許可が必要です。商用利用は要相談。"});
