@@ -15,4 +15,4 @@ See [docs/VERIFICATION.md](docs/VERIFICATION.md) for the hook PACK verification 
 
 ## License
 
-The code is licensed under PolyForm Noncommercial 1.0.0, see [LICENSE](LICENSE). The name, logo and images are not covered, see [TRADEMARKS.md](TRADEMARKS.md). Libraries in `vendor/` keep their own licenses.
+The code is licensed under PolyForm Noncommercial 1.0.0, see [LICENSE](LICENSE). The name, logo and images are not covered, see [TRADEMARKS.md](TRADEMARKS.md). Libraries in `vendor/` keep their own licenses .
