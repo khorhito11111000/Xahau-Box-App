@@ -2291,34 +2291,29 @@ function histCard(x) {
   return c;
 }
 
-/* ---------- install a hook (SetHook) on the signed-in Xaman account ----------
-   The wasm file is read here in the browser only; it leaves the page only inside the Xaman payload. Nothing is stored. */
+/* ---------- install the official Xahau Box hook (SetHook by HookHash) on the signed-in Xaman account ----------
+   The definition is already on the ledger: HookOn and HookNamespace below equal its defaults. Flags 1 = hsfOVERRIDE (slot 0). */
 const HK_ON = 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF10FFFFFFFCFFC1FFFBF800240';
-const isHex = (v, n) => new RegExp('^[0-9A-F]{' + n + '}$').test(v);
-let hkMode = 'hash', hkCode = null;
+const HK_HASH = String(C.HOOK_HASH || '').toUpperCase();
 async function sha512Half(bytes) { const d = new Uint8Array(await crypto.subtle.digest('SHA-512', bytes)); return Array.from(d.slice(0, 32), b => b.toString(16).padStart(2, '0')).join('').toUpperCase(); }
-function hkUi() {
+const hasHook = objs => objs.some(o => o.LedgerEntryType === 'Hook' && (o.Hooks || []).some(x => x.Hook && String(x.Hook.HookHash || '').toUpperCase() === HK_HASH));
+let hkSeq = 0;
+async function hkUi() {
   const w = $('hkWho'); w.textContent = ''; w.className = 'card' + (S.net === 'mainnet' ? ' warn' : '');
-  w.append(row(t('hkAcct'), S.account && S.account.via === 'xaman' ? short(S.account.address) : '—', 'mono'), row(t('hkNet'), 'Xahau ' + NET().label + ' (NetworkID ' + NET().networkId + ')'));
+  w.append(row(t('hkAcct'), S.account ? short(S.account.address) : '—', 'mono'), row(t('hkNet'), 'Xahau ' + NET().label + ' (NetworkID ' + NET().networkId + ')'));
   if (S.net === 'mainnet') w.append(h('p', { class: 'sm yel' }, t('hkMainWarn')));
   if (!S.account || S.account.via !== 'xaman') w.append(h('p', { class: 'sm' }, t('hkNeedXaman')));
-  if (!$('hkOn').value) $('hkOn').value = HK_ON;
-  if (!$('hkNs').value) $('hkNs').value = C.HOOK_NAMESPACE;
-  document.querySelectorAll('#hkModes [data-hm]').forEach(b => { const on = b.dataset.hm === hkMode; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
-  $('hkHashWrap').classList.toggle('hide', hkMode !== 'hash'); $('hkWasmWrap').classList.toggle('hide', hkMode !== 'wasm');
-}
-$('hkModes').onclick = e => { const b = e.target.closest('[data-hm]'); if (!b) return; hkMode = b.dataset.hm; errSet('hkErr'); hkUi(); };
-$('hkFile').onchange = async e => {
-  const f = e.target.files && e.target.files[0]; hkCode = null; $('hkFileInfo').textContent = ''; errSet('hkErr'); if (!f) return;
+  $('hkHashV').textContent = HK_HASH; $('hkRepo').href = C.HOOK_REPO;
+  const st = $('hkState'), go = $('hkGo'), my = ++hkSeq; st.className = 'sm'; st.textContent = t('hkChecking'); go.classList.remove('hide'); $('hkOut').textContent = '';
   try {
-    const b = new Uint8Array(await f.arrayBuffer());
-    if (b.length < 8 || b[0] !== 0 || b[1] !== 0x61 || b[2] !== 0x73 || b[3] !== 0x6d) throw new Error(t('hkNotWasm'));
-    const hash = await sha512Half(b);
-    hkCode = { hex: L.hex.toHex(b).toUpperCase(), hash, size: b.length, name: f.name };
-    $('hkFileInfo').textContent = f.name + ' · ' + b.length + ' B · ' + t('hkHashIs') + ' ' + hash.slice(0, 10) + '…';
-  } catch (x) { errSet('hkErr', x.message || String(x)); }
-  e.target.value = '';
-};
+    const ok = await hkDefExists(HK_HASH); if (my !== hkSeq) return;
+    if (!ok) { st.className = 'err-line'; st.textContent = t('hkNoDef'); go.classList.add('hide'); return; }
+    if (S.account) { const objs = await accountObjects(S.account.address).catch(() => []); if (my !== hkSeq) return;
+      if (hasHook(objs)) { st.className = 'sub ok'; st.textContent = '✓ ' + t('hkAlready'); go.classList.add('hide'); return; } }
+    st.textContent = '✓ ' + t('hkDefOk');
+  } catch (x) { if (my === hkSeq) { st.className = 'err-line'; st.textContent = t('hkCheckFail') + ' ' + (x.message || x); } }
+}
+$('hkCopy').onclick = () => copy(HK_HASH);
 $('acc-hook').addEventListener('toggle', () => { if ($('acc-hook').open) hkUi(); });
 async function hkDefExists(hash) {
   const r = await rpc('ledger_entry', { hook_definition: hash, ledger_index: 'validated' });
@@ -2326,20 +2321,8 @@ async function hkDefExists(hash) {
   if (r.error === 'entryNotFound') return false;
   throw new Error(r.error_message || r.error || 'ledger_entry');
 }
-function hkTx(who) {
-  const on = $('hkOn').value.trim().toUpperCase(), ns = $('hkNs').value.trim().toUpperCase(), api = $('hkApi').value.trim(), fl = $('hkFlags').value.trim();
-  if (!isHex(on, 64)) throw new Error('HookOn: 64 hex');
-  if (!isHex(ns, 64)) throw new Error('HookNamespace: 64 hex');
-  if (!/^\d{1,3}$/.test(api) || !/^\d{1,10}$/.test(fl)) throw new Error('HookApiVersion / Flags');
-  if (hkMode === 'wasm') { // temporary: first install of a hook not yet on the ledger
-    if (!hkCode) throw new Error(t('hkPickFirst'));
-    const hk = { CreateCode: hkCode.hex, HookOn: on, HookNamespace: ns, HookApiVersion: Number(api), Flags: Number(fl) };
-    return { TransactionType: 'SetHook', Account: who || S.account.address, NetworkID: NET().networkId, Hooks: [{ Hook: hk }] };
-  }
-  const hs = $('hkHash').value.trim().toUpperCase(); if (!isHex(hs, 64)) throw new Error('HookHash: 64 hex');
-  const hk = { HookHash: hs };
-  Object.assign(hk, { HookOn: on, HookNamespace: ns, Flags: Number(fl) }); // by hash: no HookApiVersion (temMALFORMED), it comes from the definition
-  return { TransactionType: 'SetHook', Account: who || S.account.address, NetworkID: NET().networkId, Hooks: [{ Hook: hk }] };
+function hkTx(who, netId) { // by hash: no HookApiVersion (temMALFORMED), it comes from the definition
+  return { TransactionType: 'SetHook', Account: who || S.account.address, NetworkID: netId || NET().networkId, Hooks: [{ Hook: { HookHash: HK_HASH, HookOn: HK_ON, HookNamespace: C.HOOK_NAMESPACE, Flags: 1 } }] };
 }
 $('hkGo').onclick = async () => {
   errSet('hkErr'); const out = $('hkOut'); out.textContent = '';
@@ -2347,14 +2330,11 @@ $('hkGo').onclick = async () => {
   let tx; try { tx = hkTx(); } catch (x) { return errSet('hkErr', x.message); }
   const btn = $('hkGo'); btn.disabled = true;
   try {
-    if (tx.Hooks[0].Hook.HookHash) {
-      out.append(h('p', { class: 'sm' }, t('hkChecking')));
-      let ok; try { ok = await hkDefExists(tx.Hooks[0].Hook.HookHash); } catch (x) { out.textContent = ''; return errSet('hkErr', t('hkCheckFail') + ' ' + x.message); }
-      out.textContent = '';
-      if (!ok) return errSet('hkErr', t('hkNoDef'));
-      const objs = await accountObjects(tx.Account).catch(() => []);
-      if (objs.some(o => o.LedgerEntryType === 'Hook' && (o.Hooks || []).some(x => x.Hook && String(x.Hook.HookHash || '').toUpperCase() === tx.Hooks[0].Hook.HookHash))) { out.append(h('p', { class: 'sub yel' }, '✓ ' + t('hkAlready'))); return; }
-    }
+    out.append(h('p', { class: 'sm' }, t('hkChecking')));
+    let ok; try { ok = await hkDefExists(HK_HASH); } catch (x) { out.textContent = ''; return errSet('hkErr', t('hkCheckFail') + ' ' + x.message); }
+    out.textContent = '';
+    if (!ok) return errSet('hkErr', t('hkNoDef'));
+    if (hasHook(await accountObjects(tx.Account).catch(() => []))) { out.append(h('p', { class: 'sub ok' }, '✓ ' + t('hkAlready'))); $('hkGo').classList.add('hide'); return; }
     out.append(h('div', { class: 'card' + (S.net === 'mainnet' ? ' warn' : '') }, row(t('hkAcct'), short(tx.Account), 'mono'), row(t('hkNet'), NET().label + ' · ' + tx.NetworkID)), h('p', { class: 'sm' }, t('hkFeeNote')));
     const box = h('div'); out.append(box);
     const id = await xamanSign(tx, box);
@@ -2362,10 +2342,9 @@ $('hkGo').onclick = async () => {
       exTx(id));
     const r = await waitTx(id);
     let res = r && r.meta ? r.meta.TransactionResult : null;
-    const want = tx.Hooks[0].Hook.HookHash || (hkCode && hkCode.hash);
+    const want = HK_HASH;
     if (!res && want) { // not seen yet (phone back from Xaman): look at the account's hooks
-      const objs = await accountObjects(tx.Account).catch(() => []);
-      if (objs.some(o => o.LedgerEntryType === 'Hook' && (o.Hooks || []).some(x => x.Hook && String(x.Hook.HookHash || '').toUpperCase() === want))) res = 'tesSUCCESS';
+      if (hasHook(await accountObjects(tx.Account).catch(() => []))) res = 'tesSUCCESS';
     }
     if (res === 'tesSUCCESS') {
       box.textContent = '';

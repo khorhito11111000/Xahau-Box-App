@@ -10,6 +10,9 @@ window.BOX_CONFIG = {
     testnet: { label: 'Testnet', networkId: 21338, rpc: 'https://xahau-test.net', explorerTx: 'https://test.xahauexplorer.com/en/tx/' },
     mainnet: { label: 'Mainnet', networkId: 21337, rpc: 'https://xahau.network', explorerTx: 'https://xahauexplorer.com/en/tx/' }
   },
+  // Official Xahau Box hook v15 (SHA-512Half of the wasm). Source, wasm and tests: HOOK_REPO.
+  HOOK_HASH: '4847C361FCB669BD7C7E919092F9EB4831852B1152CA5AE9C08EFA7E741EE6FA',
+  HOOK_REPO: 'https://github.com/khorhito11111000/Xahau-Box-v15',
   // Hook state namespace used by the box hook ("tgs" padded to 32 bytes).
   HOOK_NAMESPACE: '7467730000000000000000000000000000000000000000000000000000000000',
   LEDGER_FALLBACK_SECONDS: 3.5, // seconds per ledger until the real average is measured (expiry + countdowns)
