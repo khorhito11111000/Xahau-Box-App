@@ -2153,3 +2153,17 @@ Object.assign(window.BOX_I18N.fr, {"sfR6": "Connexion des boutiques", "sfR6T": "
 Object.assign(window.BOX_I18N.de, {"sfR6": "Shops anbinden", "sfR6T": "Shops können ihre Geschenkkarten, Gutscheine und Rabatte direkt in Boxen ausgeben. Der Kunde erhält eine Box mit einem Code und öffnet sie mit seiner Wallet, ohne Registrierung auf der Shop-Seite. Für Aktionen, Gewinnspiele und Geschenke an Kunden. Xahau Box selbst verkauft nichts."});
 Object.assign(window.BOX_I18N.zh, {"sfR6": "接入商店", "sfR6T": "商店可以把礼品卡、优惠券和折扣直接放进盒子里发放。顾客收到带有代码的盒子，用自己的钱包打开，无需在商店网站注册。适用于促销、抽奖和送给顾客的礼物。Xahau Box 本身不出售任何东西。"});
 Object.assign(window.BOX_I18N.ja, {"sfR6": "ショップとの連携", "sfR6T": "ショップはギフトカード、クーポン、割引をボックスに入れて配れるようになります。お客様はコード入りのボックスを受け取り、自分のウォレットで開けます。ショップのサイトへの登録は不要です。キャンペーン、プレゼント企画、お客様への贈り物向けです。Xahau Box 自体は何も販売しません。"});
+Object.assign(window.BOX_I18N.ru, {"faucetBtn": "Тестовые XAH", "faucetOk": "Кран отправил {n} тестовых XAH. Баланс обновится через пару секунд.", "faucetErr": "Кран не ответил. Попробуй позже."});
+Object.assign(window.BOX_I18N.en, {"faucetBtn": "Test XAH", "faucetOk": "The faucet sent {n} test XAH. Your balance updates in a few seconds.", "faucetErr": "The faucet did not answer. Try again later."});
+Object.assign(window.BOX_I18N.es, {"faucetBtn": "XAH de prueba", "faucetOk": "El grifo envió {n} XAH de prueba. El saldo se actualiza en unos segundos.", "faucetErr": "El grifo no respondió. Inténtalo más tarde."});
+Object.assign(window.BOX_I18N.fr, {"faucetBtn": "XAH de test", "faucetOk": "Le faucet a envoyé {n} XAH de test. Le solde se met à jour dans quelques secondes.", "faucetErr": "Le faucet n’a pas répondu. Réessayez plus tard."});
+Object.assign(window.BOX_I18N.de, {"faucetBtn": "Test-XAH", "faucetOk": "Der Faucet hat {n} Test-XAH geschickt. Der Kontostand aktualisiert sich in ein paar Sekunden.", "faucetErr": "Der Faucet hat nicht geantwortet. Versuch es später noch einmal."});
+Object.assign(window.BOX_I18N.zh, {"faucetBtn": "测试 XAH", "faucetOk": "水龙头已发送 {n} 个测试 XAH，余额几秒后更新。", "faucetErr": "水龙头没有响应，请稍后再试。"});
+Object.assign(window.BOX_I18N.ja, {"faucetBtn": "テスト XAH", "faucetOk": "フォーセットがテスト XAH を {n} 送りました。数秒で残高が更新されます。", "faucetErr": "フォーセットが応答しません。後でもう一度お試しください。"});
+Object.assign(window.BOX_I18N.ru, {"faucetWait": "Кран выдаёт XAH раз в несколько минут. Подожди {s} сек."});
+Object.assign(window.BOX_I18N.en, {"faucetWait": "The faucet gives XAH once every few minutes. Wait {s} s."});
+Object.assign(window.BOX_I18N.es, {"faucetWait": "El grifo da XAH una vez cada pocos minutos. Espera {s} s."});
+Object.assign(window.BOX_I18N.fr, {"faucetWait": "Le faucet donne des XAH toutes les quelques minutes. Attendez {s} s."});
+Object.assign(window.BOX_I18N.de, {"faucetWait": "Der Faucet gibt nur alle paar Minuten XAH. Warte {s} s."});
+Object.assign(window.BOX_I18N.zh, {"faucetWait": "水龙头每隔几分钟才能领取一次 XAH。请等待 {s} 秒。"});
+Object.assign(window.BOX_I18N.ja, {"faucetWait": "フォーセットは数分に一度だけ XAH を配ります。{s} 秒お待ちください。"});

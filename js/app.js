@@ -452,7 +452,22 @@ function applyLang() {
   if ($('ledgerDot')) renderLive(false);
   renderAcct();
 }
-function applyNet() { $('netBtn').textContent = NET().label + ' ⇄'; $('netBtn').classList.toggle('main', S.net === 'mainnet'); }
+function applyNet() { $('netBtn').textContent = NET().label + ' ⇄'; $('netBtn').classList.toggle('main', S.net === 'mainnet'); faucetUi(); }
+/* testnet only: the public Xahau testnet faucet sends 1000 test XAH to the signed-in address (no keys, nothing signed) */
+var faucetBusy = false;
+function faucetUi() { const b = $('faucetBtn'); if (!b) return; b.textContent = '🚰 ' + t('faucetBtn'); b.classList.toggle('hide', !(S.net === 'testnet' && S.account)); b.disabled = faucetBusy; }
+async function faucetGet() {
+  if (faucetBusy || S.net !== 'testnet' || !S.account) return; const a = S.account.address;
+  faucetBusy = true; faucetUi();
+  try {
+    const r = await fetch('https://xahau-test.net/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ destination: a }) });
+    const j = await r.json(); const ok = j && j.trace && j.trace.code === 'tesSUCCESS';
+    const w = !ok && j && /wait (\d+) sec/.exec(String(j.error || ''));
+    toast(ok ? t('faucetOk').replace('{n}', j.amount || 1000) : w ? t('faucetWait').replace('{s}', w[1]) : t('faucetErr'));
+    if (ok) { acct = null; setTimeout(() => { try { mbRefresh(); } catch {} }, 4000); }
+  } catch { toast(t('faucetErr')); }
+  setTimeout(() => { faucetBusy = false; faucetUi(); }, 30000);
+}
 /* Header: signed out -> "Sign in with Xaman"; signed in -> short address + "Sign out". */
 function renderAcct() {
   const tx = $('acctText'), b = $('acctBtn'); tx.textContent = '';
@@ -468,6 +483,7 @@ function renderAcct() {
   }
   if (current === 'settings' && $('acc-codes').open && codesFor !== (S.account ? S.account.address + S.net : null)) codesLoad();
   if (current === 'home') setTimeout(inboxBadge, 0);
+  faucetUi();
   if ($('acc-hook') && $('acc-hook').open) hkUi();
 }
 function needAccount(next, back) { if (S.account) return true; afterAccount = next; S.back = back || null; save(); show('account'); return false; }
@@ -2406,6 +2422,7 @@ themeUi();
 $('pageVer').textContent = (([...document.scripts].map(x => x.src).find(x => /app\.js/.test(x)) || '').split('v=')[1] || '—');
 $('backBtn').onclick = () => goBack();
 $('setBtn').onclick = () => enterSettings();
+$('faucetBtn').onclick = () => faucetGet();
 $('netBtn').onclick = () => { sel.held = null; sel.key = null; sel.fresh = null; createFor = null; S.net = S.net === 'testnet' ? 'mainnet' : 'testnet'; save(); applyNet(); pollLedger(); renderAcct(); acct = null; if ($('acc-hook').open) hkUi(); route(current === 'sign' || current === 'done' || current === 'opened' ? 'home' : current); };
 for (const id of ['evergramDone']) $(id).href = C.EVERGRAM_URL;
 function handleHash() {
