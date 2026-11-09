@@ -2190,3 +2190,11 @@ Object.assign(window.BOX_I18N.fr, {"noLimitWarnKey": "Sans délai, la boîte ne 
 Object.assign(window.BOX_I18N.de, {"noLimitWarnKey": "Ohne Frist kannst du die Box nicht zurückholen, solange das Schlüssel-Token unversehrt ist. Wird der Schlüssel verbrannt, kann der Ersteller sie zurückholen.", "sfDiscordSoon": "Discord — bald"});
 Object.assign(window.BOX_I18N.zh, {"noLimitWarnKey": "不设期限时，只要钥匙代币还在，就不能取回礼盒。如果钥匙被销毁，创建者可以取回。", "sfDiscordSoon": "Discord — 即将推出"});
 Object.assign(window.BOX_I18N.ja, {"noLimitWarnKey": "期限なしの場合、キートークンが残っている間はボックスを取り戻せません。キーがバーンされれば、作成者は取り戻せます。", "sfDiscordSoon": "Discord — 近日公開"});
+
+Object.assign(window.BOX_I18N.ru, {"rvA": "Raven (Odin's Eyes) ведёт в сети Xahau реестр подозрительных адресов (чёрный и серый списки). Перед отправкой бокса можно проверить адрес получателя на", "rvB": ". Xahau Box сам адреса не проверяет."});
+Object.assign(window.BOX_I18N.en, {"rvA": "Raven (Odin's Eyes) keeps a registry of suspicious addresses on the Xahau network (black and grey lists). Before you send a box, you can check the recipient's address on", "rvB": ". Xahau Box itself does not check addresses."});
+Object.assign(window.BOX_I18N.es, {"rvA": "Raven (Odin's Eyes) lleva en la red Xahau un registro de direcciones sospechosas (listas negra y gris). Antes de enviar una caja puedes comprobar la dirección del destinatario en", "rvB": ". Xahau Box no comprueba las direcciones por sí mismo."});
+Object.assign(window.BOX_I18N.fr, {"rvA": "Raven (Odin's Eyes) tient sur le réseau Xahau un registre des adresses suspectes (listes noire et grise). Avant d’envoyer une boîte, vous pouvez vérifier l’adresse du destinataire sur", "rvB": ". Xahau Box ne vérifie pas les adresses lui-même."});
+Object.assign(window.BOX_I18N.de, {"rvA": "Raven (Odin's Eyes) führt im Xahau-Netzwerk ein Register verdächtiger Adressen (schwarze und graue Listen). Bevor du eine Box sendest, kannst du die Empfängeradresse auf", "rvB": " prüfen. Xahau Box prüft Adressen selbst nicht."});
+Object.assign(window.BOX_I18N.zh, {"rvA": "Raven (Odin's Eyes) 在 Xahau 网络上维护可疑地址登记（黑名单和灰名单）。发送礼盒前，可以在", "rvB": " 上检查收件人地址。Xahau Box 本身不检查地址。"});
+Object.assign(window.BOX_I18N.ja, {"rvA": "Raven (Odin's Eyes) は Xahau ネットワーク上で不審なアドレスの登録（ブラックリストとグレーリスト）を管理しています。ボックスを送る前に、受取人のアドレスを", "rvB": " で確認できます。Xahau Box 自体はアドレスを検査しません。"});
