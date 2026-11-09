@@ -183,9 +183,9 @@ select.inp option{background:#0b1a3d}
 .whint{margin:0}
 .tok .gctag{display:inline-block;font-size:12px;font-weight:800;color:var(--y);margin-top:2px}
 .bcard{padding:0;gap:0;overflow:hidden}
-.bhead{all:unset;box-sizing:border-box;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:6px 10px;width:100%;padding:14px;cursor:pointer;min-height:56px}
+.bhead{all:unset;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr) auto;align-items:center;gap:6px 10px;width:100%;padding:14px;cursor:pointer;min-height:56px}
 .bhead:focus-visible{outline:2px solid var(--y);outline-offset:-2px;border-radius:20px}
-.bhead .bn{font:800 20px/1 system-ui,sans-serif;color:var(--y)}
+.bhead .bn{font:800 20px/1 system-ui,sans-serif;color:var(--y);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .bhead .bbadge{justify-self:start;font:700 12.5px/1 system-ui,sans-serif;padding:6px 10px;border-radius:20px;border:1px solid rgba(77,155,255,.5);background:rgba(77,155,255,.12);color:#fff}
 .bhead .bbadge.key{border-color:rgba(248,206,34,.6);background:rgba(248,206,34,.12);color:var(--y)}
 .bhead .bchev{font-size:18px;color:var(--mut);transition:transform .15s}
@@ -198,7 +198,7 @@ select.inp option{background:#0b1a3d}
 .nbadge{display:inline-block;min-width:22px;padding:3px 7px;margin-left:6px;border-radius:12px;background:var(--y);color:var(--navy);font:800 13px/1.2 system-ui,sans-serif}
 .nbadge.hide{display:none}
 .card.inbox{border-color:rgba(248,206,34,.6)}
-.row .ibn{font:800 20px/1 system-ui,sans-serif;color:var(--y)}
+.row .ibn{font:800 20px/1 system-ui,sans-serif;color:var(--y);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .btn.big{min-height:58px;font-size:18px}
 .secitem.scam{border-left:3px solid #ff6b6b;padding-left:10px}.secitem.scam b{color:#ff8a80}
 .egpill{display:inline-flex;align-items:center;gap:4px;vertical-align:baseline;padding:1px 8px 1px 3px;margin:0 1px;border-radius:999px;border:1px solid rgba(77,155,255,.55);background:rgba(77,155,255,.14);color:#fff;font-weight:700;font-size:.95em;line-height:1.5;text-decoration:none;white-space:nowrap}

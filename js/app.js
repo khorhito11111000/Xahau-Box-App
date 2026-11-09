@@ -31,6 +31,9 @@ if (S.pending && S.pending.op === 'remit' && S.pending.back && S.pending.back.bo
 const t = k => (I[S.lang] && I[S.lang][k]) || I.en[k] || k;
 const NET = () => C.NETWORKS[S.net];
 const short = a => a ? a.slice(0, 6) + '…' + a.slice(-4) : '';
+/* start-only form for compact headers (same 6-char prefix as short); used next to #N when the list can mix creators */
+const shortHead = a => a ? a.slice(0, 6) + '…' : '';
+const boxNoHead = (n, from) => '#' + n + (from && (!S.account || from !== S.account.address) ? ' · ' + shortHead(from) : '');
 const hexStr = s => Array.from(new TextEncoder().encode(s), b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
 const hexToText = h => { try { return new TextDecoder('utf-8', { fatal: true }).decode(L.hex.fromHex(h)); } catch { return null; } };
 const printable = s => s != null && /^[\x20-\x7E\u00A0-\uFFFF\n\r\t]*$/.test(s);
@@ -1786,7 +1789,7 @@ function inboxCard(b) {
   }
   const amt = BigInt('0x' + b.amt), hasTok = !isZero(b.tid), expN = parseInt(b.exp, 16);
   const sum = h('b', { class: 'yel' }, [amt ? dropsToXah(amt) + ' XAH' : null, hasTok ? '1 URIToken' : null].filter(Boolean).join(' + ') || t('bxEmpty'));
-  c.append(h('div', { class: 'row' }, h('span', { class: 'ibn' }, '🎁 #' + b.nonce), sum), row(t('inboxFrom'), short(b.h)), stRow(b, expN, b.status === 0 ? 'ok' : 'yel'));
+  c.append(h('div', { class: 'row' }, h('span', { class: 'ibn' }, '🎁 ' + boxNoHead(b.nonce, b.h)), sum), row(t('inboxFrom'), short(b.h)), stRow(b, expN, b.status === 0 ? 'ok' : 'yel'));
   const ins = h('div', { class: 'binside' }, h('div', { class: 'lbl' }, t('bxInside')));
   if (amt) ins.append(row('XAH', dropsToXah(amt) + ' XAH', 'yel'));
   let tok = null;
@@ -2200,7 +2203,7 @@ async function mbLoad() {
     sent.sort((a, c) => (c.nonce || 0) - (a.nonce || 0));
     const recvOpen = (inbox || []).filter(b => !b.gone), recvGone = (inbox || []).filter(b => b.gone);
     const mine = recs.filter(r => r.cmd === 'CLAIM' && r.from === me && r.hk !== me && r.b)
-      .map(r => ({ b: r.b, nonce: r.b.nonce, key: !r.link, st: t('mbOpenedYou'), ok: true, who: [t('inboxFrom'), r.hk], date: r.date, hash: r.hash, burnKey: !r.link ? { iss: r.hk, vc: r.vc } : null }))
+      .map(r => ({ b: r.b, nonce: r.b.nonce, key: !r.link, st: t('mbOpenedYou'), ok: true, h: r.hk, who: [t('inboxFrom'), r.hk], date: r.date, hash: r.hash, burnKey: !r.link ? { iss: r.hk, vc: r.vc } : null }))
       .sort((a, c) => (c.date || 0) - (a.date || 0));
     mbData = { me, built, keySt, kn, pk: b => packByKey.get(String(b.key).toUpperCase()) || null, links, sent, recvOpen, recvGone, mine, inboxErr: !inbox, histErr: !hist, more: hist && hist.more, n: hist ? hist.n : 0 };
     mbBusy = false; mbRender();
@@ -2256,7 +2259,7 @@ function histCard(x) {
   const b = x.b, amt = BigInt('0x' + b.amt), hasTok = !isZero(b.tid), id = (x.hash || '') + ':' + b.nonce;
   const sumTxt = h('span', { class: 'bsum' }, [amt ? dropsToXah(amt) + ' XAH' : null, hasTok ? '1 URIToken' : null].filter(Boolean).join(' + ') || t('bxEmpty'));
   const head = h('button', { class: 'bhead', type: 'button', 'aria-expanded': 'false' },
-    h('span', { class: 'bn' }, '#' + b.nonce),
+    h('span', { class: 'bn' }, boxNoHead(b.nonce, (x.b && x.b.h) || x.h)),
     h('span', { class: 'bbadge' + (x.key ? ' key' : '') }, x.key ? '🔑 ' + t('tokenKind') : '🔗 ' + t('kLink')),
     h('span', { class: 'bchev', 'aria-hidden': 'true' }, '▾'),
     h('span', { class: 'bmeta' }, h('span', { class: 'bst' + (x.bad ? ' bad' : x.ok ? ' ok' : ' yel') }, x.st), sumTxt));
