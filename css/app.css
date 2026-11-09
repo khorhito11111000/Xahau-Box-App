@@ -513,6 +513,7 @@ html[data-theme=light] .pj .pji.xm-dk{display:none}
 .kid{margin:8px 0}.kid .kidv{font-size:12px;word-break:break-all;overflow-wrap:anywhere;margin:4px 0 6px;user-select:all}.kid .row2 .btn{padding:8px 12px;font-size:13px}
 
 /* footer Evergram support link: brand cyan */
+.sfcols .sfsoon{display:block;padding:4px 0;color:var(--mut)}
 .sitefoot a.sfev{color:#00FFFF}
 html[data-theme=light] .sitefoot a.sfev{color:#00838F}
 .top .chip.fau{align-self:flex-start}
