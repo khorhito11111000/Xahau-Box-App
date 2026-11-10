@@ -272,6 +272,15 @@ select.inp option{background:#0b1a3d}
 .giftcard .gtitle{font-size:26px;font-weight:800;line-height:1.15;overflow-wrap:anywhere}
 .giftcard .gfrom{font-size:14px;opacity:.85;overflow-wrap:anywhere}
 .giftcard .ginside{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.giftcard .gmeta{width:100%;margin-top:6px;text-align:left;align-self:stretch}
+.giftcard .gmeta .row{border-bottom-color:rgba(27,36,96,.14);padding:6px 0;font-size:13px;gap:10px}
+.giftcard .gmeta .row span{color:rgba(27,36,96,.72)}
+.giftcard .gmeta .row b{color:var(--navy);font-variant-numeric:tabular-nums}
+.giftcard .gmeta .row span.yel{color:var(--navy)}
+.giftcard .gmeta .row span.bad,.giftcard .gmeta .row b.bad{color:#8b1a1a}
+.giftcard .ilab{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.giftcard .ilab .ico{width:1em;height:1em;color:var(--navy);flex:none}
+.giftcard.expired{box-shadow:0 14px 36px rgba(139,26,26,.18)}
 .btn.navy{background:var(--navy);color:var(--y2);margin-top:6px;width:100%}
 .btn.navy .ico{color:var(--y2)}
 .exbox{display:flex;flex-direction:column;gap:6px}
