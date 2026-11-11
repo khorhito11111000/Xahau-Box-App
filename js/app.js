@@ -445,6 +445,45 @@ function goBack() {
     default: return show('home');
   }
 }
+/* ⌂ Home: straight to the home screen from any step. Never drops anything already signed:
+   - a step signed and waiting for the network keeps the user here, exactly like Back does;
+   - an open (not yet signed) Xaman request is cancelled like «Cancel»; its record is removed only when Xaman confirms
+     the cancel, otherwise (it may just have been signed) the sign screen stays so the signature is picked up;
+   - the unfinished step itself stays saved (resumable), except the same unsigned one-off steps Back also drops. */
+let homeBusy = false;
+async function goHome() {
+  if (homeBusy || current === 'home') return;
+  const p = S.pending;
+  if (current === 'account') { afterAccount = null; S.back = null; save(); }
+  if (current === 'sign' && p) {
+    const st = p.st || {};
+    if (st.main && ['signed', 'ok'].includes(st.main.st)) { toast(t('stWaitNet')); return goBack(); }
+    const open = ['audit', 'main'].filter(k => st[k] && st[k].st === 'open');
+    if (open.length) {
+      homeBusy = true; $('homeBtn').disabled = true;
+      let keep = false;
+      try {
+        for (const k of open) {
+          const o = st[k]; let r = null;
+          try { if (xstate && xstate.sdk && o.uuid) r = await xstate.sdk.payload.cancel(o.uuid); } catch {}
+          if (!o.uuid || !(r && r.result && r.result.cancelled)) { keep = true; continue; } // still being made, or not cancelled (maybe signed): stay
+          if (p.st[k] === o) delete p.st[k];
+          const sub = xSubs.get(o.uuid); if (sub) { xSubs.delete(o.uuid); try { if (sub.websocket && sub.websocket.readyState < 2) sub.websocket.close(); } catch {} }
+        }
+        if (liveStep === p) liveStep = null; save();
+      } finally { homeBusy = false; $('homeBtn').disabled = false; }
+      if (keep) { if (S.pending === p && current === 'sign') { enterSign(); setTimeout(stepPoll, 0); } return; }
+      if (S.pending !== p || current !== 'sign') return;
+    }
+    const signed = Object.values(p.st || {}).some(x => x && ['signed', 'ok'].includes(x.st));
+    if (!signed) {
+      if (p.op === 'remit' && p.back && p.back.box) { S.pending = p.back; save(); }
+      else if ((p.op === 'claim' && p.from === 'inbox') || p.op === 'remit' || p.op === 'burn') { S.pending = null; save(); }
+    }
+  }
+  show('home');
+}
+$('homeBtn').onclick = () => goHome();
 window.addEventListener('popstate', e => {
   if (e.state && e.state.xb) return; // browser Forward: the hashchange handler shows that screen
   if (popQuiet) { popQuiet = false; return; }
@@ -792,6 +831,7 @@ function xPanel(next, qr, cancel) {
   if (cancel) d.append(cancel);
   return d;
 }
+const xSubs = new Map(); // open Xaman sign requests of this page: uuid -> subscription
 async function xamanSign(tx, box, onCreated) {
   const sdk = xstate.sdk, inX = !!xstate.xapp;
   let sub;
@@ -800,15 +840,18 @@ async function xamanSign(tx, box, onCreated) {
   catch (e) { e.xaman = true; throw e; }
   if (!sub || !sub.created) { const e = new Error('Unexpected response from XUMM API [POST:payload]'); e.xaman = true; throw e; }
   if (onCreated) try { onCreated(sub.created); } catch {}
+  const subUuid = sub.created.uuid; xSubs.set(subUuid, sub); // lets ⌂ Home close the socket of a request it cancelled
+  let r;
+  try {
   box.textContent = '';
   box.append(xPanel(sub.created.next.always, sub.created.refs && sub.created.refs.qr_png));
-  let r;
   if (inX) {
     const uuid = sub.created.uuid; xappChecked.add(uuid);
     const ev = new Promise(ok => xappWaits.set(uuid, ok));
     xappOpen(uuid);
     try { r = await Promise.race([sub.resolved, ev]); } finally { xappWaits.delete(uuid); try { if (sub.websocket && sub.websocket.readyState < 2) sub.websocket.close(); } catch {} }
   } else r = await sub.resolved;
+  } finally { xSubs.delete(subUuid); }
   if (!r || !r.signed) throw new Error(t('rejected'));
   return r.txid;
 }

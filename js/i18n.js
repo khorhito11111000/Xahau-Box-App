@@ -2223,3 +2223,11 @@ Object.assign(window.BOX_I18N.ru, {"sfPrivS": "Сервисы, к которым
 Object.assign(window.BOX_I18N.de, {"sfPrivS": "Dienste, die diese Seite direkt von deinem Gerät aus kontaktiert: öffentliche Xahau-Knoten (xahau.network; im Testnet xahau-test.net, das auch Test-XAH gibt, wenn du auf den Faucet-Button tippst), um den Ledger zu lesen; Xaman von XRPL Labs (xumm.app) für die Anmeldung und Signaturanfragen; api.xahmoeba.com für Namen und Bilder von Xahmoeba-Token; xahaucards.com und evergram.app für Token-Bilder. Wie jede Website sehen sie deine IP-Adresse und was angefragt wird. Andere Seiten öffnen sich nur, wenn du auf einen Link tippst.", "xappWait": "Verbindung zu deinem Xaman-Konto…"});
 Object.assign(window.BOX_I18N.zh, {"sfPrivS": "本页面会从你的设备直接连接以下服务：Xahau 公共节点（xahau.network；测试网为 xahau-test.net，点击水龙头按钮时也由它发放测试 XAH），用于读取账本；XRPL Labs 的 Xaman（xumm.app），用于登录和签名请求；api.xahmoeba.com，用于 Xahmoeba 代币的名称和图片；xahaucards.com 和 evergram.app，用于代币图片。和任何网站一样，它们能看到你的 IP 地址和所请求的内容。其他网站只有在你点击链接时才会打开。", "xappWait": "正在连接你的 Xaman 账户…"});
 Object.assign(window.BOX_I18N.ja, {"sfPrivS": "このページがあなたの端末から直接接続するサービス：Xahau の公開ノード（xahau.network。テストネットでは xahau-test.net で、フォーセットボタンを押すとテスト用 XAH もここから受け取ります）— 台帳の読み取り用。XRPL Labs の Xaman（xumm.app）— ログインと署名リクエスト用。api.xahmoeba.com — Xahmoeba トークンの名前と画像用。xahaucards.com と evergram.app — トークン画像用。どのウェブサイトとも同じく、これらのサービスにはあなたの IP アドレスとリクエスト内容が見えます。ほかのサイトは、リンクを押したときだけ開きます。", "xappWait": "Xaman アカウントに接続しています…"});
+
+Object.assign(window.BOX_I18N.en, { homeBtn: "Home" });
+Object.assign(window.BOX_I18N.es, { homeBtn: "Inicio" });
+Object.assign(window.BOX_I18N.fr, { homeBtn: "Accueil" });
+Object.assign(window.BOX_I18N.ru, { homeBtn: "Главная" });
+Object.assign(window.BOX_I18N.de, { homeBtn: "Start" });
+Object.assign(window.BOX_I18N.zh, { homeBtn: "首页" });
+Object.assign(window.BOX_I18N.ja, { homeBtn: "ホーム" });
