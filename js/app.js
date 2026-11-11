@@ -624,6 +624,7 @@ async function initXapp() {
     const X = window.Xumm && (window.Xumm.Xumm || window.Xumm); if (typeof X !== 'function') throw new Error('Xaman SDK missing');
     xx = new X(C.XAMAN_API_KEY);
     if (!xx.runtime || !xx.runtime.xapp) throw new Error('Xaman SDK: not an xApp context');
+    xappListen();
     const ott = await within(xx.environment.ott, 20000, 'xApp token');
     const a = (ott && ott.account) || await within(xx.user.account, 5000, 'xApp account');
     if (!a || !L.isAddress(a)) throw new Error('no account from Xaman');
@@ -720,6 +721,44 @@ function xamanErrShow(id, e) {
   }
 }
 const xUuid = next => { const m = String(next || '').match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i); return m ? m[0] : null; };
+/* xApp only: Xaman's rules forbid polling a payload's status. A sign request is settled by events only:
+   the payload websocket (createAndSubscribe) or the xApp 'payload' event ({ reason: 'SIGNED' | 'DECLINED', uuid }).
+   On SIGNED the payload is read ONCE (payload.get) for its txid. The listener is registered once per page. */
+const xappWaits = new Map(); // uuid -> settle(result) for a sign request this page is waiting on right now
+const xappChecked = new Set(); // uuids already read once on this page (never read again by stepPoll)
+let xappListening = false;
+const xappRes = r => r && r.meta ? { signed: !!r.meta.signed, txid: r.response && r.response.txid, done: !!(r.meta.resolved || r.meta.expired || r.meta.cancelled || r.meta.signed) } : null;
+function xappListen() {
+  if (xappListening || !xx || !xx.xapp || typeof xx.xapp.on !== 'function') return;
+  xappListening = true;
+  xx.xapp.on('payload', d => { xappPayloadEv(d).catch(e => console.error('[Xaman xApp] payload event', e)); });
+}
+async function xappPayloadEv(d) {
+  const uuid = d && d.uuid, reason = String(d && d.reason || '').toUpperCase(); if (!uuid) return;
+  const live = xappWaits.get(uuid);
+  if (live) {
+    if (reason !== 'SIGNED') return live({ signed: false });
+    const r = xappRes(await xx.payload.get(uuid).catch(() => null));
+    if (r && r.signed && r.txid) live({ signed: true, txid: r.txid }); // read failed: the websocket can still settle it
+    return;
+  }
+  // a step left open by an earlier page load (no websocket for it here)
+  const p = S.pending; if (!p || !p.st) return;
+  const key = ['audit', 'main'].find(k => p.st[k] && p.st[k].st === 'open' && p.st[k].uuid === uuid); if (!key) return;
+  xappChecked.add(uuid);
+  if (reason !== 'SIGNED') { delete p.st[key]; save(); if (current === 'sign') enterSign(); return; }
+  const r = xappRes(await xx.payload.get(uuid).catch(() => null));
+  if (r) xappApply(p, key, p.st[key], r);
+}
+// put one payload read into the step (same outcome as the browser's polling loop)
+function xappApply(p, key, st, r) {
+  if (!st || p.st[key] !== st || st.st !== 'open') return false;
+  if (r.signed && r.txid) { st.st = 'signed'; st.txid = r.txid; if (key === 'main' && p.op === 'pack') p.box.tx = st.txid; }
+  else if (r.done) delete p.st[key];
+  else return false;
+  save(); if (S.pending === p && current === 'sign') enterSign(); setTimeout(stepPoll, 0);
+  return true;
+}
 const xappOpen = uuid => { try { if (xx && xx.xapp && uuid) return Promise.resolve(xx.xapp.openSignRequest({ uuid })).catch(e => console.error('[Xaman xApp]', e)); } catch (e) { console.error('[Xaman xApp]', e); } };
 /* xApp only: external links open in Xaman's in-app browser via the SDK (xapp.openBrowser), as Xaman's xApp rules
    require. One delegated click handler; same-origin / hash links and xumm.app / xaman.app links keep their normal
@@ -754,16 +793,22 @@ function xPanel(next, qr, cancel) {
   return d;
 }
 async function xamanSign(tx, box, onCreated) {
-  const sdk = xstate.sdk;
+  const sdk = xstate.sdk, inX = !!xstate.xapp;
   let sub;
-  try { sub = await sdk.payload.createAndSubscribe({ txjson: tx }, ev => { if (typeof ev.data.signed !== 'undefined') return ev.data; }); }
+  // xApp: an expired sign request also settles it (no polling there to notice it); normal browser: unchanged
+  try { sub = await sdk.payload.createAndSubscribe({ txjson: tx }, ev => { if (typeof ev.data.signed !== 'undefined' || (inX && ev.data.expired)) return ev.data; }); }
   catch (e) { e.xaman = true; throw e; }
   if (!sub || !sub.created) { const e = new Error('Unexpected response from XUMM API [POST:payload]'); e.xaman = true; throw e; }
   if (onCreated) try { onCreated(sub.created); } catch {}
   box.textContent = '';
   box.append(xPanel(sub.created.next.always, sub.created.refs && sub.created.refs.qr_png));
-  if (xstate && xstate.xapp) xappOpen(sub.created.uuid);
-  const r = await sub.resolved;
+  let r;
+  if (inX) {
+    const uuid = sub.created.uuid; xappChecked.add(uuid);
+    const ev = new Promise(ok => xappWaits.set(uuid, ok));
+    xappOpen(uuid);
+    try { r = await Promise.race([sub.resolved, ev]); } finally { xappWaits.delete(uuid); try { if (sub.websocket && sub.websocket.readyState < 2) sub.websocket.close(); } catch {} }
+  } else r = await sub.resolved;
   if (!r || !r.signed) throw new Error(t('rejected'));
   return r.txid;
 }
@@ -1275,7 +1320,10 @@ async function stepPoll() {
       let changed = false, waiting = false;
       for (const key of ['audit', 'main']) {
         const st = p.st[key]; if (!st) continue;
-        if (st.st === 'open' && st.uuid && xstate && xstate.sdk) {
+        if (XAPP && st.st === 'open' && st.uuid && xstate && xstate.sdk) {
+          // xApp: never poll Xaman. Read once only a step left open by an earlier page load; then wait for the events.
+          if (!xappChecked.has(st.uuid)) { xappChecked.add(st.uuid); const r = xappRes(await xstate.sdk.payload.get(st.uuid).catch(() => null)); if (r && xappApply(p, key, st, r)) changed = true; }
+        } else if (st.st === 'open' && st.uuid && xstate && xstate.sdk) {
           const r = await xstate.sdk.payload.get(st.uuid).catch(() => null);
           if (r && r.meta && r.meta.signed && r.response && r.response.txid) { st.st = 'signed'; st.txid = r.response.txid; if (key === 'main' && p.op === 'pack') p.box.tx = st.txid; changed = true; }
           else if (r && r.meta && (r.meta.resolved || r.meta.expired || r.meta.cancelled)) { delete p.st[key]; changed = true; }
