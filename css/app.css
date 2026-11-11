@@ -525,4 +525,6 @@ html[data-theme=light] .pj .pji.xm-dk{display:none}
 .sfcols .sfsoon{display:block;padding:4px 0;color:var(--mut)}
 .sitefoot a.sfev{color:#00FFFF}
 html[data-theme=light] .sitefoot a.sfev{color:#00838F}
+.sitefoot a.sfdc{color:#8C95FF}
+html[data-theme=light] .sitefoot a.sfdc{color:#4752C4}
 .top .chip.fau{align-self:flex-start}
