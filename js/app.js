@@ -400,6 +400,8 @@ function show(name) {
   current = name;
   for (const s of SCREENS) $('s-' + s).classList.toggle('on', s === name);
   $('backBar').classList.toggle('hide', name === 'home');
+  // ⌂ Home only in the box-creation flow (all create steps, incl. key-token / gift-code minting, and their Sign step)
+  $('homeBtn').classList.toggle('hide', !(name === 'create' || (name === 'sign' && S.pending && ['pack', 'mint', 'gmint'].includes(S.pending.op))));
   if (XAPP && name === 'account') xappAcctUi();
   // in the xApp the support / privacy / terms links stay on every screen
   $('sfCols').classList.toggle('hide', name !== 'home' && !XAPP); if ($('donBox')) { $('donBox').classList.toggle('hide', name !== 'home'); if (name === 'home') donPaint(); }
