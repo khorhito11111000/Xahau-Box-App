@@ -2428,6 +2428,7 @@ $('hkGo').onclick = async () => {
       if (hasHook(await accountObjects(tx.Account).catch(() => []))) res = 'tesSUCCESS';
     }
     if (res === 'tesSUCCESS') {
+      $('hkGo').classList.add('hide'); { const st = $('hkState'); st.className = 'sub ok'; st.textContent = '✓ ' + t('hkAlready'); }
       box.textContent = '';
       box.append(h('h2', { class: 'hkdone' }, t('hkDone') + ' ', h('span', { class: 'okchk', 'aria-hidden': 'true' }, '✓')),
         h('div', { class: 'card' }, row(t('hkAcct'), short(tx.Account), 'mono'), row(t('hkNet'), 'Xahau ' + NET().label), want ? row('HookHash', want.slice(0, 10) + '…', 'mono') : null, row(t('txHash'), short(id)), row('Result', res, 'ok')),
