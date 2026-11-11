@@ -9,16 +9,16 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="theme-color" content="#020a1c">
-<script src="js/theme.js?v=20261111g"></script>
+<script src="js/theme.js?v=20261111h"></script>
 <title>Xahau Box</title>
 <meta name="application-name" content="Xahau Box">
 <meta name="apple-mobile-web-app-title" content="Xahau Box">
 <link rel="icon" href="img/icon-192.png?v=3">
-<link rel="manifest" href="manifest.webmanifest?v=20261111g">
+<link rel="manifest" href="manifest.webmanifest?v=20261111h">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png?v=3">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="css/app.css?v=20261111g">
+<link rel="stylesheet" href="css/app.css?v=20261111h">
 </head>
 <body>
 <div class="app">
@@ -42,7 +42,7 @@
     <button class="btn o" id="goMyBoxes" type="button" data-t="mbH"></button>
     <button class="btn o hide" id="goInbox" type="button"><span data-t="inboxT"></span> <span class="nbadge hide" id="inboxN"></span></button>
     <button class="btn o" id="setBtn" type="button" data-t="setBtnT"></button>
-    <div class="pjbox noeg">
+    <div class="pjbox noeg xhide">
       <div class="lbl" data-t="pjTitle"></div>
       <p class="sm pjsub" data-t="pjSub"></p>
       <a class="pj" href="https://evergram.app" target="_blank" rel="noopener noreferrer"><img class="pji" src="img/evergram-logo.png" alt=""><span class="pjt"><b>Evergram</b><span class="sm" data-t="pjEg"></span></span></a>
@@ -73,9 +73,10 @@
 <!-- ACCOUNT -->
 <section class="screen" id="s-account">
   <h2 data-t="connectTitle"></h2>
-  <p class="sub" data-t="connectSub"></p>
-  <button class="wal" id="xamanBtn" type="button"><span class="ic">X</span><span><b data-t="signIn"></b><span class="sm" id="xamanNote" data-t="xamanNote"></span></span><span class="ar">›</span></button>
-  <div class="card">
+  <p class="sub xhide" data-t="connectSub"></p>
+  <p class="sub xonly" id="xappWait"></p>
+  <button class="wal xhide" id="xamanBtn" type="button"><span class="ic">X</span><span><b data-t="signIn"></b><span class="sm" id="xamanNote" data-t="xamanNote"></span></span><span class="ar">›</span></button>
+  <div class="card xhide">
     <div class="lbl" data-t="addrOnly"></div>
     <input class="inp" id="addrInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="r...">
     <p class="sm" data-t="addrOnlyNote"></p>
@@ -418,19 +419,19 @@
     </div>
   </details>
   <div class="foot hide"><button class="btn o" id="setBack" type="button" data-t="back"></button>
-    <div class="setout" id="setOut"><button class="btn o" id="setWallets" type="button" data-t="mwOpen"></button><p class="sm center" id="setOutTx"></p><button class="btn w" id="setOutBtn" type="button"></button></div></div>
+    <div class="setout" id="setOut"><button class="btn o" id="setWallets" type="button" data-t="mwOpen"></button><p class="sm center" id="setOutTx"></p><button class="btn w xhide" id="setOutBtn" type="button"></button></div></div>
 </section>
 
-<div class="mw hide" id="mw" role="dialog" aria-modal="true"><div class="mwbox"><div class="mwhd"><b data-t="mwTitle"></b><button class="mwx" id="mwClose" type="button" aria-label="close">✕</button></div><p class="sm" id="mwNote"></p><div class="mwlist" id="mwList"></div><button class="btn y" id="mwAdd" type="button"><span data-t="mwAdd"></span></button><p class="err-line" id="mwErr"></p></div></div>
+<div class="mw hide" id="mw" role="dialog" aria-modal="true"><div class="mwbox"><div class="mwhd"><b data-t="mwTitle"></b><button class="mwx" id="mwClose" type="button" aria-label="close">✕</button></div><p class="sm" id="mwNote"></p><div class="mwlist" id="mwList"></div><button class="btn y xhide" id="mwAdd" type="button"><span data-t="mwAdd"></span></button><p class="err-line" id="mwErr"></p></div></div>
 <div class="toast hide" id="toast"></div>
 <nav class="sitefoot noeg" aria-label="footer">
   <div class="sfbrand"><b>📦 Xahau Box</b><span data-t="sfTag"></span><span class="sm" data-t="sfHook"></span></div>
   <div class="sfcols" id="sfCols">
-    <div><h4 data-t="sfLearn"></h4><a href="https://docs.xahau.network/" target="_blank" rel="noopener noreferrer" data-t="sfHooks"></a><a href="https://xahau.network/" target="_blank" rel="noopener noreferrer" data-t="sfNet"></a><a href="https://xahauexplorer.com/en/account/rNHBiY7RQhmAviL8cj56maSiHMyYPJvzW6" target="_blank" rel="noopener noreferrer" data-t="sfExp"></a><a href="https://github.com/khorhito11111000/Xahau-Box-App" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://evergram.app/app/send?wallet=rpyjfb4HCisTYzds9dnnbcSeD1PLrSCAqe&amp;chainfamily=1" target="_blank" rel="noopener noreferrer" class="sfev"><img src="img/evergram-logo.png?v=20261111g" alt="" width="18" height="18" style="height:1.1em;width:1.1em;vertical-align:middle;margin-right:.35em;border-radius:50%;object-fit:cover"><span data-t="sfSupport"></span></a><a href="https://discord.gg/pku6BA5MEW" target="_blank" rel="noopener noreferrer" class="sfdc"><img src="img/discord.svg?v=20261111g" alt="" width="18" height="18" style="height:1.1em;width:1.1em;vertical-align:middle;margin-right:.35em"><span data-t="sfDiscord"></span></a></div>
-    <div><h4 data-t="sfOther"></h4><details class="sfd"><summary data-t="sfPriv"></summary><p data-t="sfPrivT"></p></details><details class="sfd"><summary data-t="sfTerms"></summary><p data-t="sfTermsT"></p></details><details class="sfd"><summary data-t="sfCook"></summary><p data-t="sfCookT"></p></details></div>
-    <div><h4 data-t="sfRoad"></h4><details class="sfd"><summary data-t="sfR1"></summary><p data-t="sfR1T"></p></details><details class="sfd"><summary data-t="sfR2"></summary><p data-t="sfR2T"></p></details><details class="sfd"><summary data-t="sfR3"></summary><p data-t="sfR3T"></p></details><details class="sfd"><summary data-t="sfR4"></summary><p data-t="sfR4T"></p></details><details class="sfd"><summary data-t="sfR6"></summary><p data-t="sfR6T"></p></details><p class="sfr5" data-t="sfR5N"></p></div>
+    <div><h4 data-t="sfLearn"></h4><a class="xhide" href="https://docs.xahau.network/" target="_blank" rel="noopener noreferrer" data-t="sfHooks"></a><a class="xhide" href="https://xahau.network/" target="_blank" rel="noopener noreferrer" data-t="sfNet"></a><a class="xhide" href="https://xahauexplorer.com/en/account/rNHBiY7RQhmAviL8cj56maSiHMyYPJvzW6" target="_blank" rel="noopener noreferrer" data-t="sfExp"></a><a href="https://github.com/khorhito11111000/Xahau-Box-App" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://evergram.app/app/send?wallet=rpyjfb4HCisTYzds9dnnbcSeD1PLrSCAqe&amp;chainfamily=1" target="_blank" rel="noopener noreferrer" class="sfev xhide"><img src="img/evergram-logo.png?v=20261111h" alt="" width="18" height="18" style="height:1.1em;width:1.1em;vertical-align:middle;margin-right:.35em;border-radius:50%;object-fit:cover"><span data-t="sfSupport"></span></a><a href="https://discord.gg/pku6BA5MEW" target="_blank" rel="noopener noreferrer" class="sfdc"><img src="img/discord.svg?v=20261111h" alt="" width="18" height="18" style="height:1.1em;width:1.1em;vertical-align:middle;margin-right:.35em"><span data-t="sfDiscord"></span></a></div>
+    <div><h4 data-t="sfOther"></h4><details class="sfd"><summary data-t="sfPriv"></summary><p data-t="sfPrivT"></p><p data-t="sfPrivS"></p></details><details class="sfd"><summary data-t="sfTerms"></summary><p data-t="sfTermsT"></p></details><details class="sfd"><summary data-t="sfCook"></summary><p data-t="sfCookT"></p></details></div>
+    <div class="xhide"><h4 data-t="sfRoad"></h4><details class="sfd"><summary data-t="sfR1"></summary><p data-t="sfR1T"></p></details><details class="sfd"><summary data-t="sfR2"></summary><p data-t="sfR2T"></p></details><details class="sfd"><summary data-t="sfR3"></summary><p data-t="sfR3T"></p></details><details class="sfd"><summary data-t="sfR4"></summary><p data-t="sfR4T"></p></details><details class="sfd"><summary data-t="sfR6"></summary><p data-t="sfR6T"></p></details><p class="sfr5" data-t="sfR5N"></p></div>
   </div>
-  <div class="don hide" id="donBox">
+  <div class="don hide xhide" id="donBox">
     <div class="donh"><span>💛</span><b data-t="donH"></b></div>
     <p class="sm" data-t="donT"></p>
     <div class="dontabs"><button type="button" class="dontab on" data-c="xah">XAH</button><button type="button" class="dontab" data-c="xrp">XRP</button></div>
@@ -450,11 +451,11 @@
 </nav>
 <footer class="foot-note"><div class="ledgerline" aria-live="off"><span class="ldot" id="ledgerDot"></span><span data-t="ledgerShort"></span> <b class="lcur mono">…</b> <span class="lavg" id="ledgerAvg"></span></div><span data-t="footer"></span></footer>
 </div>
-<script src="js/config.js?v=20261111g"></script>
-<script src="vendor/boxlib.js?v=20261111g"></script>
-<script src="vendor/xumm-oauth2-pkce-2.8.7.min.js?v=20261111g"></script>
-<script src="js/icons.js?v=20261111g"></script>
-<script src="js/i18n.js?v=20261111g"></script>
-<script src="js/app.js?v=20261111g"></script>
+<script src="js/config.js?v=20261111h"></script>
+<script src="vendor/boxlib.js?v=20261111h"></script>
+<script src="vendor/xumm-oauth2-pkce-2.8.7.min.js?v=20261111h"></script>
+<script src="js/icons.js?v=20261111h"></script>
+<script src="js/i18n.js?v=20261111h"></script>
+<script src="js/app.js?v=20261111h"></script>
 </body>
 </html>

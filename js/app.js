@@ -400,7 +400,9 @@ function show(name) {
   current = name;
   for (const s of SCREENS) $('s-' + s).classList.toggle('on', s === name);
   $('backBar').classList.toggle('hide', name === 'home');
-  $('sfCols').classList.toggle('hide', name !== 'home'); if ($('donBox')) { $('donBox').classList.toggle('hide', name !== 'home'); if (name === 'home') donPaint(); }
+  if (XAPP && name === 'account') xappAcctUi();
+  // in the xApp the support / privacy / terms links stay on every screen
+  $('sfCols').classList.toggle('hide', name !== 'home' && !XAPP); if ($('donBox')) { $('donBox').classList.toggle('hide', name !== 'home'); if (name === 'home') donPaint(); }
   if (name === 'home') setTimeout(() => loadStats(), 0);
   if (name === 'home') setTimeout(inboxBadge, 0);
   window.scrollTo(0, 0);
@@ -506,6 +508,10 @@ const XAPP = XAPP_UA || /[?&]xAppToken=/.test(location.search);
 const XUMM_JS = 'vendor/xumm-1.8.1.min.js';
 const PAGE_V = (() => { try { return new URL(document.currentScript.src).searchParams.get('v') || ''; } catch { return ''; } })();
 let xx = null, xappMe = null; // Xaman SDK instance and the account Xaman gave this xApp session
+let xappDead = false; // the xApp sign-in failed: the user has to close and reopen the xApp
+if (XAPP) document.documentElement.classList.add('xapp'); // css: hides sign-in / sign-out and website-only blocks
+const xappMsg = () => t(xappDead ? 'xappErr' : 'xappWait');
+function xappAcctUi() { const e = $('xappWait'); if (e) e.textContent = xappDead ? '' : t('xappWait'); if (xappDead) errSet('acctErr', t('xappErr')); }
 const xOn = () => !!(xp || XAPP); // Xaman signing is available on this page
 /* ---------- connected wallets (this device only) ----------
    xbox.wallets.v1: [{address, via}] (public addresses). xbox.wsess.v1: per address, a copy of the Xaman SDK's own
@@ -554,7 +560,7 @@ function mwRender() {
         h('div', { class: 'mwm' }, bal, h('span', { class: 'mwtag' + (w.via === 'xaman' ? '' : ' v') }, w.via === 'xaman' ? 'Xaman' : t('mwView')), !XAPP && on && w.via === 'xaman' && xme !== w.address ? h('span', { class: 'mwwarn' }, t('mwNoSess')) : null), warn),
       h('button', { class: 'mwb', type: 'button', title: t('mwCopy'), 'aria-label': t('mwCopy'), onclick: () => copy(w.address) }, mwCopyIco()),
       h('button', { class: 'mwb ck' + (on ? ' on' : ''), type: 'button', title: t('mwMake'), 'aria-label': t('mwMake'), 'aria-pressed': String(on), onclick: () => mwUse(w) }, '✓'),
-      h('button', { class: 'mwb', type: 'button', title: t('mwOut'), 'aria-label': t('mwOut'), onclick: () => mwOut(w.address) }, '⏻')));
+      XAPP ? null : h('button', { class: 'mwb', type: 'button', title: t('mwOut'), 'aria-label': t('mwOut'), onclick: () => mwOut(w.address) }, '⏻')));
     accountInfo(w.address).then(d => { bal.textContent = d ? (Number(dropsToXah(d.Balance)).toLocaleString(S.lang, { maximumFractionDigits: 2 }) + ' XAH') : '—'; }).catch(() => { bal.textContent = '—'; });
   }
 }
@@ -606,7 +612,7 @@ function xappUse(a) {
 function xappFail(e) {
   try { console.error('[Xaman xApp]', e && e.stack || e); } catch {}
   const m = t('xappErr') + (e && e.message ? ' (' + e.message + ')' : '');
-  errSet('acctErr', m); toast(t('xappErr'));
+  xappDead = true; xappAcctUi(); errSet('acctErr', m); toast(t('xappErr'));
 }
 async function initXapp() {
   // when the token fails, every pending SDK call rejects with the same error: keep one log line, not dozens
@@ -1188,7 +1194,8 @@ function enterSign() {
   if (p.op === 'pack' && p.afterMint) body.append(h('div', { class: 'card stepok' }, '✓ ' + t('keyMadeOk')));
   const items = signTxs();
   const xme = xstate && xstate.me && xstate.me.account;
-  if (xOn() && !xme) {
+  if (XAPP && !xme) body.append(h('div', { class: 'card xin' }, h('p', { class: 'sm' }, xappMsg())));
+  else if (xOn() && !xme) {
     body.append(h('div', { class: 'card xin' }, h('p', { class: 'sm' }, t('signInToSign')), h('button', { class: 'btn y', type: 'button', onclick: () => { afterAccount = () => enterSign(); signIn('sign'); } }, t('signIn'))));
   } else if (xme && xme !== signer) body.append(h('div', { class: 'card warn' }, t('otherAcct') + ' ' + short(signer) + '.'));
   $('checkBtn').classList.toggle('hide', !!(xme && xme === signer));
@@ -1906,6 +1913,7 @@ async function enterCodes() {
 let codesSeq = 0, codesFor = null;
 async function codesLoad() {
   const seq = ++codesSeq, list = $('codesList'); errSet('codesErr'); list.textContent = ''; codesFor = null;
+  if (!S.account && XAPP) return list.append(h('p', { class: 'sub' }, xappMsg()));
   if (!S.account) return list.append(h('p', { class: 'sub' }, t('gcSignIn')), h('button', { class: 'btn y', type: 'button', onclick: () => enterCodes() }, t('signInShort')));
   const me = S.account.address; codesFor = me + S.net;
   list.append(h('div', { class: 'spin sm' }));
@@ -2217,6 +2225,7 @@ async function mbLoad() {
   list.textContent = ''; $('vcCard').classList.add('hide');
   if (!S.account) {
     $('mbSub').textContent = ''; mbBusy = false;
+    if (XAPP) list.append(h('p', { class: 'sub' }, xappMsg())); else
     list.append(h('p', { class: 'sub' }, t('mbSignIn')), h('button', { class: 'btn y', type: 'button', onclick: () => enterMyBoxes() }, t('signInShort')));
     return;
   }

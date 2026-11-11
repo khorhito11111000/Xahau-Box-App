@@ -528,3 +528,8 @@ html[data-theme=light] .sitefoot a.sfev{color:#00838F}
 .sitefoot a.sfdc{color:#8C95FF}
 html[data-theme=light] .sitefoot a.sfdc{color:#4752C4}
 .top .chip.fau{align-self:flex-start}
+
+/* Xaman xApp mode only (html.xapp is set by app.js inside Xaman): no sign-in / sign-out / website-only blocks */
+.xonly{display:none}
+.xapp .xonly{display:block}
+.xapp .xhide,.xapp #acctBtn,.xapp .xrelog{display:none!important}
