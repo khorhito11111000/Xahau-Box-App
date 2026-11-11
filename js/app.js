@@ -15,7 +15,9 @@ if (!S.parked || typeof S.parked !== 'object') S.parked = {};
   if (!okP(S.pending)) S.pending = null; for (const k of Object.keys(S.parked)) if (!okP(S.parked[k])) delete S.parked[k];
   if (!Array.isArray(S.history)) S.history = []; }
 if (!C.NETWORKS[S.net]) S.net = C.DEFAULT_NETWORK;
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ net: S.net, lang: S.lang, account: S.account, history: S.history.slice(-200), pending: S.pending, back: S.back || null, parked: S.parked })); } catch {} };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ net: S.net, lang: S.lang, account: S.account, history: S.history.slice(-200), pending: S.pending, back: S.back || null, parked: S.parked })); } catch {} usQueue(); };
+/* xApp userstore sync state (see "Xaman xApp userstore" below). Off (ready=false) in a normal browser: usQueue does nothing there. */
+const US = { ready: false, t: null, busy: false, dirty: false, fails: 0, last: {} };
 if (!LANGS.includes(S.lang)) S.lang = 'en';
 /* Box links saved on this device (localStorage, never sent anywhere). Written BEFORE the signature is requested,
    so a reload, a new tab or a lost Xaman return can always show the link/QR again. Key: network:hook:VC. */
@@ -565,7 +567,7 @@ const xRet = /[?&](authorization_code|access_token|error_description)=/.test(loc
 const MWR = 'xbox.mwrestore';
 function mwRestore(a, msg) { const se = mwSessAll()[a]; if (!se || !se.pkce) return false; try { sessionStorage.setItem(MWR, a); if (msg) sessionStorage.setItem('xbox.mwerr', msg); localStorage.setItem('XummPkceJwt', se.pkce); if (se.sdk) localStorage.setItem('XummSdkJwt', se.sdk); } catch { return false; } S.account = { address: a, via: 'xaman' }; save(); try { history.replaceState(null, "", location.pathname + '#home'); } catch {} location.reload(); return true; }
 const mwList = () => { try { const v = JSON.parse(localStorage.getItem(MWK)); return Array.isArray(v) ? v.filter(w => w && L.isAddress(w.address)) : []; } catch { return []; } };
-const mwSave = l => { try { localStorage.setItem(MWK, JSON.stringify(l)); } catch {} };
+const mwSave = l => { try { localStorage.setItem(MWK, JSON.stringify(l)); } catch {} usQueue(); };
 const mwSessAll = () => { try { return JSON.parse(localStorage.getItem(MWS)) || {}; } catch { return {}; } };
 function mwSessDrop(a) { const m = mwSessAll(); if (m[a]) { delete m[a]; try { localStorage.setItem(MWS, JSON.stringify(m)); } catch {} } }
 function mwAddW(address, via) { const l = mwList(), w = l.find(x => x.address === address); if (w) { if (via === 'xaman') w.via = 'xaman'; } else l.push({ address, via }); mwSave(l); }
@@ -672,9 +674,107 @@ async function initXapp() {
     const nk = xappNet(ott);
     if (nk && nk !== S.net) { S.net = nk; acct = null; save(); applyNet(); renderAcct(); toast(t('xappNet') + ': ' + NET().label); }
     xappMe = a; xappUse(a);
+    usStart();
   } catch (e) { xappFail(e); }
   // tell Xaman the page is ready (only matters if its loading screen is on; harmless otherwise)
   try { if (xx && xx.xapp) Promise.resolve(xx.xapp.ready()).catch(() => {}); } catch {}
+}
+/* ---------- Xaman xApp userstore (xApp only; a normal browser keeps using localStorage only) ----------
+   Xaman asks xApps to keep user data in the SDK userstore (per Xaman user, per xApp, async, needs the OTT session).
+   localStorage stays the local cache: every write goes there first (synchronously, as before), then to the userstore
+   (debounced, retried, silent on failure). Nothing is pushed before the userstore was read once, so a new device
+   never overwrites saved data. Merge: box records = union by box number (never dropped), wallets = union by address,
+   language/theme = this device's choice if it changed since the last sync, else the saved one.
+   Goes to the userstore: language, theme, wallet addresses, box records {vc,h,net,kind,created,ktid} (public data,
+   the same as on the ledger). Stays on this device only: box links / QR keys (xbox.links.v1: box private keys and
+   claim signatures), the unfinished box / sign step (S.pending, S.parked, S.back: may hold a box private key),
+   Xaman sessions (xbox.wsess.v1), the account (comes from the xApp OTT), network (comes from the OTT), stats caches. */
+const US_SET = 'xboxset', US_WAL = 'xboxwal', US_HIS = 'xboxhis', US_HN = 4, US_HC = 50; // history: xboxhis0..3, 50 records each (200 = local cap)
+const US_KEYS = [US_SET, US_WAL, ...Array.from({ length: US_HN }, (_, i) => US_HIS + i)];
+const USM = 'xbox.usmeta.v1'; // this device: language/theme at the last successful sync (no user data)
+const usMeta = () => { try { return JSON.parse(localStorage.getItem(USM)) || {}; } catch { return {}; } };
+const usSetNow = () => ({ lang: S.lang, theme: window.XBOX_THEME ? XBOX_THEME.get() : 'dark' });
+const usRec = x => ({ vc: x.vc, h: x.h, net: x.net, kind: x.kind, created: x.created || 0, ktid: x.ktid || null });
+const usWal = w => ({ address: w.address, via: w.via === 'xaman' ? 'xaman' : (w.via || 'json') });
+function usSnap() {
+  const o = { [US_SET]: Object.assign({ v: 1 }, usSetNow()), [US_WAL]: { v: 1, list: mwList().map(usWal) } };
+  const hs = S.history.slice(-US_HN * US_HC).filter(x => x && x.vc).map(usRec);
+  for (let i = 0; i < US_HN; i++) o[US_HIS + i] = { v: 1, recs: hs.slice(i * US_HC, (i + 1) * US_HC) };
+  return o;
+}
+const usHas = o => !!(o && typeof o === 'object' && o.v);
+function usQueue(now) {
+  if (!US.ready) { US.dirty = true; return; }
+  US.dirty = true; clearTimeout(US.t); US.t = setTimeout(usFlush, now ? 0 : 1500);
+}
+async function usFlush() {
+  if (!US.ready || US.busy || !xx) return;
+  US.busy = true; US.dirty = false;
+  try {
+    const snap = usSnap();
+    for (const k of US_KEYS) {
+      const j = JSON.stringify(snap[k]); if (US.last[k] === j) continue;
+      const ok = await within(Promise.resolve(xx.userstore.set(k, snap[k])), 15000, 'userstore');
+      if (ok === false) throw new Error('userstore: not saved');
+      US.last[k] = j;
+    }
+    try { localStorage.setItem(USM, JSON.stringify({ set: usSetNow(), at: Date.now() })); } catch {}
+    US.fails = 0;
+  } catch (e) {
+    US.dirty = true; US.fails++;
+    try { console.warn('[Xaman xApp] userstore save failed, kept on this device, retrying:', e && e.message || e); } catch {}
+  }
+  US.busy = false;
+  if (US.dirty) { clearTimeout(US.t); US.t = setTimeout(usFlush, US.fails ? Math.min(300000, 5000 * 2 ** (US.fails - 1)) : 1500); }
+}
+async function usPull() {
+  const r = await within(Promise.resolve(xx.userstore.get(US_KEYS)), 15000, 'userstore');
+  const d = r && typeof r === 'object' ? r : {};
+  for (const k of US_KEYS) if (usHas(d[k])) US.last[k] = JSON.stringify(d[k]);
+  if (!US_KEYS.some(k => usHas(d[k]))) return 'migrate'; // first xApp start with the userstore: push this device's data once
+  let hisCh = false, walCh = false;
+  // box records: union by box number, this device's fields win, oldest first (same order as S.history)
+  const byVc = new Map();
+  for (let i = 0; i < US_HN; i++) { const c = d[US_HIS + i]; if (usHas(c) && Array.isArray(c.recs)) for (const x of c.recs) if (x && typeof x.vc === 'string') byVc.set(x.vc, x); }
+  const have = new Set(S.history.map(x => x && x.vc));
+  for (const [vc, x] of byVc) if (!have.has(vc)) { S.history.push(usRec(x)); hisCh = true; }
+  if (hisCh) S.history.sort((a, b) => (a.created || 0) - (b.created || 0));
+  // wallets: union by address ('xaman' wins over view-only)
+  const wl = usHas(d[US_WAL]) && Array.isArray(d[US_WAL].list) ? d[US_WAL].list : [];
+  const l = mwList();
+  for (const w of wl) {
+    if (!w || !L.isAddress(w.address)) continue;
+    const m = l.find(x => x.address === w.address);
+    if (!m) { l.push(usWal(w)); walCh = true; } else if (w.via === 'xaman' && m.via !== 'xaman') { m.via = 'xaman'; walCh = true; }
+  }
+  if (walCh) { try { localStorage.setItem(MWK, JSON.stringify(l)); } catch {} }
+  // language / theme: keep this device's choice only if it changed here since the last sync (or the sync never ran here)
+  const rs = d[US_SET], ms = usMeta().set, cur = usSetNow();
+  const localChanged = ms ? (ms.lang !== cur.lang || ms.theme !== cur.theme) : false;
+  if (usHas(rs) && !localChanged) {
+    if (LANGS.includes(rs.lang) && rs.lang !== S.lang) { S.lang = rs.lang; applyLang(); if (mbData) mbRender(); else mbTabsUi(); }
+    if (['dark', 'light', 'system'].includes(rs.theme) && window.XBOX_THEME && rs.theme !== XBOX_THEME.get()) { XBOX_THEME.set(rs.theme); themeUi(); }
+  }
+  try { localStorage.setItem(KEY, JSON.stringify(Object.assign(load(), { lang: S.lang, history: S.history.slice(-200) }))); } catch {}
+  if (walCh && !$('mw').classList.contains('hide')) mwRender();
+  if (hisCh) mbRefresh();
+  return 'merged';
+}
+async function usStart() {
+  if (!XAPP || !xx || !xx.userstore || US.ready) return;
+  let tries = 0;
+  for (;;) {
+    try { await usPull(); break; }
+    catch (e) {
+      tries++;
+      try { console.warn('[Xaman xApp] userstore read failed, using this device, retrying:', e && e.message || e); } catch {}
+      await sleep(Math.min(300000, 5000 * 2 ** (tries - 1)));
+    }
+  }
+  US.ready = true; usQueue(true); // pushes only what differs from the userstore (migration = everything)
+  const kick = () => { if (US.dirty) usQueue(true); };
+  window.addEventListener('online', kick);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { if (US.dirty) usFlush(); } else kick(); });
 }
 function initXaman() {
   if (!C.XAMAN_API_KEY) { $('xamanBtn').classList.add('dis'); return; }
@@ -2597,7 +2697,7 @@ $('langList').onclick = e => {
 function themeUi() { const cur = window.XBOX_THEME ? XBOX_THEME.get() : 'dark';
   document.querySelectorAll('#themeList [data-theme-opt]').forEach(b => { const on = b.dataset.themeOpt === cur; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }); }
 document.querySelectorAll('#themeList [data-ti]').forEach(e => { if (window.BOX_ICON) e.replaceWith(BOX_ICON(e.dataset.ti)); });
-$('themeList').onclick = e => { const b = e.target.closest('[data-theme-opt]'); if (!b || !window.XBOX_THEME) return; XBOX_THEME.set(b.dataset.themeOpt); themeUi(); };
+$('themeList').onclick = e => { const b = e.target.closest('[data-theme-opt]'); if (!b || !window.XBOX_THEME) return; XBOX_THEME.set(b.dataset.themeOpt); themeUi(); usQueue(); };
 themeUi();
 $('pageVer').textContent = (([...document.scripts].map(x => x.src).find(x => /app\.js/.test(x)) || '').split('v=')[1] || '—');
 $('backBtn').onclick = () => goBack();
