@@ -3,7 +3,7 @@ window.BOX_CONFIG = {
   // Xaman API key: the public "API Key" uuid from apps.xaman.dev (NOT the API secret). Bound to this page's origin in the Xaman console.
   // Empty = Xaman sign-in is off and the page shows the transaction JSON to copy and sign elsewhere.
   XAMAN_API_KEY: '782fc8c3-44dc-495e-8cf7-637b277aef46',
-  // TODO: exact Evergram link (placeholder until confirmed).
+  // Evergram home: users pick whom to message there themselves.
   EVERGRAM_URL: 'https://evergram.app',
   DEFAULT_NETWORK: 'testnet',
   NETWORKS: {
