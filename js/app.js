@@ -721,6 +721,23 @@ function xamanErrShow(id, e) {
 }
 const xUuid = next => { const m = String(next || '').match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i); return m ? m[0] : null; };
 const xappOpen = uuid => { try { if (xx && xx.xapp && uuid) return Promise.resolve(xx.xapp.openSignRequest({ uuid })).catch(e => console.error('[Xaman xApp]', e)); } catch (e) { console.error('[Xaman xApp]', e); } };
+/* xApp only: external links open in Xaman's in-app browser via the SDK (xapp.openBrowser), as Xaman's xApp rules
+   require. One delegated click handler; same-origin / hash links and xumm.app / xaman.app links keep their normal
+   behaviour. If the SDK is not ready or openBrowser fails, the link behaves as in a normal browser. */
+const xappExt = href => { try { const u = new URL(href, location.href); return /^https?:$/.test(u.protocol) && u.origin !== location.origin && !/(^|\.)(xumm|xaman)\.app$/i.test(u.hostname) ? u.href : null; } catch { return null; } };
+const xappBrowse = url => { try { if (xx && xx.xapp && typeof xx.xapp.openBrowser === 'function') return Promise.resolve(xx.xapp.openBrowser({ url })).then(() => true, e => { console.error('[Xaman xApp] openBrowser', e); return false; }); } catch (e) { console.error('[Xaman xApp] openBrowser', e); } return null; };
+if (XAPP) {
+  const wo = window.open.bind(window);
+  document.addEventListener('click', ev => {
+    if (ev.defaultPrevented || ev.button > 0) return;
+    const a = ev.target && ev.target.closest && ev.target.closest('a[href]'); if (!a || a.hasAttribute('download')) return;
+    const url = xappExt(a.getAttribute('href')); if (!url) return;
+    const p = xappBrowse(url); if (!p) return; // SDK not ready: normal link
+    ev.preventDefault();
+    p.then(ok => { if (!ok) wo(url, '_blank', 'noopener'); });
+  });
+  window.open = (u, ...r) => { const url = u != null && xappExt(String(u)); const p = url && xappBrowse(url); if (!p) return wo(u, ...r); p.then(ok => { if (!ok) wo(u, ...r); }); return null; };
+}
 function xPanel(next, qr, cancel) {
   const d = h('div', { class: 'xpan' }, h('div', { class: 'xkick' }, t('signKicker')));
   if (xstate && xstate.xapp) {
