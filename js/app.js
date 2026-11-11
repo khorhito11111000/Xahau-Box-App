@@ -497,6 +497,16 @@ function needAccount(next, back) { if (S.account) return true; afterAccount = ne
 
 /* ---------- Xaman (PKCE, browser only) ---------- */
 let xp = null, xstate = null;
+/* ---------- Xaman xApp (this page opened inside the Xaman app) ----------
+   Xaman loads the page with ?xAppToken=<one-time token> and a user agent with "xumm/xapp:<version> ... ott:<token>".
+   There the official Xaman SDK (vendor/xumm-*.min.js, loaded only in that case) turns the token into a session for
+   the account picked in Xaman, and sign requests open natively in Xaman. A normal browser never loads it (PKCE above). */
+const XAPP_UA = /xumm\/xapp|xAppBuilder/i.test(navigator.userAgent || '');
+const XAPP = XAPP_UA || /[?&]xAppToken=/.test(location.search);
+const XUMM_JS = 'vendor/xumm-1.8.1.min.js';
+const PAGE_V = (() => { try { return new URL(document.currentScript.src).searchParams.get('v') || ''; } catch { return ''; } })();
+let xx = null, xappMe = null; // Xaman SDK instance and the account Xaman gave this xApp session
+const xOn = () => !!(xp || XAPP); // Xaman signing is available on this page
 /* ---------- connected wallets (this device only) ----------
    xbox.wallets.v1: [{address, via}] (public addresses). xbox.wsess.v1: per address, a copy of the Xaman SDK's own
    browser session (XummPkceJwt / XummSdkJwt), the same data the SDK already keeps here. Switching to a Xaman wallet
@@ -579,8 +589,48 @@ $('acctText').onclick = () => mwShow();
 $('setWallets').onclick = () => mwShow();
 document.addEventListener('keydown', e => { if (e.key === 'Escape') mwHide(); });
 function mwCarriedErr() { let m = null; try { m = sessionStorage.getItem('xbox.mwerr'); sessionStorage.removeItem('xbox.mwerr'); } catch {} if (m) setTimeout(() => { mwShow(); xamanErrShow('mwErr', new Error(m)); }, 300); }
+function loadJs(src) { return new Promise((ok, no) => { const e = document.createElement('script'); e.src = src; e.onload = ok; e.onerror = () => no(new Error('Could not load ' + src)); document.head.append(e); }); }
+const within = (p, ms, what) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error(what + ': no answer from Xaman')), ms))]);
+// Xahau network of the xApp session (OTT networkid, else nodetype) -> 'mainnet' / 'testnet' key, or null
+function xappNet(o) {
+  const id = Number(o && o.networkid); const k = Object.keys(C.NETWORKS).find(n => C.NETWORKS[n].networkId === id); if (k) return k;
+  const nt = String(o && o.nodetype || '').toUpperCase(); if (nt === 'XAHAU') return 'mainnet'; if (/^XAHAU.*TEST/.test(nt)) return 'testnet';
+  return null;
+}
+function xappUse(a) {
+  xstate = { me: { account: a }, sdk: { payload: xx.payload }, xapp: true }; mwExpired = null;
+  if (S.account && S.account.address === a && S.account.via === 'xaman') { mwAddW(a, 'xaman'); renderAcct(); if (current === 'sign') enterSign(); return; }
+  setAccount(a, 'xaman'); toast(t('signedIn'));
+}
+function xappFail(e) {
+  try { console.error('[Xaman xApp]', e && e.stack || e); } catch {}
+  const m = t('xappErr') + (e && e.message ? ' (' + e.message + ')' : '');
+  errSet('acctErr', m); toast(t('xappErr'));
+}
+async function initXapp() {
+  // when the token fails, every pending SDK call rejects with the same error: keep one log line, not dozens
+  let noisy = false;
+  window.addEventListener('unhandledrejection', ev => { const m = String(ev.reason && ev.reason.message || ev.reason || ''); if (/XUMM API|Xumm|xApp/i.test(m)) { ev.preventDefault(); if (!noisy) { noisy = true; console.warn('[Xaman xApp] SDK:', m); } } });
+  try {
+    if (!XAPP_UA) throw new Error('not opened inside Xaman');
+    if (!window.Xumm) await loadJs(XUMM_JS + (PAGE_V ? '?v=' + PAGE_V : ''));
+    const X = window.Xumm && (window.Xumm.Xumm || window.Xumm); if (typeof X !== 'function') throw new Error('Xaman SDK missing');
+    xx = new X(C.XAMAN_API_KEY);
+    if (!xx.runtime || !xx.runtime.xapp) throw new Error('Xaman SDK: not an xApp context');
+    const ott = await within(xx.environment.ott, 20000, 'xApp token');
+    const a = (ott && ott.account) || await within(xx.user.account, 5000, 'xApp account');
+    if (!a || !L.isAddress(a)) throw new Error('no account from Xaman');
+    const nk = xappNet(ott);
+    if (nk && nk !== S.net) { S.net = nk; acct = null; save(); applyNet(); renderAcct(); toast(t('xappNet') + ': ' + NET().label); }
+    xappMe = a; xappUse(a);
+  } catch (e) { xappFail(e); }
+  // tell Xaman the page is ready (only matters if its loading screen is on; harmless otherwise)
+  try { if (xx && xx.xapp) Promise.resolve(xx.xapp.ready()).catch(() => {}); } catch {}
+}
 function initXaman() {
-  if (!C.XAMAN_API_KEY || !window.XummPkce) { $('xamanBtn').classList.add('dis'); return; }
+  if (!C.XAMAN_API_KEY) { $('xamanBtn').classList.add('dis'); return; }
+  if (XAPP) return initXapp();
+  if (!window.XummPkce) { $('xamanBtn').classList.add('dis'); return; }
   xp = new window.XummPkce(C.XAMAN_API_KEY, { redirectUrl: location.origin + location.pathname, rememberJwt: true });
   // 'success' / 'retrieved' also fire in a NEW tab opened by the return from Xaman (Android): the SDK reads the
   // ?authorization_code from the address and finishes the sign-in there (its PKCE verifier lives in localStorage).
@@ -611,6 +661,11 @@ function initXaman() {
 }
 function signIn(back) {
   errSet('acctErr');
+  if (XAPP && C.XAMAN_API_KEY) {
+    if (back) { S.back = back; save(); if (!afterAccount) afterAccount = () => route(back); }
+    if (xappMe && xx) return xappUse(xappMe);
+    return xappFail(new Error('no xApp session'));
+  }
   if (!xp) { afterAccount = back ? () => route(back) : null; S.back = back || null; save(); return show('account'); }
   if (back) { S.back = back; save(); if (!afterAccount) afterAccount = () => route(back); }
   xp.authorize().catch(e => xamanErrShow('acctErr', e));
@@ -657,8 +712,17 @@ function xamanErrShow(id, e) {
     el.append(h('div', { class: 'xrelog' }, h('button', { class: 'btn y', type: 'button', onclick: () => { afterAccount = back ? () => enterSign() : null; if (back) { S.back = back; save(); } mwSignIn(S.account && S.account.address); } }, t('xamanReloginBtn'))));
   }
 }
+const xUuid = next => { const m = String(next || '').match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i); return m ? m[0] : null; };
+const xappOpen = uuid => { try { if (xx && xx.xapp && uuid) return Promise.resolve(xx.xapp.openSignRequest({ uuid })).catch(e => console.error('[Xaman xApp]', e)); } catch (e) { console.error('[Xaman xApp]', e); } };
 function xPanel(next, qr, cancel) {
   const d = h('div', { class: 'xpan' }, h('div', { class: 'xkick' }, t('signKicker')));
+  if (xstate && xstate.xapp) {
+    const u = xUuid(next);
+    d.append(h('div', { class: 'xwait' }, h('span', { class: 'xspin' }), t('xamanWaitSig')));
+    if (u) d.append(h('button', { class: 'btn y', type: 'button', onclick: () => xappOpen(u) }, t('xamanOpen')));
+    if (cancel) d.append(cancel);
+    return d;
+  }
   if (qr) d.append(h('div', { class: 'xqrbox' }, h('img', { class: 'xqrimg', src: qr, alt: '' }), h('img', { class: 'xqrlogo', src: 'img/xaman.png', alt: 'Xaman' })));
   d.append(h('div', { class: 'xwait' }, h('span', { class: 'xspin' }), t('xamanWaitSig')));
   if (next) d.append(h('a', { class: 'btn y', href: next, target: '_blank', rel: 'noopener noreferrer' }, t('xamanOpen')));
@@ -674,6 +738,7 @@ async function xamanSign(tx, box, onCreated) {
   if (onCreated) try { onCreated(sub.created); } catch {}
   box.textContent = '';
   box.append(xPanel(sub.created.next.always, sub.created.refs && sub.created.refs.qr_png));
+  if (xstate && xstate.xapp) xappOpen(sub.created.uuid);
   const r = await sub.resolved;
   if (!r || !r.signed) throw new Error(t('rejected'));
   return r.txid;
@@ -696,7 +761,7 @@ $('addrGo').onclick = async () => {
   try { if (!(await accountInfo(a))) return errSet('acctErr', t('notFoundAcct')); } catch (e) { return errSet('acctErr', e.message); }
   setAccount(a, 'json');
 };
-$('xamanBtn').onclick = () => { if (xp) signIn(S.back); };
+$('xamanBtn').onclick = () => { if (xOn()) signIn(S.back); };
 $('acctBtn').onclick = () => { if (S.account) return signOut(); signIn(['home', 'account', 'done', 'opened', 'settings'].includes(current) ? null : current); };
 
 async function loadAccountView(a) {
@@ -1115,14 +1180,14 @@ function enterSign() {
   $('signTitle').textContent = t(titles[p.op]);
   const signer = p.op === 'pack' ? p.box.h : p.tx.Account;
   const xme0 = xstate && xstate.me && xstate.me.account;
-  $('signSub').textContent = xp && xme0 === signer ? t('signsAcct') + ' ' + shortL(signer) + ' · ' + NET().label : t('signHere') + ' ' + short(signer) + ' · ' + NET().label + ' (NetworkID ' + NET().networkId + ').' + (p.op === 'pack' && p.audit ? ' ' + t('auditFirst') : '');
+  $('signSub').textContent = xOn() && xme0 === signer ? t('signsAcct') + ' ' + shortL(signer) + ' · ' + NET().label : t('signHere') + ' ' + short(signer) + ' · ' + NET().label + ' (NetworkID ' + NET().networkId + ').' + (p.op === 'pack' && p.audit ? ' ' + t('auditFirst') : '');
   const body = $('signBody'); body.textContent = '';
   if (p.op === 'mint' && p.auto) body.append(h('div', { class: 'card stepnote' }, t('mintStep1')));
   if (p.op === 'pack' && p.box.held != null && p.box.ktid) body.append(h('div', { class: 'card stepnote' }, t('hkSignNote').replace('{k}', short(p.box.ktid)).replace('{n}', p.box.held)));
   if (p.op === 'pack' && p.afterMint) body.append(h('div', { class: 'card stepok' }, '✓ ' + t('keyMadeOk')));
   const items = signTxs();
   const xme = xstate && xstate.me && xstate.me.account;
-  if (xp && !xme) {
+  if (xOn() && !xme) {
     body.append(h('div', { class: 'card xin' }, h('p', { class: 'sm' }, t('signInToSign')), h('button', { class: 'btn y', type: 'button', onclick: () => { afterAccount = () => enterSign(); signIn('sign'); } }, t('signIn'))));
   } else if (xme && xme !== signer) body.append(h('div', { class: 'card warn' }, t('otherAcct') + ' ' + short(signer) + '.'));
   $('checkBtn').classList.toggle('hide', !!(xme && xme === signer));

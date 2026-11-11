@@ -1,6 +1,6 @@
 # Third-party licenses
 
-vendor/boxlib.js is an esbuild bundle of the packages below. vendor/xumm-oauth2-pkce-2.8.7.min.js is the unmodified xumm-oauth2-pkce build.
+vendor/boxlib.js is an esbuild bundle of the packages below. vendor/xumm-oauth2-pkce-2.8.7.min.js is the unmodified xumm-oauth2-pkce build. vendor/xumm-1.8.1.min.js is the unmodified dist/browser.min.js of the xumm package (loaded only when the page runs as a Xaman xApp).
 
 ## @noble/hashes 2.4.0 (MIT)
 
@@ -576,3 +576,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+
+## xumm 1.8.1 (MIT)
+
+Official XRPL Labs universal Xaman SDK, https://github.com/XRPL-Labs/Xumm-Universal-SDK.
+File: dist/browser.min.js from https://registry.npmjs.org/xumm/-/xumm-1.8.1.tgz, unmodified.
+Tarball sha1 f7b189f6215275c74fd709868d9fd5ecb89b2d29, integrity sha512-7kuacoM6/oVUOHpLRwIOMxbF6b9SEGViivX7NrGtlndo9FvWQuosSfcusYI44JYoHBsmWxupT8/tkDVJJHQM3w== (matches the npm registry).
+File sha256 01605dae1b6a083b61f810a0ab34e712f36b1077b57725c36f5ddfca0214a756.
+The browserify bundle also contains its dependencies: xumm-sdk, xumm-xapp-sdk, xumm-oauth2-pkce, xumm-js-pkce (MIT, XRPL Labs), buffer, base64-js, events, debug, ms, crypto-js, fetch-ponyfill, os-browserify, yaeti, process (MIT), es5-ext (ISC), ieee754 (BSD-3-Clause), websocket (Apache-2.0).
+
+```
+MIT License
+
+Copyright (c) 2021 XRPL Labs, Wietse Wind
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
