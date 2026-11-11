@@ -547,11 +547,11 @@ function mwRender() {
   const sess = mwSessAll(), xme = xstate && xstate.me && xstate.me.account;
   for (const w of l) {
     const on = w.address === cur, bal = h('span', null, '…');
-    const warn = w.address === mwExpired ? h('div', { class: 'mwwarn' }, t('xamanRelogin')) : (w.via === 'xaman' && !on && !sess[w.address] ? h('div', { class: 'mwwarn' }, t('mwNeedSign')) : null);
+    const warn = XAPP ? null : w.address === mwExpired ? h('div', { class: 'mwwarn' }, t('xamanRelogin')) : (w.via === 'xaman' && !on && !sess[w.address] ? h('div', { class: 'mwwarn' }, t('mwNeedSign')) : null);
     list.append(h('div', { class: 'mwr' + (on ? ' on' : '') },
       (() => { const e = h('div', { class: 'mwav' }, w.address.slice(1, 2).toUpperCase()); e.style.background = mwColor(w.address); return e; })(),
       h('div', { class: 'mwi' }, h('div', { class: 'mwa' }, w.address.slice(0, 7) + '…' + w.address.slice(-5)),
-        h('div', { class: 'mwm' }, bal, h('span', { class: 'mwtag' + (w.via === 'xaman' ? '' : ' v') }, w.via === 'xaman' ? 'Xaman' : t('mwView')), on && w.via === 'xaman' && xme !== w.address ? h('span', { class: 'mwwarn' }, t('mwNoSess')) : null), warn),
+        h('div', { class: 'mwm' }, bal, h('span', { class: 'mwtag' + (w.via === 'xaman' ? '' : ' v') }, w.via === 'xaman' ? 'Xaman' : t('mwView')), !XAPP && on && w.via === 'xaman' && xme !== w.address ? h('span', { class: 'mwwarn' }, t('mwNoSess')) : null), warn),
       h('button', { class: 'mwb', type: 'button', title: t('mwCopy'), 'aria-label': t('mwCopy'), onclick: () => copy(w.address) }, mwCopyIco()),
       h('button', { class: 'mwb ck' + (on ? ' on' : ''), type: 'button', title: t('mwMake'), 'aria-label': t('mwMake'), 'aria-pressed': String(on), onclick: () => mwUse(w) }, '✓'),
       h('button', { class: 'mwb', type: 'button', title: t('mwOut'), 'aria-label': t('mwOut'), onclick: () => mwOut(w.address) }, '⏻')));
@@ -564,7 +564,8 @@ function mwActivate(w) {
   if (se && se.pkce) { mwClearXaman(); if (mwRestore(w.address)) return; }
   mwSignIn(w.address);
 }
-function mwUse(w) { if (S.account && S.account.address === w.address && (w.via !== 'xaman' || (xstate && xstate.me && xstate.me.account === w.address))) return mwHide(); mwActivate(w); }
+function mwUse(w) { if (XAPP) return; // inside Xaman only the account picked in Xaman is used; the others are just listed
+  if (S.account && S.account.address === w.address && (w.via !== 'xaman' || (xstate && xstate.me && xstate.me.account === w.address))) return mwHide(); mwActivate(w); }
 function mwSignIn(want) {
   if (!xp) { mwHide(); return signIn(null); }
   if (xstate && xstate.me) mwSnap(xstate.me.account);
