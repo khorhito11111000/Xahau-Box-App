@@ -1,4 +1,8 @@
 /* Theme before first paint: 'dark' (default), 'light' or 'system'. Stored only in this browser. */
+/* Inside the Xaman xApp: mark <html class="xapp"> before the stylesheet paints (transparent background, xApp sizes). Same test as XAPP in app.js. */
+(function () {
+  try { if (/xumm\/xapp|xAppBuilder/i.test(navigator.userAgent || '') || /[?&]xAppToken=/.test(location.search)) document.documentElement.classList.add('xapp'); } catch (e) {}
+})();
 (function () {
   var K = 'xbox.theme', m = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
   function pref() { try { var v = localStorage.getItem(K); return v === 'light' || v === 'system' ? v : 'dark'; } catch (e) { return 'dark'; } }

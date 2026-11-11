@@ -533,7 +533,29 @@ html[data-theme=light] .sitefoot a.sfev{color:#00838F}
 html[data-theme=light] .sitefoot a.sfdc{color:#4752C4}
 .top .chip.fau{align-self:flex-start}
 
-/* Xaman xApp mode only (html.xapp is set by app.js inside Xaman): no sign-in / sign-out / website-only blocks */
+/* Xaman xApp mode only (html.xapp is set by js/theme.js and app.js inside Xaman): no sign-in / sign-out / website-only blocks */
 .xonly{display:none}
 .xapp .xonly{display:block}
 .xapp .xhide,.xapp #acctBtn,.xapp .xrelog{display:none!important}
+/* Xaman xApp only, for the xApp review (js/theme.js sets html.xapp in <head>, before this file paints) */
+/* transparent html/body from the first paint, so nothing flashes while the xApp loads; the app background is the body::before / body::after layers */
+html.xapp,html.xapp body{background:transparent}
+/* text at least 16px */
+html.xapp,html.xapp body{font-size:16px}
+.xapp .brand b,.xapp .chip,.xapp .chip.acctbtn,.xapp .sub,.xapp .sm,.xapp .card.warn,.xapp .lbl,.xapp .ta,.xapp .opt b,.xapp .opt span span,.xapp .row,.xapp .row2 .btn,.xapp .tdattr span,.xapp .tdrow,.xapp .tdcp,.xapp .tinfo b,.xapp .rem,.xapp .why,.xapp .json,.xapp .err-line,.xapp .tag,.xapp .foot-note,.xapp .opt.opt2 b,.xapp .ledgerline,.xapp .ledgerbox .row,.xapp .secitem b,.xapp .secitem p,.xapp .backbtn,.xapp #wStepTxt,.xapp .tok .gctag,.xapp .bhead .bbadge,.xapp .bhead .bmeta,.xapp .nbadge,.xapp .egpill,.xapp .langopt,.xapp .langopt b,.xapp .rules li,.xapp .tab,.xapp .tab .tn,.xapp .top .acct,.xapp .top .acctt,.xapp .top .acctt b,.xapp .top .chip.net,.xapp .chip.gear,.xapp .giftcard .gfrom,.xapp .giftcard .gmeta .row,.xapp .themelist .langopt,.xapp #acc-hook .accb>.inp,.xapp #acc-hook .btn2 .inp,.xapp .mwav,.xapp .mwa,.xapp .mwm,.xapp .mwtag,.xapp .mwb,.xapp .mwwarn,.xapp .card.gcwarn,.xapp .creator .sm,.xapp .sthl,.xapp .sths,.xapp .stv small,.xapp .stl,.xapp .stnote,.xapp .strf,.xapp .sitefoot,.xapp .sfcols h4,.xapp .sfd p,.xapp .sfdis,.xapp .sfver,.xapp .sfroad h4,.xapp .sfroad ol,.xapp .sfr5,.xapp .sfroad>summary,.xapp .oldkeys>summary,.xapp .donaddr,.xapp .donbtns .btn,.xapp .exbtn,.xapp .card.stepnote,.xapp .card.stepok,.xapp .bbadge.burnt,.xapp .bmeta .bbadge.burnt,.xapp .xkick,.xapp .xwait,.xapp .hkbox,.xapp .bkshare,.xapp #mbTabs .tab,.xapp .kid .kidv,.xapp .kid .row2 .btn{font-size:16px}
+/* touch areas at least 40x40px */
+.xapp .chip,.xapp .strf{min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.xapp .top .chip.net{padding:5px 12px}
+.xapp .mwb,.xapp .creator .mwb,.xapp .tdx,.xapp .tinfo-btn,.xapp .tdcp{width:40px;height:40px}
+.xapp .tinfo-btn{top:4px;right:4px}
+.xapp .tok .tinfo{padding-right:40px}
+.xapp .lnk,.xapp .mwx{min-height:40px;min-width:40px}
+.xapp .sfcols a,.xapp .sfd summary,.xapp .sfcols .sfsoon{display:flex;align-items:center;min-height:40px;padding:2px 0}
+.xapp .sfroad>summary,.xapp .oldkeys>summary{padding-top:10px;padding-bottom:10px;cursor:pointer}
+.xapp .sfdis a{display:inline-block;padding:9px 2px;margin:-9px 0}
+/* inline pills inside sentences keep their look; the tap area around them is 40px+ high */
+.xapp .egpill{position:relative}
+.xapp .egpill::after{content:"";position:absolute;left:-2px;right:-2px;top:50%;height:44px;margin-top:-22px}
+/* zoom: pinch zoom stays on (accessibility); double-tap zoom is off, and inputs are 16px+ so iOS does not zoom in on focus */
+.xapp body{touch-action:manipulation}
+.xapp input,.xapp select,.xapp textarea{font-size:max(16px,1em)}
