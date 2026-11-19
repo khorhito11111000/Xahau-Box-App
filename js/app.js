@@ -1178,7 +1178,6 @@ function renderTokens() {
 }
 const kind = () => { const top = document.querySelector('input[name=kind]:checked').value; return top === 'token' ? 'token' : document.querySelector('input[name=linkFor]:checked').value; };
 function syncKindUi(quiet) {
-  if (acct && giftIsGc() && kind() === 'bearer') { document.querySelector('input[name=linkFor][value=named]').checked = true; if (!quiet) toast(t('gcNeedsKey')); }
   const k = kind(); heldRender(); keyNote(); $('linkWrap').classList.toggle('hide', k === 'token'); $('namedWrap').classList.toggle('hide', k !== 'named'); $('keyWrap').classList.toggle('hide', k !== 'token'); updateSummary(); wProgress(); }
 /* key-token mode: say whether a key made earlier is waiting for a box (it goes into this one) or a new key is made when the box is built */
 function keyNote() {
@@ -1208,7 +1207,6 @@ function wCheck(n) {
     if (amt > freeToLock(acct, !!sel.gift, kind() === 'token')) return t('notEnough');
   }
   if (n === 2) {
-    if (giftIsGc() && kind() === 'bearer') return t('gcNeedsKey');
     if (kind() === 'named' && !L.isAddress($('namedAddr').value.trim())) return t('needNamed');
   }
   return null;
@@ -1321,7 +1319,6 @@ $('packBtn').onclick = async () => {
   if (amt > freeToLock(acct, !!sel.gift, k === 'token')) return errSet('createErr', t('notEnough'));
   let named = null;
   if (k === 'named') { named = $('namedAddr').value.trim(); if (!L.isAddress(named)) return errSet('createErr', t('needNamed')); }
-  if (giftIsGc() && k === 'bearer') return errSet('createErr', t('gcNeedsKey'));
   // key-token box: always a brand-new key, minted right now (signature 1), then the box (signature 2)
   let heldN = null;
   if (k === 'token' && sel.held) {
