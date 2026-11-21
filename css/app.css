@@ -276,6 +276,14 @@ select.inp option{background:#0b1a3d}
 .giftcard .gtitle{font-size:26px;font-weight:800;line-height:1.15;overflow-wrap:anywhere}
 .giftcard .gfrom{font-size:14px;opacity:.85;overflow-wrap:anywhere}
 .giftcard .ginside{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.giftcard .ginside.hasimg{display:flex;flex-direction:column;align-items:center;gap:6px}
+.giftcard .ginside .insimg{width:96px;height:auto;max-height:136px;object-fit:contain;border-radius:8px;box-shadow:0 4px 12px rgba(27,36,96,.25)}
+.row b.hasimg{display:inline-flex;align-items:center;gap:8px}
+.row b .insimg{width:32px;height:44px;object-fit:contain;border-radius:4px;flex:none}
+.instxt{display:inline-flex;flex-direction:column;align-items:inherit}
+.giftcard .instxt{align-items:center}
+.row b .instxt{align-items:flex-end;text-align:right}
+.insproj{font-size:12px;font-weight:600;opacity:.75}
 .giftcard .gmeta{width:100%;margin-top:6px;text-align:left;align-self:stretch}
 .giftcard .gmeta .row{border-bottom-color:rgba(27,36,96,.14);padding:6px 0;font-size:13px;gap:10px}
 .giftcard .gmeta .row span{color:rgba(27,36,96,.72)}

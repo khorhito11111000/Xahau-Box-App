@@ -276,6 +276,21 @@ function tokenView(tok) {
   })();
   viewCache.set(ck, p); return p;
 }
+/* "Inside" line: '1 URIToken' becomes the token's name + a small picture (same sources as tokenView, nothing new is requested).
+   Shown right away as '1 URIToken · F8D97B…'; if the name/picture do not come within 6 s or fail, that stays. */
+// project / collection line under the name: only for issuers the page knows (names as on the partner list); unknown issuers: nothing
+function tokProject(tok) { if (keyTokenId(tok)) return 'Xahau Box'; return { [ISS.CARDS]: 'Xahau Cards', [ISS.RAVEN]: "Odin's Eyes", [ISS.MOEBA]: 'Xahmoeba', [ISS.EVERGRAM]: 'Evergram' }[tok.Issuer] || null; }
+function tokInside(el, tok, txt) {
+  const tx = h('span', null, txt.replace('1 URIToken', '1 URIToken · ' + shortHead(String(tok.index || '').toUpperCase()))); el.textContent = ''; el.append(tx);
+  if (gcTok(tok)) return el;
+  Promise.race([tokenView(tok).catch(() => null), sleep(6000).then(() => null)]).then(v => {
+    if (!v) return;
+    const nm = v.name && v.name !== uriLabel(tok) ? v.name : null; if (nm) tx.textContent = txt.replace('1 URIToken', nm);
+    const pj = nm || v.img ? tokProject(tok) : null; if (pj) { const w = h('span', { class: 'instxt' }); tx.replaceWith(w); w.append(tx, h('small', { class: 'insproj' }, pj)); }
+    if (v.img) { const im = h('img', { class: 'insimg', src: v.img, alt: '', referrerpolicy: 'no-referrer', decoding: 'async' }); im.onerror = () => im.remove(); el.prepend(im); el.classList.add('hasimg'); }
+  });
+  return el;
+}
 function tokenCard(tok, opts) {
   const o = opts || {};
   const gc = gcTok(tok);
@@ -1765,14 +1780,14 @@ async function showBox() {
       L.isAddress(q.h) ? h('div', { class: 'gfrom' }, t('giftFrom') + ' ' + short(q.h)) : null,
       by ? h('div', { class: 'gfrom' }, t('boxBy') + ': ' + by.slice(0, 7) + '…' + by.slice(-5) + ' · ' + t('boxByNote')) : null,
       tok && gcTok(tok) ? gcWarn() : null,
-      gp.length ? h('div', { class: 'ginside' }, t('giftInside') + ': ' + gp.join(' + ')) : null,
+      gp.length ? (tok && !gcTok(tok) ? tokInside(h('div', { class: 'ginside' }), tok, t('giftInside') + ': ' + gp.join(' + ')) : h('div', { class: 'ginside' }, t('giftInside') + ': ' + gp.join(' + '))) : null,
       gmeta,
       h('button', { class: 'btn navy', type: 'button', onclick: () => { gc.remove(); rest.classList.remove('hide'); } }, t('giftSee')));
     rest.classList.add('hide'); v.prepend(gc);
   }
   if (!b) { card.append(row(t('status'), t('stGone'), 'bad'), row(t('boxNumber'), short(q.vc))); return; }
   const amt = BigInt('0x' + b.amt), parts = []; if (amt) parts.push(dropsToXah(amt) + ' XAH'); if (tok) parts.push(gcTok(tok) ? '🔒 ' + t('gcTokName') : '1 URIToken');
-  card.append(row(t('contents'), parts.join(' + '), 'yel'));
+  { const cr = row(t('contents'), parts.join(' + '), 'yel'); if (tok && !gcTok(tok)) tokInside(cr.querySelector('b'), tok, parts.join(' + ')); card.append(cr); }
   if (by) card.append(creatorRow(by));
   if (tok && gcTok(tok)) card.append(gcWarn());
   if (tok) card.append(tokenCard(tok, { big: true }));
