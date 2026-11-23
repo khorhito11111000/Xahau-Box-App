@@ -2231,3 +2231,11 @@ Object.assign(window.BOX_I18N.ru, { homeBtn: "Главная" });
 Object.assign(window.BOX_I18N.de, { homeBtn: "Start" });
 Object.assign(window.BOX_I18N.zh, { homeBtn: "首页" });
 Object.assign(window.BOX_I18N.ja, { homeBtn: "ホーム" });
+
+Object.assign(window.BOX_I18N.en, { kcCopyId: "Copy ID", kcCollapse: "Collapse" });
+Object.assign(window.BOX_I18N.es, { kcCopyId: "Copiar ID", kcCollapse: "Contraer" });
+Object.assign(window.BOX_I18N.fr, { kcCopyId: "Copier l’ID", kcCollapse: "Réduire" });
+Object.assign(window.BOX_I18N.ru, { kcCopyId: "Копировать ID", kcCollapse: "Свернуть" });
+Object.assign(window.BOX_I18N.de, { kcCopyId: "ID kopieren", kcCollapse: "Einklappen" });
+Object.assign(window.BOX_I18N.zh, { kcCopyId: "复制 ID", kcCollapse: "收起" });
+Object.assign(window.BOX_I18N.ja, { kcCopyId: "IDをコピー", kcCollapse: "折りたたむ" });

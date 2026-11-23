@@ -1704,9 +1704,110 @@ async function kcRead(net, id) {
   const st = new Map(ents.map(e => [e.HookStateKey, e.HookStateData])), want = '01' + id;
   for (const [k, d] of st) if (d.length === 170 && String(st.get(L.modeKey(k)) || '').toUpperCase() === want) out.boxes.push(parseBox(d));
   out.boxes.sort((a, c) => a.nonce - c.nonce);
-  await Promise.all(out.boxes.filter(b => !isZero(b.tid)).map(b => rpcOn(net, 'ledger_entry', { uri_token: b.tid, ledger_index: 'validated' }).then(r => { b.gc = !!(r.node && gcTok(r.node)); }).catch(() => {})));
+  await Promise.all(out.boxes.filter(b => !isZero(b.tid)).map(b => rpcOn(net, 'ledger_entry', { uri_token: b.tid, ledger_index: 'validated' }).then(r => { b.tok = r.node || null; b.gc = !!(b.tok && gcTok(b.tok)); }).catch(() => {})));
   return out;
 }
+
+/* Key-check URIToken thumbnails: read-only, lazy, cached per network+id. Hook state already has the token id (tid). */
+const KC_IPFS = 'https://ipfs.io/ipfs/';
+const KC_IMG_EXT = /\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i;
+const kcImgCache = new Map();
+function kcHttp(u) {
+  u = String(u || '').trim();
+  if (/^ipfs:\/\//i.test(u)) { let p = u.slice(7).replace(/^ipfs\//i, '').replace(/^\/+/, ''); return KC_IPFS + p; }
+  return u;
+}
+function kcHttpOk(u) { try { const x = new URL(kcHttp(u)); return x.protocol === 'https:' || x.protocol === 'http:'; } catch { return false; } }
+function kcIsImgUrl(u) { try { return kcHttpOk(u) && KC_IMG_EXT.test(new URL(kcHttp(u)).pathname); } catch { return false; } }
+function kcMetaImg(j) {
+  if (!j || typeof j !== 'object') return null;
+  for (const k of ['image', 'image_url', 'imageUrl']) {
+    const v = typeof j[k] === 'string' ? j[k].trim() : '';
+    if (v && kcHttpOk(v)) return kcHttp(v);
+  }
+  return null;
+}
+async function kcFetchJson(url) {
+  const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 8000);
+  try {
+    const r = await fetch(kcHttp(url), { signal: ac.signal, credentials: 'omit', referrerPolicy: 'no-referrer' });
+    if (!r.ok) return null; const j = await r.json(); return j && typeof j === 'object' && !Array.isArray(j) ? j : null;
+  } catch { return null; } finally { clearTimeout(tm); }
+}
+function kcResolve(net, tok) {
+  const id = String((tok && tok.index) || '').toUpperCase();
+  const ck = net + ':' + id;
+  if (kcImgCache.has(ck)) return kcImgCache.get(ck);
+  const p = (async () => {
+    if (!tok) return { img: null, kind: 'missing', id };
+    const uri = hexToText(tok.URI || '') || '';
+    if (gcIs(uri)) return { img: null, kind: 'gift', id };
+    if (/^odinseyes:raven:/i.test(uri) || tok.Issuer === ISS.RAVEN) return { img: null, kind: 'raven', id };
+    if (/^(https?:\/\/|ipfs:\/\/)/i.test(uri)) {
+      if (kcIsImgUrl(uri)) return { img: kcHttp(uri), kind: 'url', id };
+      const img = kcMetaImg(await kcFetchJson(uri)); if (img) return { img, kind: 'meta', id };
+    }
+    const img = kcMetaImg((remarkMeta(remarkMap(tok)) || {}).meta); if (img) return { img, kind: 'remarks', id };
+    if (tok.Issuer === ISS.EVERGRAM && EG_PRO.test(uri)) return { img: 'https://evergram.app/badges/pro.png', kind: 'evergram', id };
+    return { img: null, kind: 'none', id };
+  })();
+  kcImgCache.set(ck, p); return p;
+}
+function kcIcon(kind) { return kind === 'gift' ? '🔒' : '🎁'; }
+function kcSetFace(el, src, kind) {
+  const ic = kcIcon(kind);
+  if (!src) { el.textContent = ic; return; }
+  const im = h('img', { alt: '', referrerpolicy: 'no-referrer', decoding: 'async' });
+  im.onerror = () => { el.textContent = ic; };
+  im.onload = () => { el.textContent = ''; el.append(im); };
+  im.src = src;
+}
+/* Row of square thumbs under "Inside". Expand stays inside the box card (not a modal). One open thumb per card. */
+function kcTokRow(net, box) {
+  const tid = String(box.tid || '').toUpperCase();
+  if (!/^[0-9A-F]{64}$/.test(tid) || isZero(tid)) return null;
+  const thumbs = h('div', { class: 'kcthumbs' });
+  const panel = h('div', { class: 'kcexpand hide' });
+  const wrap = h('div', { class: 'kcinside' }, thumbs, panel);
+  let open = null;
+  const item = { id: tid, img: null, kind: box.gc ? 'gift' : 'none' };
+  function hide() {
+    open = null; panel.classList.add('hide'); panel.textContent = '';
+    for (const b of thumbs.children) { b.classList.remove('on'); b.setAttribute('aria-expanded', 'false'); }
+  }
+  function show(it) {
+    if (open === it.id) { hide(); return; }
+    open = it.id;
+    for (const b of thumbs.children) { const on = b.getAttribute('data-id') === it.id; b.classList.toggle('on', on); b.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+    panel.classList.remove('hide'); panel.textContent = '';
+    const pic = h('div', { class: 'kcepic' }, kcIcon(it.kind));
+    if (it.img) {
+      const im = h('img', { class: 'kceimg', alt: '', referrerpolicy: 'no-referrer', decoding: 'async' });
+      im.onerror = () => {};
+      im.onload = () => { pic.textContent = ''; pic.append(im); pic.classList.add('has'); };
+      im.src = it.img;
+    }
+    panel.append(
+      pic,
+      h('div', { class: 'sm' }, t('tokId')),
+      h('div', { class: 'kceid mono' }, it.id),
+      h('div', { class: 'row2 kcebtns' },
+        h('button', { class: 'btn y', type: 'button', onclick: () => copy(it.id) }, t('kcCopyId')),
+        h('button', { class: 'btn o', type: 'button', onclick: hide }, t('kcCollapse')))
+    );
+  }
+  const btn = h('button', { class: 'kcthumb', type: 'button', 'data-id': tid, 'aria-expanded': 'false', 'aria-label': t('tokId'), onclick: () => show(item) }, kcIcon(item.kind));
+  thumbs.append(btn);
+  const fill = tok => kcResolve(net, tok).then(v => {
+    item.img = v.img; item.kind = v.kind; item.id = v.id || tid;
+    kcSetFace(btn, v.img, v.kind);
+    if (open === tid || open === item.id) { open = null; show(item); }
+  }).catch(() => {});
+  if (box.tok) fill(box.tok);
+  else rpcOn(net, 'ledger_entry', { uri_token: tid, ledger_index: 'validated' }).then(r => { if (r.node) { box.tok = r.node; box.gc = gcTok(r.node); fill(r.node); } }).catch(() => {});
+  return wrap;
+}
+
 async function kcCheck() {
   errSet('kcErr'); const v = $('kcView'); v.textContent = '';
   const id = kcId($('kcInput').value); if (!id) return errSet('kcErr', t('kcBadId'));
@@ -1727,7 +1828,9 @@ async function kcCheck() {
     const a = BigInt('0x' + b.amt), p = []; if (a) p.push(dropsToXah(a) + ' XAH'); if (!isZero(b.tid)) p.push(b.gc ? '🔒 ' + t('gcTokName') : '1 URIToken');
     const exp = parseInt(b.exp, 16), gone = exp && r.cur > exp;
     const bc = h('div', { class: 'card hkbox' }, h('div', { class: 'lbl' }, t('bxNo') + ' #' + b.nonce),
-      row(t('contents'), p.join(' + ') || t('bxEmpty'), 'yel'),
+      row(t('contents'), p.join(' + ') || t('bxEmpty'), 'yel'));
+    const thumbs = isZero(b.tid) ? null : kcTokRow(r.net, b); if (thumbs) bc.append(thumbs);
+    bc.append(
       row(t('status'), gone ? t('expiredState') : b.status === 0 ? t('stClosed') : t('stClaiming')),
       row(t('ledgerExp'), exp ? String(exp) : t('limitNone')));
     if (exp) bc.append(same ? leftRow(exp, r.cur) : row(t('timeLeft'), gone ? t('expiredState') : '≈ ' + fmtLeft((exp - r.cur) * sec)));
