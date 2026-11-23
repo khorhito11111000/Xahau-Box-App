@@ -358,7 +358,9 @@ function tokenDetails(tok) {
 
 /* ---------- transactions (same shapes as the manual v14 tests) ---------- */
 const P = o => Object.entries(o).map(([k, v]) => ({ HookParameter: { HookParameterName: hexStr(k), HookParameterValue: v } }));
-const base = (type, account) => ({ TransactionType: type, Account: account, NetworkID: NET().networkId });
+const SRC_TAG = 241812121; // Bithomp DApp SourceTag (uint32). Do not override a tag already set; never touch DestinationTag.
+function srcTag(tx) { if (tx && tx.SourceTag == null) tx.SourceTag = SRC_TAG; return tx; }
+const base = (type, account) => srcTag({ TransactionType: type, Account: account, NetworkID: NET().networkId });
 const auditTx = hk => Object.assign(base('Invoke', hk), { HookParameters: P({ CMD: hexStr('AUDIT') }) });
 function packTx(hk, b) { const p = { CMD: hexStr('PACK'), VC: b.vc }; if (b.ktid) { p.MODE = '01'; p.KTID = b.ktid; } p.TID = b.tid || Z64; p.AMT = b.amt; if (b.exp && b.exp !== '00000000') p.EXP = b.exp; return Object.assign(base('Invoke', hk), { HookParameters: P(p) }); }
 const withDest = (tx, opener, hk) => (opener === hk ? tx : Object.assign(tx, { Destination: hk }));
@@ -950,6 +952,7 @@ function xPanel(next, qr, cancel) {
 }
 const xSubs = new Map(); // open Xaman sign requests of this page: uuid -> subscription
 async function xamanSign(tx, box, onCreated) {
+  tx = srcTag(tx);
   const sdk = xstate.sdk, inX = !!xstate.xapp;
   let sub;
   // xApp: an expired sign request also settles it (no polling there to notice it); normal browser: unchanged
@@ -1274,7 +1277,7 @@ function keyUri() {
   const n = new Uint8Array(8); crypto.getRandomValues(n);
   return new URL('img/key.json', appUrl()).href + '?k=' + L.hex.toHex(n).toLowerCase();
 }
-function mintTx(account, uriText) { return { TransactionType: 'URITokenMint', Account: account, NetworkID: NET().networkId, Flags: 0, URI: L.hex.toHex(new TextEncoder().encode(uriText)) }; }
+function mintTx(account, uriText) { return srcTag({ TransactionType: 'URITokenMint', Account: account, NetworkID: NET().networkId, Flags: 0, URI: L.hex.toHex(new TextEncoder().encode(uriText)) }); }
 $('mintKeyBtn').onclick = () => {
   errSet('createErr');
   return; // a key is made only by «Build box», together with its box
@@ -1389,8 +1392,8 @@ function signLabels(p) {
 function signTxs() {
   const p = S.pending; if (!p) return [];
   const lb = signLabels(p);
-  if (p.op === 'pack') { const out = []; if (p.audit) out.push({ label: lb[0], tx: auditTx(p.box.h) }); out.push({ label: lb[lb.length - 1], tx: packTx(p.box.h, p.box), main: true }); return out; }
-  return [{ label: lb[0], tx: p.tx, main: true }];
+  if (p.op === 'pack') { const out = []; if (p.audit) out.push({ label: lb[0], tx: srcTag(auditTx(p.box.h)) }); out.push({ label: lb[lb.length - 1], tx: srcTag(packTx(p.box.h, p.box)), main: true }); return out; }
+  return [{ label: lb[0], tx: srcTag(p.tx), main: true }];
 }
 function jsonBlock(item) {
   const txt = JSON.stringify(item.tx, null, 2);
@@ -2261,7 +2264,7 @@ function burnNote(list) {
 function burnBack(p) { return p.from === 'boxes' ? enterMyBoxes() : enterCodes(); }
 function burnCard(me, id, key, from = 'codes') {
   const wrap = h('div', { class: 'hide' }, h('div', { class: 'card warn' }, h('p', { class: 'sm' }, t(key ? 'burnKeyWarn' : 'burnWarn'))),
-    h('button', { class: 'btn burn', type: 'button', onclick: () => { S.pending = { op: 'burn', key: !!key, tx: { TransactionType: 'URITokenBurn', Account: me, URITokenID: id, NetworkID: NET().networkId }, from }; save(); enterSign(); } }, t('burnYes')));
+    h('button', { class: 'btn burn', type: 'button', onclick: () => { S.pending = { op: 'burn', key: !!key, tx: srcTag({ TransactionType: 'URITokenBurn', Account: me, URITokenID: id, NetworkID: NET().networkId }), from }; save(); enterSign(); } }, t('burnYes')));
   const open = h('button', { class: 'btn o', type: 'button', onclick: () => { wrap.classList.remove('hide'); open.classList.add('hide'); } }, '🔥 ' + t('burnBtn'));
   return h('div', {}, open, wrap);
 }
@@ -2737,7 +2740,7 @@ async function hkDefExists(hash) {
   throw new Error(r.error_message || r.error || 'ledger_entry');
 }
 function hkTx(who, netId) { // by hash: no HookApiVersion (temMALFORMED), it comes from the definition
-  return { TransactionType: 'SetHook', Account: who || S.account.address, NetworkID: netId || NET().networkId, Hooks: [{ Hook: { HookHash: HK_HASH, HookOn: HK_ON, HookNamespace: C.HOOK_NAMESPACE, Flags: 1 } }] };
+  return srcTag({ TransactionType: 'SetHook', Account: who || S.account.address, NetworkID: netId || NET().networkId, Hooks: [{ Hook: { HookHash: HK_HASH, HookOn: HK_ON, HookNamespace: C.HOOK_NAMESPACE, Flags: 1 } }] });
 }
 $('hkGo').onclick = async () => {
   errSet('hkErr'); const out = $('hkOut'); out.textContent = '';
@@ -2875,5 +2878,5 @@ document.querySelectorAll('.dontab').forEach(b => b.onclick = () => { donCoin = 
 if ($('donCopy')) $('donCopy').onclick = () => copy(DON_ADDR);
 acctSwap(); initXaman(); mwCarriedErr(); applyLang(); applyNet(); renderAcct(); handleHash(); resumePack(); resumeClaim(); resumeMint(); resumeRemit(); resumeOpen(); setTimeout(stepPoll, 1500); egify(document.body);
 // test hook for automated checks (read-only helpers, no secrets)
-window.__box = { hkTx, sha512Half, packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr, mintTx, gc: { encrypt: gcEncrypt, decrypt: gcDecrypt, genPw: gcGenPw, max: GC.MAX, iter: GC.ITER } };
+window.__box = { hkTx, sha512Half, packTx, claimKeyTx, claimTokTx, openTx, auditTx, remitTx, parseQr, makeQr, mintTx, srcTag, SRC_TAG, gc: { encrypt: gcEncrypt, decrypt: gcDecrypt, genPw: gcGenPw, max: GC.MAX, iter: GC.ITER } };
 })();
