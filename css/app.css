@@ -284,6 +284,8 @@ select.inp option{background:#0b1a3d}
 .giftcard .gfromv .mwb,.giftcard .boxid .mwb{flex:none;width:30px;height:30px;margin-top:1px;color:var(--navy);border-color:rgba(27,36,96,.3);background:rgba(27,36,96,.08)}
 .giftcard .boxidhow{margin:0 0 4px}
 .giftcard .boxidhow>summary,.giftcard .boxidnote{color:rgba(27,36,96,.72)}
+.giftcard .gwin{min-height:44px;margin:4px 0 2px;background:rgba(27,36,96,.08);color:var(--navy);border:1.5px solid rgba(27,36,96,.3);font-size:14px}
+.giftcard .gwin .exico{width:20px;height:20px;flex:0 0 20px}
 .giftcard .ginside{font-size:16px;font-weight:700;overflow-wrap:anywhere}
 .giftcard .ginside.hasimg{display:flex;flex-direction:column;align-items:center;gap:6px}
 .giftcard .ginside .insimg{width:96px;height:auto;max-height:136px;object-fit:contain;border-radius:8px;box-shadow:0 4px 12px rgba(27,36,96,.25)}

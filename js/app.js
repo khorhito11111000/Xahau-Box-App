@@ -1912,11 +1912,13 @@ async function showBox() {
     if (expN0) gmeta.append(mark(liveRow()));
     gmeta.append(mark(row(t('ledgerExp'), expN0 ? String(expN0) : t('limitNone'))));
     if (expN0) gmeta.append(mark(leftRow(expN0, cur)));
+    const idb = boxIdBlock(bk, true);
+    if (idb && L.isAddress(q.h)) idb.append(h('a', { class: 'btn gwin', href: winBase() + 'account/' + q.h, target: '_blank', rel: 'noopener noreferrer' }, h('img', { class: 'exico', src: 'img/pj-xahauwin.png', alt: '' }), t('openXahauWin')));
     const gc = h('div', { class: 'giftcard' },
       h('div', { class: 'gicon' }, window.BOX_ICON ? window.BOX_ICON('gift', 'gbig') : '🎁'),
       h('div', { class: 'gtitle' }, t('giftTitle')),
       L.isAddress(q.h) ? addrFullRow(t('giftFrom'), q.h) : null,
-      boxIdBlock(bk, true),
+      idb,
       by ? h('div', { class: 'gfrom' }, t('boxBy') + ': ' + by.slice(0, 7) + '…' + by.slice(-5) + ' · ' + t('boxByNote')) : null,
       tok && gcTok(tok) ? gcWarn() : null,
       gp.length ? (tok && !gcTok(tok) ? tokInside(h('div', { class: 'ginside' }), tok, t('giftInside') + ': ' + gp.join(' + ')) : h('div', { class: 'ginside' }, t('giftInside') + ': ' + gp.join(' + '))) : null,
