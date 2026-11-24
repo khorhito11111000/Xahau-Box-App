@@ -5,14 +5,14 @@ A single web page for gift boxes on Xahau. You put XAH and/or one URIToken into 
 - No server: the page only reads the public ledger and builds transactions.
 - You sign every step yourself in Xaman (or copy the JSON and sign it in another tool).
 - Networks: Testnet (NetworkID 21338) and Mainnet (21337), switched with the button at the top.
-- Languages: EN / ES / FR / RU (menu at the top, defaults to the phone's language).
+- Languages: EN / ES / FR / RU / DE / ZH / JA / PT (menu at the top, defaults to the phone's language).
 
 ## What is in the repository
 - `index.html` — the page itself and all its screens.
 - `css/app.css` — the look (colors, buttons, cards).
 - `js/app.js` — all the logic: reading the ledger, building transactions, QR, ledger counter.
 - `js/config.js` — settings (Xaman key, page address, Evergram link, networks). Public values only.
-- `js/i18n.js` — texts in 4 languages.
+- `js/i18n.js` — texts in 8 languages.
 - `vendor/boxlib.js` — ready-made libraries (signatures, hashes, QR) bundled into one file.
 - `vendor/xumm-oauth2-pkce-2.8.7.min.js` — the official Xaman sign-in library.
 - `vendor/LICENSES.md` — licenses of these libraries.
