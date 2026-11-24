@@ -585,7 +585,8 @@ html.xapp,html.xapp body{font-size:16px}
 .xapp body{touch-action:manipulation}
 .xapp input,.xapp select,.xapp textarea{font-size:max(16px,1em)}
 
-/* modest home listing credit */
-.listed{margin:4px 0 2px;line-height:1.5}
-.listed a{color:var(--mut);text-decoration:underline;text-underline-offset:2px}
-.listed a:hover{color:var(--txt)}
+/* modest footer listing credit */
+.sfbrand .listed{margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--mut)}
+.sfbrand .listed a{color:var(--mut);text-decoration:underline;text-underline-offset:2px}
+.sfbrand .listed a:hover{color:var(--txt)}
+html[data-theme=light] .sfbrand .listed a:hover{color:var(--navy)}
