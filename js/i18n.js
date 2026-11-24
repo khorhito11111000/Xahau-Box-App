@@ -2894,3 +2894,13 @@ window.BOX_I18N.pt = {
  "kcCopyId": "Copiar ID",
  "kcCollapse": "Recolher"
 };
+
+
+Object.assign(window.BOX_I18N.en, { listedOn: 'Listed on' });
+Object.assign(window.BOX_I18N.es, { listedOn: 'Listado en' });
+Object.assign(window.BOX_I18N.fr, { listedOn: 'Répertorié sur' });
+Object.assign(window.BOX_I18N.ru, { listedOn: 'В списках' });
+Object.assign(window.BOX_I18N.de, { listedOn: 'Gelistet auf' });
+Object.assign(window.BOX_I18N.zh, { listedOn: '已收录于' });
+Object.assign(window.BOX_I18N.ja, { listedOn: '掲載：' });
+Object.assign(window.BOX_I18N.pt, { listedOn: 'Listado em' });
