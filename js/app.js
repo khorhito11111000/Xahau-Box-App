@@ -124,6 +124,13 @@ function addrCopyRow(label, a) {
     h('span', { class: 'crv' }, h('b', { class: 'mono' }, a.slice(0, 7) + '…' + a.slice(-5)),
       h('button', { class: 'mwb', type: 'button', title: t('copy'), 'aria-label': t('copy'), onclick: () => copy(a) }, mwCopyIco()))));
 }
+function addrFullRow(label, a) {
+  if (!L.isAddress(a)) return null;
+  return h('div', { class: 'gfromfull' },
+    h('div', { class: 'row gfromrow' }, h('span', null, label),
+      h('span', { class: 'gfromv' }, h('b', { class: 'mono' }, a),
+        h('button', { class: 'mwb', type: 'button', title: t('copy'), 'aria-label': t('copy'), onclick: () => copy(a) }, mwCopyIco()))));
+}
 function boxIdBlock(k, withNote) {
   const id = boxIdHex(k); if (!id) return null;
   const block = h('div', { class: 'boxid' },
@@ -1908,7 +1915,8 @@ async function showBox() {
     const gc = h('div', { class: 'giftcard' },
       h('div', { class: 'gicon' }, window.BOX_ICON ? window.BOX_ICON('gift', 'gbig') : '🎁'),
       h('div', { class: 'gtitle' }, t('giftTitle')),
-      L.isAddress(q.h) ? h('div', { class: 'gfrom' }, t('giftFrom') + ' ' + short(q.h)) : null,
+      L.isAddress(q.h) ? addrFullRow(t('giftFrom'), q.h) : null,
+      boxIdBlock(bk, true),
       by ? h('div', { class: 'gfrom' }, t('boxBy') + ': ' + by.slice(0, 7) + '…' + by.slice(-5) + ' · ' + t('boxByNote')) : null,
       tok && gcTok(tok) ? gcWarn() : null,
       gp.length ? (tok && !gcTok(tok) ? tokInside(h('div', { class: 'ginside' }), tok, t('giftInside') + ': ' + gp.join(' + ')) : h('div', { class: 'ginside' }, t('giftInside') + ': ' + gp.join(' + '))) : null,

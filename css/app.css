@@ -275,6 +275,15 @@ select.inp option{background:#0b1a3d}
 .giftcard .gicon .ico{width:40px;height:40px;color:var(--navy)}
 .giftcard .gtitle{font-size:26px;font-weight:800;line-height:1.15;overflow-wrap:anywhere}
 .giftcard .gfrom{font-size:14px;opacity:.85;overflow-wrap:anywhere}
+.giftcard .gfromfull,.giftcard .boxid{width:100%;align-self:stretch;text-align:left;color:var(--navy)}
+.giftcard .gfromfull{display:flex;flex-direction:column;gap:2px;opacity:1}
+.giftcard .gfromrow,.giftcard .boxid .row{border-bottom-color:rgba(27,36,96,.14);padding:6px 0;gap:10px;align-items:flex-start}
+.giftcard .gfromrow>span:first-child,.giftcard .boxid .row>span:first-child{color:rgba(27,36,96,.72);flex:none;padding-top:2px}
+.giftcard .gfromv{display:flex;align-items:flex-start;gap:6px;min-width:0;flex:1;justify-content:flex-end}
+.giftcard .gfromv b,.giftcard .boxidv b{flex:1;min-width:0;color:var(--navy);font-size:13px;line-height:1.35;word-break:break-all;overflow-wrap:anywhere;white-space:normal;user-select:all;text-align:right}
+.giftcard .gfromv .mwb,.giftcard .boxid .mwb{flex:none;width:30px;height:30px;margin-top:1px;color:var(--navy);border-color:rgba(27,36,96,.3);background:rgba(27,36,96,.08)}
+.giftcard .boxidhow{margin:0 0 4px}
+.giftcard .boxidhow>summary,.giftcard .boxidnote{color:rgba(27,36,96,.72)}
 .giftcard .ginside{font-size:16px;font-weight:700;overflow-wrap:anywhere}
 .giftcard .ginside.hasimg{display:flex;flex-direction:column;align-items:center;gap:6px}
 .giftcard .ginside .insimg{width:96px;height:auto;max-height:136px;object-fit:contain;border-radius:8px;box-shadow:0 4px 12px rgba(27,36,96,.25)}
