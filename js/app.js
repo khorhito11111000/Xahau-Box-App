@@ -112,6 +112,31 @@ function creatorRow(a) {
       h('button', { class: 'mwb', type: 'button', title: t('copy'), 'aria-label': t('copy'), onclick: () => copy(a) }, mwCopyIco()))),
     h('p', { class: 'sm' }, t('boxByNote')));
 }
+function boxIdHex(k) {
+  let s = String(k || '').trim().toUpperCase();
+  if (s.startsWith('0X')) s = s.slice(2);
+  if (s.length === 66 && s.startsWith('00') && /^[0-9A-F]{66}$/.test(s)) s = s.slice(2);
+  return /^[0-9A-F]{64}$/.test(s) ? s : null;
+}
+function addrCopyRow(label, a) {
+  if (!L.isAddress(a)) return null;
+  return h('div', { class: 'creator' }, h('div', { class: 'row' }, h('span', null, label),
+    h('span', { class: 'crv' }, h('b', { class: 'mono' }, a.slice(0, 7) + '…' + a.slice(-5)),
+      h('button', { class: 'mwb', type: 'button', title: t('copy'), 'aria-label': t('copy'), onclick: () => copy(a) }, mwCopyIco()))));
+}
+function boxIdBlock(k, withNote) {
+  const id = boxIdHex(k); if (!id) return null;
+  const block = h('div', { class: 'boxid' },
+    h('div', { class: 'row boxidrow' }, h('span', null, t('boxId')),
+      h('span', { class: 'boxidv' }, h('b', { class: 'mono' }, id),
+        h('button', { class: 'mwb', type: 'button', title: t('copy'), 'aria-label': t('copy'), onclick: () => copy(id) }, mwCopyIco()))));
+  if (withNote) {
+    const how = h('details', { class: 'boxidhow' }, h('summary', null, t('boxIdHow')), h('p', { class: 'sm boxidnote' }, t('boxIdNote')));
+    how.addEventListener('click', ev => ev.stopPropagation());
+    block.append(how);
+  }
+  return block;
+}
 const gcWarn = () => h('div', { class: 'card gcwarn' }, '⚠ ' + t('gcWarn'));
 async function getTx(hash) { return rpc('tx', { transaction: hash }); }
 function hookAnswers(tx) { const m = tx.meta || tx.metaData || {}; return (m.HookExecutions || []).map(x => hexToText((x.HookExecution || {}).HookReturnString || '') || '').filter(Boolean); }
@@ -1860,9 +1885,9 @@ async function showBox() {
   const q = parseQr($('qrInput').value); if (!q) return errSet('openErr', t('badQr'));
   if (q.n) { const nk = Object.keys(C.NETWORKS).find(k => C.NETWORKS[k].networkId === q.n); if (nk && nk !== S.net) { S.net = nk; save(); applyNet(); renderAcct(); toast(t('netSwitched') + ': ' + NET().label); } }
   openQ = q; v.append(h('div', { class: 'spin sm' }));
-  let b, ktid = null, holder = null, tok = null, cur, by = null, packedAt = 0;
+  let b, ktid = null, holder = null, tok = null, cur, by = null, packedAt = 0, bk = null;
   try {
-    const bk = L.boxKey(q.vc);
+    bk = L.boxKey(q.vc);
     [b, cur] = [parseBox(await hookState(q.h, bk)), await currentLedger()];
     if (b) { const m = await hookState(q.h, L.modeKey(bk)); if (m && m.startsWith('01')) { ktid = m.slice(2); const kt = await uriToken(ktid); holder = kt ? kt.Owner : null; } if (!isZero(b.tid)) tok = await uriToken(b.tid); const packed = await boxCreator(q.h, bk); if (packed) { by = packed.account; packedAt = packed.ledger || 0; } }
   } catch (e) { v.textContent = ''; return errSet('openErr', e.message); }
@@ -1891,9 +1916,19 @@ async function showBox() {
       h('button', { class: 'btn navy', type: 'button', onclick: () => { gc.remove(); rest.classList.remove('hide'); } }, t('giftSee')));
     rest.classList.add('hide'); v.prepend(gc);
   }
-  if (!b) { card.append(row(t('status'), t('stGone'), 'bad'), row(t('boxNumber'), short(q.vc))); return; }
+  if (!b) {
+    if (L.isAddress(q.h)) card.append(addrCopyRow(t('giftFrom'), q.h));
+    { const idb = boxIdBlock(bk, true); if (idb) card.append(idb); }
+    card.append(row(t('status'), t('stGone'), 'bad'), row(t('boxNumber'), short(q.vc)));
+    return; }
   const amt = BigInt('0x' + b.amt), parts = []; if (amt) parts.push(dropsToXah(amt) + ' XAH'); if (tok) parts.push(gcTok(tok) ? '🔒 ' + t('gcTokName') : '1 URIToken');
   { const cr = row(t('contents'), parts.join(' + '), 'yel'); if (tok && !gcTok(tok)) tokInside(cr.querySelector('b'), tok, parts.join(' + ')); card.append(cr); }
+  if (L.isAddress(q.h)) card.append(addrCopyRow(t('giftFrom'), q.h));
+  { const idb = boxIdBlock(bk, true); if (idb) card.append(idb); }
+  const expN = parseInt(b.exp, 16);
+  card.append(stRow(b, expN, b.status === 0 ? 'ok' : 'yel'));
+  if (expN) card.append(liveRow()); card.append(row(t('ledgerExp'), expN ? String(expN) : t('limitNone')));
+  if (expN) card.append(leftRow(expN, cur));
   if (by) card.append(creatorRow(by));
   if (tok && gcTok(tok)) card.append(gcWarn());
   if (tok) card.append(tokenCard(tok, { big: true }));
@@ -1902,10 +1937,7 @@ async function showBox() {
   if (q.kind === 'named') card.append(row(t('signedFor'), short(q.a)));
   { const xm = xstate && xstate.me && xstate.me.account; if (q.kind === 'named' && xm && xm !== q.a) card.append(h('div', { class: 'card warn' }, t('namedOnly').replace('{a}', short(q.a)))); }
   if (ktid) card.append(row(t('keyHolder'), short(holder || '?')));
-  const expN = parseInt(b.exp, 16);
-  if (expN) card.append(liveRow()); card.append(row(t('ledgerExp'), expN ? String(expN) : t('limitNone')));
-  if (expN) card.append(leftRow(expN, cur));
-  card.append(stRow(b, expN, b.status === 0 ? 'ok' : 'yel'), row(t('boxNumber'), short(q.vc)));
+  card.append(row(t('boxNumber'), short(q.vc)));
   renderLive(false);
   // opener
   const opener = h('input', { class: 'inp', id: 'openerAddr', placeholder: 'r...', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
@@ -2093,8 +2125,9 @@ function boxCard(b, kn, lk, pk, ks) {
   if (!amt && !hasTok) inside.append(h('p', { class: 'sm' }, t('bxEmpty')));
   const body = h('div', { class: 'bbody hide' }, inside,
     row(t('kind'), b.ktid ? t('tokenKind') : t('kLink')),
-    stRow(b, expN), row(t('ledgerExp'), expN ? String(expN) : t('limitNone')), expN ? leftRow(expN, acct.cur) : null,
-    row(t('bxNo'), '#' + b.nonce), row(t('boxNumber'), kn ? short(kn.vc) : t('vcUnknown')),
+    stRow(b, expN), row(t('ledgerExp'), expN ? String(expN) : t('limitNone')), expN ? leftRow(expN, acct.cur) : null);
+  { const idb = boxIdBlock(b.key, true); if (idb) body.append(idb); }
+  body.append(row(t('bxNo'), '#' + b.nonce), row(t('boxNumber'), kn ? short(kn.vc) : t('vcUnknown')),
     b.ktid ? row(t('bxKeyTok'), short(b.ktid)) : null, b.ktid ? kidBox(b.ktid) : null);
   if (lk && !b.ktid) body.append(h('button', { class: 'btn y', type: 'button', onclick: () => { lk.nonce = b.nonce; finishPack(lk); } }, t('showLink')));
   if (b.ktid && ks) {
@@ -2197,12 +2230,18 @@ function inboxCard(b) {
   const me = S.account.address;
   const c = h('div', { class: 'card' + (inboxOpenable(b) ? ' inbox' : '') });
   if (b.gone) {
-    c.append(row(t('tokenKind'), short(b.ktid)), kidBox(b.ktid), row(t('inboxFrom'), short(b.h)), row(t('status'), t('stGone'), 'bad'), h('p', { class: 'sm' }, t('inboxGone')));
+    c.append(row(t('tokenKind'), short(b.ktid)), kidBox(b.ktid), addrCopyRow(t('inboxFrom'), b.h));
+    { const idb = boxIdBlock(b.key, true); if (idb) c.append(idb); }
+    c.append(row(t('status'), t('stGone'), 'bad'), h('p', { class: 'sm' }, t('inboxGone')));
     return c;
   }
   const amt = BigInt('0x' + b.amt), hasTok = !isZero(b.tid), expN = parseInt(b.exp, 16);
   const sum = h('b', { class: 'yel' }, [amt ? dropsToXah(amt) + ' XAH' : null, hasTok ? '1 URIToken' : null].filter(Boolean).join(' + ') || t('bxEmpty'));
-  c.append(h('div', { class: 'row' }, h('span', { class: 'ibn' }, '🎁 ' + boxNoHead(b.nonce, b.h)), sum), row(t('inboxFrom'), short(b.h)), stRow(b, expN, b.status === 0 ? 'ok' : 'yel'));
+  c.append(h('div', { class: 'row' }, h('span', { class: 'ibn' }, '🎁 ' + boxNoHead(b.nonce, b.h)), sum), addrCopyRow(t('inboxFrom'), b.h));
+  { const idb = boxIdBlock(b.key, true); if (idb) c.append(idb); }
+  c.append(stRow(b, expN, b.status === 0 ? 'ok' : 'yel'));
+  c.append(row(t('ledgerExp'), expN ? String(expN) : t('limitNone')));
+  if (expN) c.append(leftRow(expN, b.cur));
   const ins = h('div', { class: 'binside' }, h('div', { class: 'lbl' }, t('bxInside')));
   if (amt) ins.append(row('XAH', dropsToXah(amt) + ' XAH', 'yel'));
   let tok = null;
@@ -2210,8 +2249,7 @@ function inboxCard(b) {
     const tr = row('URIToken', short(b.tid)), slot = h('div'); ins.append(tr, slot);
     uriToken(b.tid).then(x => { tok = x; if (!x) return; if (gcTok(x)) { tr.lastChild.textContent = t('gcTag') + ' · ' + short(b.tid); sum.textContent = [amt ? dropsToXah(amt) + ' XAH' : null, t('gcTag')].filter(Boolean).join(' + '); slot.append(h('p', { class: 'sm' }, t('inboxGcNote'))); } slot.append(tokenCard(x)); }).catch(() => {});
   }
-  c.append(ins, row(t('ledgerExp'), expN ? String(expN) : t('limitNone')));
-  if (expN) c.append(leftRow(expN, b.cur));
+  c.append(ins);
   c.append(row(t('bxKeyTok'), short(b.ktid)), kidBox(b.ktid));
   { const fr = row(t('kFromWho'), short(b.h)); c.append(fr); keyMoves(me).then(m => { const x = m.inn.get(String(b.ktid).toUpperCase()); if (x) fr.lastChild.textContent = short(x.from); }).catch(() => {}); }
   const msg = h('p', { class: 'err-line' });
