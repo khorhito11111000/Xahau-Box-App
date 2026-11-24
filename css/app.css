@@ -442,6 +442,7 @@ html[data-theme=light] .card.gcwarn{border-color:#d9a800;background:#fff8dc;colo
 .boxidhow>summary::after{content:" ▾";font-size:10px}
 .boxidhow[open]>summary::after{content:" ▴"}
 .boxidnote{margin:4px 0 0;color:var(--mut);font-size:12px;line-height:1.4}
+.linklocal{margin:4px 0 8px;color:var(--mut);line-height:1.4;white-space:pre-line}
 
 
 html[data-theme=light] .tdsheet{background:#fff;color:#1b2460}html[data-theme=light] .tdattr{background:#f1f4fb}html[data-theme=light] .tdimg,html[data-theme=light] .tok:not(.big) .timg.has{background:#eef2fa}html[data-theme=light] .tinfo-btn{background:#fff;border-color:rgba(27,36,96,.2);color:var(--gold)}html[data-theme=light] .tdcp{border-color:rgba(27,36,96,.2);color:var(--gold)}html[data-theme=light] .tdx{background:#eef2fa}
