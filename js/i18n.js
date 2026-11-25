@@ -1690,14 +1690,14 @@ Object.assign(window.BOX_I18N.de, {"xamanRelogin": "Die Verbindung zu Xaman ist 
 Object.assign(window.BOX_I18N.zh, {"xamanRelogin": "与 Xaman 的连接中断了，或登录已过期。请先退出，再用 Xaman 重新登录，然后再试一次。", "xamanReloginBtn": "重新登录"});
 Object.assign(window.BOX_I18N.ja, {"xamanRelogin": "Xaman との接続が切れたか、ログインの有効期限が切れました。いったんログアウトして Xaman で再ログインし、もう一度お試しください。", "xamanReloginBtn": "再ログイン"});
 
-/* named-box hint (v20261028e) */
-Object.assign(window.BOX_I18N.en, {"namedOnly": "This box was made for one address only: {a}. Only that account can open it. Sign in to Xaman with {a} and try again."});
-Object.assign(window.BOX_I18N.es, {"namedOnly": "Esta caja se creó solo para una dirección: {a}. Solo esa cuenta puede abrirla. Entra en Xaman con {a} y vuelve a intentarlo."});
-Object.assign(window.BOX_I18N.fr, {"namedOnly": "Cette boîte a été créée pour une seule adresse : {a}. Seul ce compte peut l’ouvrir. Connecte-toi à Xaman avec {a} et réessaie."});
-Object.assign(window.BOX_I18N.ru, {"namedOnly": "Этот бокс сделан только для одного адреса: {a}. Открыть его может только этот аккаунт. Войди в Xaman с {a} и попробуй снова."});
-Object.assign(window.BOX_I18N.de, {"namedOnly": "Diese Box wurde nur für eine Adresse erstellt: {a}. Nur dieses Konto kann sie öffnen. Melde dich in Xaman mit {a} an und versuche es erneut."});
-Object.assign(window.BOX_I18N.zh, {"namedOnly": "这个礼盒只为一个地址创建：{a}。只有该账户能打开它。请在 Xaman 中用 {a} 登录后再试。"});
-Object.assign(window.BOX_I18N.ja, {"namedOnly": "このボックスは 1 つのアドレス専用です：{a}。開けるのはこのアカウントだけです。Xaman に {a} でログインして、もう一度お試しください。"});
+/* named-box hint: no recipient address on the open screen (v20261125a) */
+Object.assign(window.BOX_I18N.en, {"namedOnly": "This box is for another address. Sign in with the recipient’s address."});
+Object.assign(window.BOX_I18N.es, {"namedOnly": "Esta caja es para otra dirección. Entra con la dirección del destinatario."});
+Object.assign(window.BOX_I18N.fr, {"namedOnly": "Cette boîte est destinée à une autre adresse. Connecte-toi avec l’adresse du destinataire."});
+Object.assign(window.BOX_I18N.ru, {"namedOnly": "Этот бокс для другого адреса. Войди с адресом получателя."});
+Object.assign(window.BOX_I18N.de, {"namedOnly": "Diese Box ist für eine andere Adresse. Melde dich mit der Adresse des Empfängers an."});
+Object.assign(window.BOX_I18N.zh, {"namedOnly": "这个礼盒是给另一个地址的。请用接收方的地址登录。"});
+Object.assign(window.BOX_I18N.ja, {"namedOnly": "このボックスは別のアドレス宛てです。受け取り先のアドレスでログインしてください。"});
 
 /* open by link (v20261028e) */
 Object.assign(window.BOX_I18N.en, {"openByLink": "Open by link or QR", "openByLinkSub": "Paste the box link here, or scan / pick a photo of its QR code.", "pasteBtn": "Paste", "pasteManual": "Couldn’t read the clipboard. Long-press the field and choose Paste."});
@@ -2629,7 +2629,7 @@ window.BOX_I18N.pt = {
  "themeSys": "Sistema",
  "xamanRelogin": "A conexão com o Xaman foi perdida, ou seu acesso expirou. Saia, entre de novo com o Xaman e tente mais uma vez.",
  "xamanReloginBtn": "Entrar de novo",
- "namedOnly": "Esta caixa foi feita só para um endereço: {a}. Só essa conta pode abri-la. Entre no Xaman com {a} e tente de novo.",
+ "namedOnly": "Esta caixa é para outro endereço. Entre com o endereço do destinatário.",
  "openByLink": "Abrir por link ou QR",
  "openByLinkSub": "Cole o link da caixa aqui, ou escaneie / escolha uma foto do QR.",
  "pasteBtn": "Colar",

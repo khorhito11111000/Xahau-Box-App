@@ -1716,8 +1716,10 @@ $('doneFinish').onclick = () => { S.pending = null; save(); createFor = null; sh
 /* ---------- OPEN (recipient) ---------- */
 let openQ = null, openBox = null;
 function enterOpen(text) {
-  show('open'); errSet('openErr'); $('boxView').textContent = '';
-  if (text) { $('qrInput').value = text.includes('tgs1:') ? text.slice(text.indexOf('tgs1:')) : text; showBox(); }
+  show('open'); errSet('openErr');
+  if (text) { $('boxView').textContent = ''; $('qrInput').value = text.includes('tgs1:') ? text.slice(text.indexOf('tgs1:')) : text; return showBox(); }
+  if ($('qrInput').value.trim()) return showBox();
+  $('boxView').textContent = '';
 }
 $('qrGo').onclick = () => showBox();
 /* ---------- check a key by its ID: read-only, straight from the network node, nothing can be signed here ---------- */
@@ -1944,19 +1946,25 @@ async function showBox() {
   if (tok) card.append(tokenCard(tok, { big: true }));
   const ekind = ktid ? 'token' : q.kind;
   card.append(row(t('kind'), t(ekind + 'Kind')));
-  if (q.kind === 'named') card.append(row(t('signedFor'), short(q.a)));
-  { const xm = xstate && xstate.me && xstate.me.account; if (q.kind === 'named' && xm && xm !== q.a) card.append(h('div', { class: 'card warn' }, t('namedOnly').replace('{a}', short(q.a)))); }
+  const xme0 = xstate && xstate.me && xstate.me.account;
+  const curAddr = xme0 || (S.account && S.account.address) || '';
+  const namedLocked = namedOpenLocked(q, curAddr);
+  if (namedLocked) card.append(h('div', { class: 'card warn' }, t('namedOnly')));
   if (ktid) card.append(row(t('keyHolder'), short(holder || '?')));
   card.append(row(t('boxNumber'), short(q.vc)));
   renderLive(false);
-  // opener
-  const opener = h('input', { class: 'inp', id: 'openerAddr', placeholder: 'r...', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
-  const xme0 = xstate && xstate.me && xstate.me.account;
-  opener.value = xme0 || (S.account ? S.account.address : '') || (q.kind === 'named' ? q.a : '');
+  // opener: for an addressed box, a wrong (or missing) account cannot open or build a raw claim tx
   const msg = h('p', { class: 'err-line' });
-  rest.append(h('div', { class: 'card' }, h('div', { class: 'lbl' }, t('youOpen')), opener, msg,
-    h('button', { class: 'btn y', type: 'button', disabled: b.status !== 0 || null, onclick: () => buildClaim(opener.value.trim(), msg) }, '🎁 ' + t('openNow'))));
+  let opener = null;
+  const openBtn = h('button', { class: 'btn y', type: 'button', disabled: b.status !== 0 || namedLocked || null, onclick: () => buildClaim(opener ? opener.value.trim() : curAddr, msg) }, '🎁 ' + t('openNow'));
+  if (namedLocked) rest.append(h('div', { class: 'card' }, msg, openBtn));
+  else {
+    opener = h('input', { class: 'inp', id: 'openerAddr', placeholder: 'r...', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
+    opener.value = curAddr;
+    rest.append(h('div', { class: 'card' }, h('div', { class: 'lbl' }, t('youOpen')), opener, msg, openBtn));
+  }
 }
+function namedOpenLocked(q, me) { return !!(q && q.kind === 'named' && me !== q.a); }
 function buildClaim(who, msg) {
   msg.textContent = '';
   const q = openQ, b = openBox;
@@ -1964,7 +1972,7 @@ function buildClaim(who, msg) {
   const expN = parseInt(b.exp, 16); if (expN && curLedger(b.cur) > expN) return (msg.textContent = t('expired'));
   let tx;
   if (b.ktid) { if (b.holder !== who) return (msg.textContent = t('notHolder')); tx = claimTokTx(who, q.h, q.vc); }
-  else if (q.kind === 'named') { if (q.a !== who) return (msg.textContent = t('namedOnly').replace('{a}', short(q.a))); tx = claimKeyTx(who, q.h, q.p.toUpperCase(), q.s.toUpperCase()); }
+  else if (q.kind === 'named') { const me = (xstate && xstate.me && xstate.me.account) || (S.account && S.account.address) || ''; if (namedOpenLocked(q, me) || q.a !== who) return (msg.textContent = t('namedOnly')); tx = claimKeyTx(who, q.h, q.p.toUpperCase(), q.s.toUpperCase()); }
   else if (q.kind === 'bearer') { const m = L.claimMessage({ opener: who, vc: q.vc, hook: q.h, networkId: NET().networkId, exp: b.exp, tid: b.tid, amt: b.amt, nonce: b.nonce }); tx = claimKeyTx(who, q.h, q.pub, L.signClaim(q.b, m)); }
   else return (msg.textContent = t('notHolder'));
   const xmeB = xstate && xstate.me && xstate.me.account;
