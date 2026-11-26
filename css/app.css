@@ -615,3 +615,12 @@ html.xapp,html.xapp body{font-size:16px}
 .sfbrand .listed a{color:var(--mut);text-decoration:underline;text-underline-offset:2px}
 .sfbrand .listed a:hover{color:var(--txt)}
 html[data-theme=light] .sfbrand .listed a:hover{color:var(--navy)}
+
+/* billboard giveaway (#drop) */
+.sfbuild{margin:2px 0 0;text-align:center;font-size:11px}
+.sfbuild a{color:inherit;opacity:.45;text-decoration:none}
+.sfbuild a:hover{opacity:.8;text-decoration:underline}
+.dropcard .gmeta{width:100%}
+.dbar{height:10px;border-radius:6px;background:rgba(27,36,96,.12);overflow:hidden;margin:4px 0 8px}
+.dbar i{display:block;height:100%;background:var(--navy);border-radius:6px}
+.dropnote{font-weight:700}

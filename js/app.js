@@ -440,7 +440,7 @@ const appUrl = () => C.APP_URL || (location.origin + location.pathname);
 const qrLink = q => appUrl() + '#' + q;
 
 /* ---------- screens ---------- */
-const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'sent', 'settings', 'mybx', 'keycheck'];
+const SCREENS = ['home', 'account', 'create', 'sign', 'done', 'open', 'opened', 'sent', 'settings', 'mybx', 'keycheck', 'drop'];
 let current = 'home', afterAccount = null;
 /* Back: the in-page "Back" button and the phone's / browser's Back do the same thing (goBack).
    History holds at most one extra entry above "#home" ({xb:1}): leaving home adds it, moving between
@@ -1544,7 +1544,8 @@ async function stepPoll() {
         }
         if (st.st === 'signed') {
           const r = await getTx(st.txid).catch(() => null);
-          if (r && r.validated) { const res = (r.meta || {}).TransactionResult; if (res === 'tesSUCCESS') st.st = 'ok'; else { st.st = 'fail'; st.res = res; } changed = true; }
+          if (r && r.validated) { const res = (r.meta || {}).TransactionResult; if (res === 'tesSUCCESS') st.st = 'ok'; else { st.st = 'fail'; st.res = res; } changed = true;
+            if (key === 'main' && st.st === 'fail' && isDropClaim(p) && DROP_LOST.test(hookAnswers(r).join(' '))) { dropTaken(); return; } }
           else waiting = true;
         }
       }
@@ -1575,6 +1576,7 @@ async function checkPending() {
     for (let i = 0; i < 6 && b && b.status === 0; i++) { await sleep(2000); if (S.pending !== p) return; b = parseBox(await hookState(p.h, L.boxKey(p.vc))); } // the ledger may lag a few seconds
     if (b && b.status === 0) return errSet('signErr', t('notYet'));
     if (b && b.status === 2) { errSet('signErr', t('stClaiming')); await sleep(4000); return checkPending(); }
+    if (!b && isDropClaim(p) && !(await dropClaimedByMe(p).catch(() => true))) return dropTaken(); // billboard box: someone was faster
     return finishClaim();
   }
   if (p.op === 'open') {
@@ -1737,7 +1739,7 @@ $('doneFinish').onclick = () => { S.pending = null; save(); createFor = null; sh
 /* ---------- OPEN (recipient) ---------- */
 let openQ = null, openBox = null;
 function enterOpen(text) {
-  show('open'); errSet('openErr');
+  show('open'); errSet('openErr'); $('openInputCard').classList.remove('hide');
   if (text) { $('boxView').textContent = ''; $('qrInput').value = text.includes('tgs1:') ? text.slice(text.indexOf('tgs1:')) : text; return showBox(); }
   if ($('qrInput').value.trim()) return showBox();
   $('boxView').textContent = '';
@@ -2896,6 +2898,7 @@ $('hkGo').onclick = async () => {
 
 /* ---------- routing / header ---------- */
 function route(name) {
+  if (name === 'drop') return enterDrop();
   if (name === 'create') return enterCreate();
   if (name === 'open') return enterOpen();
   if (name === 'boxes') return enterBoxes();
@@ -2941,11 +2944,87 @@ $('setBtn').onclick = () => enterSettings();
 $('faucetBtn').onclick = () => faucetGet();
 $('netBtn').onclick = () => { sel.held = null; sel.key = null; sel.fresh = null; createFor = null; S.net = S.net === 'testnet' ? 'mainnet' : 'testnet'; save(); applyNet(); pollLedger(); renderAcct(); acct = null; if ($('acc-hook').open) hkUi(); route(current === 'sign' || current === 'done' || current === 'opened' ? 'home' : current); };
 for (const id of ['evergramDone']) $(id).href = C.EVERGRAM_URL;
+/* ---------- Billboard giveaways (#drop/<network>/<id>) ----------
+   The billboard QR opens this page. The giveaway service (C.GIVEAWAY_API[net]) hands this wallet ONE box: the same kind of
+   "named" box link the page already makes (signed for this address only), so the normal box screen + CLAIM flow take over.
+   If someone else claims that box first, the hook refuses ("tgs: unknown" / "tgs: busy"): we say so and ask the service again. */
+const DKEY = 'xbox.drop.v1';
+const dropGet = () => { try { return JSON.parse(localStorage.getItem(DKEY)) || null; } catch { return null; } };
+const dropPut = d => { try { localStorage.setItem(DKEY, JSON.stringify(d)); } catch {} };
+const dropApi = net => ((C.GIVEAWAY_API || {})[net] || '').replace(/\/+$/, '');
+const tOr = (k, f) => (t(k) !== k ? t(k) : f);
+async function dropFetch(net, path, body) {
+  const r = await fetch(dropApi(net) + path, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : {});
+  const j = await r.json().catch(() => ({ ok: false, error: 'server' })); j.http = r.status; return j;
+}
+const dropWhat = c => { if (!c) return ''; const p = []; if (c.xah_drops && c.xah_drops !== '0') p.push(dropsToXah(c.xah_drops) + ' XAH'); if (c.uritoken) p.push('1 URIToken'); return p.join(' + '); };
+const dropBar = pc => { const i = h('i'); i.style.width = pc + '%'; return h('div', { class: 'dbar' }, i); }; // CSSOM, allowed by the page CSP
+let dropBusy = false;
+async function enterDrop(net, id, note) {
+  if (!net || !id) { const d = dropGet(); if (!d) return show('home'); net = d.net; id = d.id; }
+  if (!C.NETWORKS[net] || !/^[0-9a-f]{16,64}$/.test(id) || !dropApi(net)) { show('home'); return toast(t('dropNotFound')); }
+  const prev = dropGet(); dropPut(Object.assign({}, prev && prev.id === id ? prev : {}, { net, id }));
+  if (net !== S.net) { S.net = net; save(); applyNet(); renderAcct(); toast(t('netSwitched') + ': ' + NET().label); }
+  show('drop');
+  const v = $('dropView'); v.textContent = ''; v.append(h('div', { class: 'spin sm' })); errSet('dropErr');
+  let g; try { g = await dropFetch(net, '/api/g/' + id); } catch { v.textContent = ''; return errSet('dropErr', t('dropNoService')); }
+  v.textContent = '';
+  if (!g.ok) return errSet('dropErr', t('dropNotFound'));
+  const total = g.total || 0, left = g.left || 0, st = g.status;
+  const card = h('div', { class: 'giftcard dropcard' },
+    h('div', { class: 'gicon' }, window.BOX_ICON ? window.BOX_ICON('gift', 'gbig') : '🎁'),
+    h('div', { class: 'gtitle' }, g.name || t('dropTitle')),
+    h('div', { class: 'gfrom' }, t('dropSub')),
+    dropWhat(g.contents) ? h('div', { class: 'ginside' }, t('giftInside') + ': ' + dropWhat(g.contents)) : null,
+    h('div', { class: 'gmeta' },
+      row(t('dropLeft'), left + ' / ' + total, left ? 'yel' : 'bad'),
+      dropBar(total ? Math.round(100 * left / total) : 0),
+      g.exp_ledger ? row(t('ledgerExp'), String(g.exp_ledger)) : null));
+  v.append(card);
+  if (note) v.append(h('div', { class: 'card warn dropnote' }, note));
+  if (st !== 'live') { v.append(h('div', { class: 'card warn' }, h('b', null, tOr('drop_' + st, t('dropNotLive'))), h('p', { class: 'sm' }, tOr('drop_' + st + 'T', '')))); return; }
+  const who = (xstate && xstate.me && xstate.me.account) || (S.account && S.account.address) || '';
+  const box = h('div', { class: 'card' }); v.append(box);
+  if (!who) { box.append(h('p', { class: 'sm' }, t('dropNeedAcct')), h('button', { class: 'btn y', type: 'button', onclick: () => { afterAccount = () => enterDrop(net, id); show('account'); } }, t('dropSignIn'))); return; }
+  box.append(row(t('dropFor'), short(who)));
+  const msg = h('p', { class: 'err-line' });
+  const go = h('button', { class: 'btn y', type: 'button', onclick: () => dropGetBox(net, id, who, msg, go) }, '🎁 ' + t('dropGet'));
+  box.append(go, msg, h('p', { class: 'sm' }, t('dropOne')));
+  return go;
+}
+async function dropGetBox(net, id, who, msg, btn) {
+  if (dropBusy) return; dropBusy = true; msg.textContent = ''; if (btn) btn.disabled = true;
+  try {
+    const r = await dropFetch(net, '/api/g/' + id + '/claim', { address: who });
+    if (!r.ok) { if (['empty', 'expired', 'closed', 'paused'].includes(r.error)) return enterDrop(net, id); msg.textContent = tOr('dropE_' + r.error, t('dropE_other') + ' (' + r.error + ')'); return; }
+    dropPut({ net, id, pk: String(r.pk || '').toUpperCase(), a: who });
+    enterOpen(r.named); $('openInputCard').classList.add('hide'); // a billboard box: no need to show its link field
+  } catch { msg.textContent = t('dropNoService'); }
+  finally { dropBusy = false; if (btn) btn.disabled = false; }
+}
+/* the box this wallet got from the billboard is gone (someone was faster): say so, then ask the service for another box */
+function dropTaken() {
+  const d = dropGet(); S.pending = null; save();
+  if (!d) return show('home');
+  return enterDrop(d.net, d.id, t('dropTaken')).then(btn => { if (btn) setTimeout(() => { if (current === 'drop' && btn.isConnected) btn.click(); }, 2500); });
+}
+const pkOf = tx => ((tx && tx.HookParameters) || []).map(x => String((x.HookParameter || {}).HookParameterValue || '').toUpperCase());
+const isDropClaim = p => { const d = dropGet(); return !!(p && p.op === 'claim' && p.tx && d && d.pk && pkOf(p.tx).includes(d.pk)); };
+/* did this wallet's own CLAIM of the billboard box succeed? (read-only: its recent transactions) */
+async function dropClaimedByMe(p) {
+  const pk = dropGet().pk;
+  const r = await rpc('account_tx', { account: p.tx.Account, limit: 30, ledger_index_min: -1, ledger_index_max: -1 });
+  return (r.transactions || []).some(it => { const x = it.tx || it.tx_json || {}; return x.TransactionType === 'Invoke' && (it.meta || {}).TransactionResult === 'tesSUCCESS' && pkOf(x).includes(pk) && !/tgs: (unknown|busy)/.test(hookAnswers(Object.assign({}, x, { meta: it.meta })).join(' ')); });
+}
+const DROP_LOST = /tgs: (unknown|busy)/;
+if (C.BUILDER_URL) $('goBuild').href = C.BUILDER_URL; // small footer link to the billboard builder page
+$('goBuild').classList.toggle('hide', !C.BUILDER_URL || XAPP);
 function handleHash() {
   startLive();
   const hs = decodeURIComponent(location.hash.slice(1));
   { const kq = kcLink(location.href); if (kq) { history.replaceState(null, '', location.pathname + '#home'); return enterKeyCheck(kq); } }
   if (hs.startsWith('tgs1:')) { history.replaceState(null, '', '#open'); return enterOpen(hs); }
+  if (hs.startsWith('drop/')) { const [, net, id] = hs.split('/'); return enterDrop(net, id); }
   route(hs || 'home');
 }
 window.addEventListener('hashchange', () => { if (location.hash.slice(1) !== current) handleHash(); });
