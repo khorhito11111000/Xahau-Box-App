@@ -10,7 +10,7 @@ window.BOX_CONFIG = {
   // No entry for a network = billboard links for it are refused. Mainnet is NOT enabled.
   GIVEAWAY_API: { testnet: 'https://xahaubox-giveaway-testnet.xahaubox.workers.dev' },
   // "Build billboard" button on Home (opens the builder page in a new tab). Empty = button hidden.
-  BUILDER_URL: 'https://xahaubox-giveaway-testnet.xahaubox.workers.dev/builder/',
+  BUILDER_URL: 'https://xahaubox-giveaway-mainnet.xahaubox.workers.dev/builder/',
   NETWORKS: {
     testnet: { label: 'Testnet', networkId: 21338, rpc: 'https://xahau-test.net', explorerTx: 'https://test.xahauexplorer.com/en/tx/' },
     mainnet: { label: 'Mainnet', networkId: 21337, rpc: 'https://xahau.network', explorerTx: 'https://xahauexplorer.com/en/tx/' }
