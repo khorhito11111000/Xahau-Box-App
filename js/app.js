@@ -2959,6 +2959,38 @@ async function dropFetch(net, path, body) {
 }
 const dropWhat = c => { if (!c) return ''; const p = []; if (c.xah_drops && c.xah_drops !== '0') p.push(dropsToXah(c.xah_drops) + ' XAH'); if (c.uritoken) p.push('1 URIToken'); return p.join(' + '); };
 const dropBar = pc => { const i = h('i'); i.style.width = pc + '%'; return h('div', { class: 'dbar' }, i); }; // CSSOM, allowed by the page CSP
+const turnstileKey = net => String((C.TURNSTILE_SITE_KEY || {})[net] || '');
+function loadTurnstile() {
+  if (window.turnstile) return Promise.resolve(window.turnstile);
+  if (loadTurnstile.p) return loadTurnstile.p;
+  loadTurnstile.p = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    s.async = true;
+    s.onload = () => window.turnstile ? resolve(window.turnstile) : reject();
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return loadTurnstile.p;
+}
+async function mountTurnstile(el, net) {
+  const key = turnstileKey(net); if (!key) return { token: () => '', reset() {} };
+  el.textContent = '';
+  const box = h('div'); el.append(box);
+  const ts = await loadTurnstile();
+  let tok = '';
+  const id = ts.render(box, {
+    sitekey: key,
+    theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark',
+    callback: v => { tok = v || ''; },
+    'expired-callback': () => { tok = ''; },
+    'error-callback': () => { tok = ''; }
+  });
+  return {
+    token: () => tok || (ts.getResponse && ts.getResponse(id)) || '',
+    reset() { tok = ''; try { ts.reset(id); } catch {} }
+  };
+}
 let dropBusy = false;
 async function enterDrop(net, id, note) {
   if (!net || !id) { const d = dropGet(); if (!d) return show('home'); net = d.net; id = d.id; }
@@ -2988,18 +3020,31 @@ async function enterDrop(net, id, note) {
   if (!who) { box.append(h('p', { class: 'sm' }, t('dropNeedAcct')), h('button', { class: 'btn y', type: 'button', onclick: () => { afterAccount = () => enterDrop(net, id); show('account'); } }, t('dropSignIn'))); return; }
   box.append(row(t('dropFor'), short(who)));
   const msg = h('p', { class: 'err-line' });
-  const go = h('button', { class: 'btn y', type: 'button', onclick: () => dropGetBox(net, id, who, msg, go) }, '🎁 ' + t('dropGet'));
+  const tsHost = h('div', { class: 'tswrap' });
+  const ts = { token: () => '', reset() {} };
+  if (turnstileKey(net)) {
+    box.append(tsHost);
+    mountTurnstile(tsHost, net).then(w => { ts.token = w.token; ts.reset = w.reset; }).catch(() => { msg.textContent = tOr('dropE_bot_check_failed', t('dropE_other')); });
+  }
+  const go = h('button', { class: 'btn y', type: 'button', onclick: () => dropGetBox(net, id, who, msg, go, ts) }, '🎁 ' + t('dropGet'));
   box.append(go, msg, h('p', { class: 'sm' }, t('dropOne')));
   return go;
 }
-async function dropGetBox(net, id, who, msg, btn) {
+async function dropGetBox(net, id, who, msg, btn, ts) {
   if (dropBusy) return; dropBusy = true; msg.textContent = ''; if (btn) btn.disabled = true;
   try {
-    const r = await dropFetch(net, '/api/g/' + id + '/claim', { address: who });
+    const body = { address: who };
+    if (turnstileKey(net)) {
+      const tok = ts && ts.token && ts.token();
+      if (!tok) { msg.textContent = tOr('dropE_bot_check_failed', t('dropE_other')); return; }
+      body.turnstile = tok;
+    }
+    const r = await dropFetch(net, '/api/g/' + id + '/claim', body);
+    if (ts && ts.reset) ts.reset();
     if (!r.ok) { if (['empty', 'expired', 'closed', 'paused'].includes(r.error)) return enterDrop(net, id); msg.textContent = tOr('dropE_' + r.error, t('dropE_other') + ' (' + r.error + ')'); return; }
     dropPut({ net, id, pk: String(r.pk || '').toUpperCase(), a: who });
     enterOpen(r.named); $('openInputCard').classList.add('hide'); // a billboard box: no need to show its link field
-  } catch { msg.textContent = t('dropNoService'); }
+  } catch { if (ts && ts.reset) ts.reset(); msg.textContent = t('dropNoService'); }
   finally { dropBusy = false; if (btn) btn.disabled = false; }
 }
 /* the box this wallet got from the billboard is gone (someone was faster): say so, then ask the service for another box */

@@ -7,8 +7,14 @@ window.BOX_CONFIG = {
   EVERGRAM_URL: 'https://evergram.app',
   DEFAULT_NETWORK: 'testnet',
   // Billboard giveaways: the public giveaway service per network (a billboard QR opens #drop/<network>/<id>).
-  // No entry for a network = billboard links for it are refused. Mainnet is NOT enabled.
-  GIVEAWAY_API: { testnet: 'https://xahaubox-giveaway-testnet.xahaubox.workers.dev' },
+  // No entry for a network = billboard links for it are refused.
+  GIVEAWAY_API: {
+    testnet: 'https://xahaubox-giveaway-testnet.xahaubox.workers.dev',
+    mainnet: 'https://xahaubox-giveaway-mainnet.xahaubox.workers.dev'
+  },
+  // Public Cloudflare Turnstile site key per network (the secret stays on the worker).
+  // No key for a network = the page does not show the widget (testnet claims still work via the worker bypass).
+  TURNSTILE_SITE_KEY: { mainnet: '0x4AAAAAAGWGbi6aJlh4CFus' },
   // "Build billboard" button on Home (opens the builder page in a new tab). Empty = button hidden.
   BUILDER_URL: 'https://xahaubox-giveaway-mainnet.xahaubox.workers.dev/builder/',
   NETWORKS: {

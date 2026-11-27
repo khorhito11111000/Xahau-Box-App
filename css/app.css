@@ -624,3 +624,4 @@ html[data-theme=light] .sfbrand .listed a:hover{color:var(--navy)}
 .dbar{height:10px;border-radius:6px;background:rgba(27,36,96,.12);overflow:hidden;margin:4px 0 8px}
 .dbar i{display:block;height:100%;background:var(--navy);border-radius:6px}
 .dropnote{font-weight:700}
+.tswrap{margin:10px 0 12px;min-height:65px}
