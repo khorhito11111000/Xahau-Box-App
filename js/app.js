@@ -1914,6 +1914,7 @@ $('qrPaste').onclick = async () => {
 };
 async function showBox() {
   errSet('openErr'); const v = $('boxView'); v.textContent = '';
+  { const dm = String($('qrInput').value || '').match(/drop\/(testnet|mainnet)\/([0-9a-f]{24})/); if (dm) { $('qrInput').value = ''; return enterDrop(dm[1], dm[2]); } } // billboard link pasted or scanned
   const q = parseQr($('qrInput').value); if (!q) return errSet('openErr', t('badQr'));
   if (q.n) { const nk = Object.keys(C.NETWORKS).find(k => C.NETWORKS[k].networkId === q.n); if (nk && nk !== S.net) { S.net = nk; save(); applyNet(); renderAcct(); toast(t('netSwitched') + ': ' + NET().label); } }
   openQ = q; v.append(h('div', { class: 'spin sm' }));
