@@ -2492,7 +2492,11 @@ async function stInstallers(hooks) {
   if (c.hh !== hh) c = { id, hh, at: 0, head: null, accts: [], from: {} };   // new hook version: start the installer list over
   const r = await rpc('ledger_entry', { hook_definition: hh, ledger_index: 'validated' });
   const d = r.node; if (!d || !d.index) return { accts: c.accts, from: c.from };
-  if (d.PreviousTxnID && d.PreviousTxnID === c.head) return { accts: c.accts, from: c.from };   // nothing new since last visit (2 cheap reads)
+  if (d.PreviousTxnID && d.PreviousTxnID === c.head) { // nothing new since last visit (2 cheap reads)
+    const n = parseInt(String(d.ReferenceCount ?? ''), 16);
+    if (!(Number.isFinite(n) && n > (c.accts || []).length)) return { accts: c.accts, from: c.from };
+    c.head = null; // short list vs ReferenceCount: re-walk so a frozen cache can recover
+  }
   const set = new Set(c.accts), from = Object.assign({}, c.from); let tx = d.PreviousTxnID, bad = false; const head = tx;
   const remember = (acct, ledger) => {
     const n = Number(ledger);
@@ -2501,7 +2505,7 @@ async function stInstallers(hooks) {
   };
   for (let i = 0; tx && tx !== c.head && i < 3000; i++) {
     let e; try { e = await rpc('tx', { transaction: tx }); } catch { bad = true; break; }
-    if (!e || !e.meta) break;                                    // the node keeps no older history (testnet)
+    if (!e || !e.meta || e.error) { bad = true; break; }         // incomplete: do not save head as the tip
     let prev = null, installed = false;
     for (const n of e.meta.AffectedNodes || []) {
       const v = n.ModifiedNode || n.CreatedNode || n.DeletedNode;
@@ -3117,7 +3121,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   const sv = $('pageVer').textContent;
   navigator.serviceWorker.register('sw.js?v=' + encodeURIComponent(sv), { scope: './' }).catch(() => {});
 }
-$('stRefresh').onclick = () => { try { localStorage.removeItem(STK); } catch {} loadStats(true); };
+$('stRefresh').onclick = () => { try { localStorage.removeItem(STK); localStorage.removeItem(SIK); } catch {} loadStats(true); };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && current === 'home') loadStats(); });
 
 /* ---------- donations (footer, home only): one address for XAH and XRP, QR with the coin logo in the center ---------- */
