@@ -94,10 +94,21 @@ async function accountObjects(a, type) {
 }
 async function nsEntries(a) {
   let out = [], marker;
-  for (let i = 0; i < 20; i++) { const r = await rpc('account_namespace', Object.assign({ account: a, namespace_id: C.HOOK_NAMESPACE, ledger_index: 'validated' }, marker ? { marker } : {})); out = out.concat(r.namespace_entries || []); marker = r.marker; if (!marker) break; }
+  for (let i = 0; i < 20; i++) {
+    const r = await rpc('account_namespace', Object.assign({ account: a, namespace_id: C.HOOK_NAMESPACE, ledger_index: 'validated' }, marker ? { marker } : {}));
+    if (r.error) throw new Error(r.error_message || r.error);
+    out = out.concat(r.namespace_entries || []); marker = r.marker; if (!marker) break;
+  }
   return out;
 }
 async function hookState(a, key) { const r = await rpc('ledger_entry', { hook_state: { account: a, key, namespace_id: C.HOOK_NAMESPACE }, ledger_index: 'validated' }); return r.node ? r.node.HookStateData : null; }
+// true only when a successful ledger_entry says the hook state is absent; RPC/other errors throw
+async function hookStateGone(a, key) {
+  const r = await rpc('ledger_entry', { hook_state: { account: a, key, namespace_id: C.HOOK_NAMESPACE }, ledger_index: 'validated' });
+  if (r.node) return false;
+  if (r.error === 'entryNotFound') return true;
+  throw new Error(r.error_message || r.error || 'ledger_entry');
+}
 async function uriToken(id) { const r = await rpc('ledger_entry', { uri_token: id, ledger_index: 'validated' }); return r.node || null; }
 async function currentLedger() { const r = await rpc('ledger_current', {}); return r.ledger_current_index; }
 async function reserves() { const r = await rpc('server_info', {}); const v = (r.info && r.info.validated_ledger) || {}; return { base: BigInt(Math.round((v.reserve_base_xrp || 1) * 1e6)), inc: BigInt(Math.round((v.reserve_inc_xrp || 0.2) * 1e6)) }; }
@@ -1050,8 +1061,10 @@ $('xamanBtn').onclick = () => { if (xOn()) signIn(S.back); };
 $('acctBtn').onclick = () => { if (S.account) return signOut(); signIn(['home', 'account', 'done', 'opened', 'settings'].includes(current) ? null : current); };
 
 async function loadAccountView(a) {
-  const [info, objs, ns, res, cur] = await Promise.all([accountInfo(a), accountObjects(a), nsEntries(a).catch(() => []), reserves(), currentLedger()]);
+  const nsJob = nsEntries(a).then(e => ({ ok: true, e })).catch(() => ({ ok: false, e: [] }));
+  const [info, objs, nsRes, res, cur] = await Promise.all([accountInfo(a), accountObjects(a), nsJob, reserves(), currentLedger()]);
   if (!info) throw new Error(t('notFoundAcct'));
+  const ns = nsRes.e, nsOk = nsRes.ok;
   const st = new Map(ns.map(e => [e.HookStateKey, e.HookStateData]));
   const boxes = [], keyOf = new Set(), locked = new Set();
   for (const [k, d] of st) {
@@ -1068,7 +1081,8 @@ async function loadAccountView(a) {
     hook: (info.HookNamespaces || []).includes(C.HOOK_NAMESPACE) ? objs.some(o => o.LedgerEntryType === 'Hook') : await hookNsInstalled(objs),
     hasHook: objs.some(o => o.LedgerEntryType === 'Hook'),
     tokens: objs.filter(o => o.LedgerEntryType === 'URIToken' && o.Owner === a),
-    balance: BigInt(info.Balance)
+    balance: BigInt(info.Balance),
+    nsOk, nsCount: ns.length
   };
 }
 // A fresh install has no hook state yet, so HookNamespaces is empty: read the namespace from the Hook entry or its definition.
@@ -2692,14 +2706,19 @@ async function mbLoad() {
     }
     // the box number (VC) of a live box: this device's records first, then the public PACK of this account
     const known = new Map(S.history.filter(x => x.h === me && x.net === S.net).map(x => [L.boxKey(x.vc), x]));
-    const links = new Map(), live = new Set(v.boxes.map(b => b.key)), stale = [];
+    const links = new Map(), live = new Set(v.boxes.map(b => b.key)), maybeGone = [];
     for (const [id, x] of Object.entries(vaultAll())) {
       if (!x || x.h !== me || x.net !== S.net) continue;
       const k = L.boxKey(x.vc);
       if (live.has(k)) { links.set(k, x); if (!known.has(k)) known.set(k, x); }
-      else if (x.nonce != null || Date.now() - (x.created || 0) > 86400000) stale.push(id);
+      // never drop on a failed or empty namespace read; only after ledger_entry entryNotFound
+      else if (v.nsOk && v.nsCount && (x.nonce != null || Date.now() - (x.created || 0) > 86400000)) maybeGone.push({ id, k });
     }
-    vaultDrop(stale);
+    if (maybeGone.length) {
+      const stale = [];
+      await Promise.all(maybeGone.map(async s => { try { if (await hookStateGone(me, s.k)) stale.push(s.id); } catch {} }));
+      vaultDrop(stale);
+    }
     const kn = b => known.get(b.key) || (packByKey.get(String(b.key).toUpperCase()) ? { vc: packByKey.get(String(b.key).toUpperCase()).vc } : null);
     const built = v.boxes.slice().sort((a, c) => c.nonce - a.nonce);
     // who holds the key token of each live key box now
